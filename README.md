@@ -89,3 +89,4 @@ This project is licensed under the MIT License.
 ## 🧪 Testing
 
 This project is tested with BrowserStack
+
