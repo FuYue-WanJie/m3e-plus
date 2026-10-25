@@ -1,11 +1,11 @@
-# @m3e/web/toc
+# @wanjie/m3e-web/toc
 
 The `m3e-toc` and `m3e-toc-item` components provide a hierarchical, interactive table of contents for in-page navigation. The TOC automatically detects headings or sections in a target element, builds a navigable list, and highlights the active section as the user scrolls. It supports custom header slots, depth limiting, smooth scrolling, and extensive theming via CSS custom properties.
 
 > To exclude a heading from the generated table of contents, add the `m3e-toc-ignore` attribute to that heading element.
 
 ```ts
-import "@m3e/web/toc";
+import "@wanjie/m3e-web/toc";
 ```
 
 ## 🗂️ Elements

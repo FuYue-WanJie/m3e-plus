@@ -1,9 +1,9 @@
-# @m3e/web/snackbar
+# @wanjie/m3e-web/snackbar
 
-The `@m3e/snackbar` package provides the `M3eSnackbar` global service on `window` (`globalThis`) used to present short updates about application processes at the bottom of the screen from anywhere in an application.
+The `@wanjie/m3e-snackbar` package provides the `M3eSnackbar` global service on `window` (`globalThis`) used to present short updates about application processes at the bottom of the screen from anywhere in an application.
 
 ```ts
-import "@m3e/web/snackbar";
+import "@wanjie/m3e-web/snackbar";
 ```
 
 ## 🧪 Examples

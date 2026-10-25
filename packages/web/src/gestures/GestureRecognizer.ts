@@ -1,4 +1,4 @@
-import { hasKeys } from "@m3e/web/core";
+import { hasKeys } from "@wanjie/m3e-web/core";
 
 import { GestureDetail } from "./GestureDetail";
 import { GestureInput, PointerInput } from "./GestureInput";

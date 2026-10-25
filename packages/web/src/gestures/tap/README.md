@@ -1,9 +1,9 @@
-# @m3e/web/gestures/tap
+# @wanjie/m3e-web/gestures/tap
 
 Recognizes a short press and release with limited pointer movement.
 
 ```ts
-import { tap } from "@m3e/web/gestures/tap";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const recognizer = tap((detail) => {
   console.log(detail.gestureName, detail.clientX, detail.clientY);
@@ -13,7 +13,7 @@ const recognizer = tap((detail) => {
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/tap";
+import "@wanjie/m3e-web/gestures/tap";
 ```
 
 ```html

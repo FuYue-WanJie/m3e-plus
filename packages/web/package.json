@@ -1,5 +1,5 @@
 {
-  "name": "@m3e/web",
+  "name": "@wanjie/m3e-web",
   "version": "2.10.2",
   "description": "Platform-native Web Components for M3E",
   "author": "matraic <matraic@yahoo.com>",
@@ -75,6 +75,10 @@
   ],
   "type": "module",
   "exports": {
+    "./physics": {
+      "types": "./dist/src/physics/index.d.ts",
+      "default": "./dist/physics.js"
+    },
     "./core": {
       "types": "./dist/src/core/index.d.ts",
       "default": "./dist/core.js"

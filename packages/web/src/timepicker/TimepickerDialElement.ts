@@ -10,7 +10,7 @@ import {
   Role,
   safeStyleMap,
   SuppressInitialAnimation,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
 import { TimepickerInputElementBase } from "./TimepickerInputElementBase";
 

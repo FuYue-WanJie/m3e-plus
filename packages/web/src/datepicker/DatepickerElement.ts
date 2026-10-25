@@ -18,17 +18,17 @@ import {
   prefersReducedMotion,
   HtmlFor,
   waitForUpdate,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { positionAnchor } from "@m3e/web/core/anchoring";
-import { Direction, M3eDirectionality } from "@m3e/web/core/bidi";
-import { Breakpoint, M3eBreakpointObserver } from "@m3e/web/core/layout";
-import { M3eCalendarElement, CalendarView } from "@m3e/web/calendar";
-import type { M3eDateInputElement } from "@m3e/web/date-input";
+import { positionAnchor } from "@wanjie/m3e-web/core/anchoring";
+import { Direction, M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
+import { Breakpoint, M3eBreakpointObserver } from "@wanjie/m3e-web/core/layout";
+import { M3eCalendarElement, CalendarView } from "@wanjie/m3e-web/calendar";
+import type { M3eDateInputElement } from "@wanjie/m3e-web/date-input";
 
-import "@m3e/web/core/a11y";
-import "@m3e/web/button";
-import "@m3e/web/calendar";
+import "@wanjie/m3e-web/core/a11y";
+import "@wanjie/m3e-web/button";
+import "@wanjie/m3e-web/calendar";
 
 import { DatepickerVariant, isDatepickerVariant } from "./DatepickerVariant";
 

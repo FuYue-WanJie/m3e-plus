@@ -1,4 +1,4 @@
-import { GestureListener } from "@m3e/web/gestures";
+import { GestureListener } from "@wanjie/m3e-web/gestures";
 
 import { PanGestureDetail } from "./PanGestureDetail";
 import { PanGestureOptions } from "./PanGestureOptions";

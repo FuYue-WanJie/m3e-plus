@@ -3,8 +3,8 @@
 import { PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
-import { customElement } from "@m3e/web/core";
-import { GestureElementBase } from "@m3e/web/gestures";
+import { customElement } from "@wanjie/m3e-web/core";
+import { GestureElementBase } from "@wanjie/m3e-web/gestures";
 
 import { PanGestureDetail } from "./PanGestureDetail";
 import { PanGestureActivationMode, PanGestureLockAxis, PanGestureOptions } from "./PanGestureOptions";

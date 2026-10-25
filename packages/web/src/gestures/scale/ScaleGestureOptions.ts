@@ -1,4 +1,4 @@
-import { DefaultGestureOptions, GestureOptions } from "@m3e/web/gestures";
+import { DefaultGestureOptions, GestureOptions } from "@wanjie/m3e-web/gestures";
 
 /** Encapsulates options used to detect and interpret scale gestures. */
 export interface ScaleGestureOptions extends GestureOptions {

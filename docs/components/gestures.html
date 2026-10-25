@@ -20,7 +20,7 @@
     <link href="./gestures.css" rel="stylesheet" />
     <link href="api-viewer.css" rel="stylesheet" />
     <script type="module" src="https://cdn.jsdelivr.net/npm/api-viewer-element/+esm"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/web@2.10.2/dist/all.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-web@2.10.2/dist/all.min.js"></script>
     <script src="../main.js"></script>
     <script src="./gestures.js"></script>
   </head>
@@ -30,7 +30,7 @@
       <m3e-content-pane id="body">
         <m3e-heading m3e-toc-ignore variant="display" size="large" level="1">Gestures</m3e-heading>
         <p>
-          The <code>@m3e/web/gestures</code> module provides a gesture recognition subsystem supporting declarative and
+          The <code>@wanjie/m3e-web/gestures</code> module provides a gesture recognition subsystem supporting declarative and
           programmatic gesture detection. It uses a modular recognizer architecture with a priority-based disposition
           system that resolves competing claims on input.
         </p>
@@ -43,10 +43,10 @@
           <li>Declarative elements that bind to a target with the `for` attribute</li>
         </ul>
         <p>
-          The <code>@m3e/web/gestures</code> module is organized around a base module that installs the gesture
+          The <code>@wanjie/m3e-web/gestures</code> module is organized around a base module that installs the gesture
           subsystem and provides shared infrastructure for all recognizers.
         </p>
-        <m3e-card variant="outlined" class="install"><pre slot="content">import "@m3e/web/gestures";</pre></m3e-card>
+        <m3e-card variant="outlined" class="install"><pre slot="content">import "@wanjie/m3e-web/gestures";</pre></m3e-card>
 
         <p>
           Each recognizer is published as its own entry point, so applications can import only the gestures they use.
@@ -54,8 +54,8 @@
         </p>
         <m3e-card variant="outlined" class="install">
           <pre slot="content">
-import "@m3e/web/gestures/tap";
-import "@m3e/web/gestures/swipe";</pre
+import "@wanjie/m3e-web/gestures/tap";
+import "@wanjie/m3e-web/gestures/swipe";</pre
           >
         </m3e-card>
 
@@ -127,7 +127,7 @@ import "@m3e/web/gestures/swipe";</pre
         <m3e-heading variant="headline" size="small" level="3">Tap</m3e-heading>
         <p>
           Use the <code>m3e-tap-gesture</code> element or the <code>tap</code> function from the
-          <code>@m3e/web/gestures/tap</code> module to recognize a short press and release with minimal pointer
+          <code>@wanjie/m3e-web/gestures/tap</code> module to recognize a short press and release with minimal pointer
           movement.
         </p>
         <p>Tap the element below to see it in action.</p>
@@ -150,8 +150,8 @@ import "@m3e/web/gestures/swipe";</pre
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { tap } from "@m3e/web/gestures/tap";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const item = document.getElementById("item");
 detectGesture(item, tap(phase({
@@ -221,7 +221,7 @@ detectGesture(item, tap(phase({
         <m3e-heading variant="headline" size="small" level="3">Long-press</m3e-heading>
         <p>
           Use the <code>m3e-long-press-gesture</code> element or the <code>longPress</code> function from the
-          <code>@m3e/web/gestures/long-press</code> module to recognize a pointer held in place for a minimum duration
+          <code>@wanjie/m3e-web/gestures/long-press</code> module to recognize a pointer held in place for a minimum duration
           with minimal movement.
         </p>
         <p>Press and hold the element below to see it in action.</p>
@@ -244,8 +244,8 @@ detectGesture(item, tap(phase({
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { longPress } from "@m3e/web/gestures/long-press";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { longPress } from "@wanjie/m3e-web/gestures/long-press";
 
 const item = document.getElementById("item");
 detectGesture(item, longPress(phase({
@@ -299,7 +299,7 @@ detectGesture(item, longPress(phase({
         <m3e-heading variant="headline" size="small" level="3">Swipe</m3e-heading>
         <p>
           Use the <code>m3e-swipe-gesture</code> element or the <code>swipe</code> function from the
-          <code>@m3e/web/gestures/swipe</code> module to recognize high-velocity directional swipe gestures.
+          <code>@wanjie/m3e-web/gestures/swipe</code> module to recognize high-velocity directional swipe gestures.
         </p>
         <p>Swipe the element below to see it in action.</p>
 
@@ -321,8 +321,8 @@ detectGesture(item, longPress(phase({
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { swipe } from "@m3e/web/gestures/swipe";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { swipe } from "@wanjie/m3e-web/gestures/swipe";
 
 const item = document.getElementById("item");
 detectGesture(item, swipe(phase({
@@ -431,7 +431,7 @@ detectGesture(item, swipe(phase({
         <m3e-heading variant="headline" size="small" level="3">Pan</m3e-heading>
         <p>
           Use the <code>m3e-pan-gesture</code> element or the <code>pan</code> function from the
-          <code>@m3e/web/gestures/pan</code> module to track continuous pointer movement across an element.
+          <code>@wanjie/m3e-web/gestures/pan</code> module to track continuous pointer movement across an element.
         </p>
         <p>Pan the element below to see it in action.</p>
 
@@ -453,8 +453,8 @@ detectGesture(item, swipe(phase({
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { pan } from "@m3e/web/gestures/pan";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { pan } from "@wanjie/m3e-web/gestures/pan";
 
 const item = document.getElementById("item");
 detectGesture(item, pan(phase({
@@ -588,7 +588,7 @@ detectGesture(item, pan(phase({
         <m3e-heading variant="headline" size="small" level="3">Rotate</m3e-heading>
         <p>
           Use the <code>m3e-rotate-gesture</code> element or the <code>rotate</code> function from the
-          <code>@m3e/web/gestures/rotate</code> module to detect rotational movement from multiple pointers.
+          <code>@wanjie/m3e-web/gestures/rotate</code> module to detect rotational movement from multiple pointers.
         </p>
         <p>Rotate the element below using two pointer devices (two fingers) to see the gesture in action.</p>
 
@@ -610,8 +610,8 @@ detectGesture(item, pan(phase({
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { rotate } from "@m3e/web/gestures/rotate";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { rotate } from "@wanjie/m3e-web/gestures/rotate";
 
 const item = document.getElementById("item");
 detectGesture(item, rotate(phase({
@@ -700,7 +700,7 @@ detectGesture(item, rotate(phase({
         <m3e-heading variant="headline" size="small" level="3">Scale</m3e-heading>
         <p>
           Use the <code>m3e-scale-gesture</code> element or the <code>scale</code> function from the
-          <code>@m3e/web/gestures/scale</code> module to detect multi-pointer scaling. A scale gesture measures how far
+          <code>@wanjie/m3e-web/gestures/scale</code> module to detect multi-pointer scaling. A scale gesture measures how far
           active pointers move toward or away from their centroid, producing a scale factor that represents zoom in or
           out.
         </p>
@@ -724,8 +724,8 @@ detectGesture(item, rotate(phase({
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { scale } from "@m3e/web/gestures/scale";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { scale } from "@wanjie/m3e-web/gestures/scale";
 
 const item = document.getElementById("item");
 detectGesture(item, scale(phase({
@@ -823,7 +823,7 @@ detectGesture(item, scale(phase({
         <m3e-heading variant="headline" size="small" level="3">Repeat</m3e-heading>
         <p>
           Use the <code>m3e-repeat-gesture</code> element or the <code>repeat</code> function from the
-          <code>@m3e/web/gestures/repeat</code> module to detect repeated activations of a gesture over time. The
+          <code>@wanjie/m3e-web/gestures/repeat</code> module to detect repeated activations of a gesture over time. The
           element must contain a single nested gesture element that defines which gesture is repeated, and the
           <code>repeat</code> function requires the recognizer to repeat to be explicitly provided.
         </p>
@@ -851,9 +851,9 @@ detectGesture(item, scale(phase({
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { tap } from "@m3e/web/gestures/tap";
-import { repeat } from "@m3e/web/gestures/repeat";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
+import { repeat } from "@wanjie/m3e-web/gestures/repeat";
 
 const item = document.getElementById("item");
 detectGesture(item, repeat(
@@ -930,7 +930,7 @@ detectGesture(item, repeat(
         <m3e-heading variant="headline" size="small" level="3">Sequence</m3e-heading>
         <p>
           Use the <code>m3e-sequence-gesture</code> element or the <code>sequence</code> function from the
-          <code>@m3e/web/gestures/sequence</code> module to detect ordered activations of multiple gestures over time.
+          <code>@wanjie/m3e-web/gestures/sequence</code> module to detect ordered activations of multiple gestures over time.
           The element must contain the gesture elements in the order they must occur, and the
           <code>sequence</code> function requires the recognizers to be explicitly provided.
         </p>
@@ -959,10 +959,10 @@ detectGesture(item, repeat(
         </m3e-card>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { longPress } from "@m3e/web/gestures/long-press";
-import { pan } from "@m3e/web/gestures/pan";
-import { sequence } from "@m3e/web/gestures/sequence";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { longPress } from "@wanjie/m3e-web/gestures/long-press";
+import { pan } from "@wanjie/m3e-web/gestures/pan";
+import { sequence } from "@wanjie/m3e-web/gestures/sequence";
 
 const item = document.getElementById("item");
 detectGesture(
@@ -1049,7 +1049,7 @@ detectGesture(
 
         <m3e-heading variant="headline" size="medium" level="2">Native module support</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package uses
+          The <code>@wanjie/m3e-web</code> package uses
           <a
             href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#module_specifiers"
             target="_blank"
@@ -1059,21 +1059,21 @@ detectGesture(
 
         <m3e-card variant="outlined" class="install">
           <pre slot="content">
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures.js&quot;&gt;&lt;/script&gt;</pre
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures.js&quot;&gt;&lt;/script&gt;</pre
           >
         </m3e-card>
         <p>To include specific recognizers:</p>
         <m3e-card variant="outlined" class="install">
           <pre slot="content">
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-long-press.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-pan.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-repeat.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-rotate.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-scale.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-sequence.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-swipe.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-tap.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/gestures-transform.js&quot;&gt;&lt;/script&gt;</pre
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-long-press.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-pan.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-repeat.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-rotate.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-scale.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-sequence.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-swipe.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-tap.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/gestures-transform.js&quot;&gt;&lt;/script&gt;</pre
           >
         </m3e-card>
         <p>
@@ -1097,8 +1097,8 @@ detectGesture(
       &quot;lit-html/directive.js&quot;: &quot;https://cdn.jsdelivr.net/npm/lit-html@3.3.0/directive.js&quot;,
       &quot;@lit/reactive-element&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/+esm&quot;,
       &quot;@lit/reactive-element/&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/&quot;,
-      &quot;@m3e/web/core&quot;: &quot;/node_modules/@m3e/web/dist/core.js&quot;
-      &quot;@m3e/web/gestures&quot;: &quot;/node_modules/@m3e/web/dist/gestures.js&quot;
+      &quot;@wanjie/m3e-web/core&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core.js&quot;
+      &quot;@wanjie/m3e-web/gestures&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/gestures.js&quot;
     }
   }
 &lt;/script&gt;</pre
@@ -1108,7 +1108,7 @@ detectGesture(
 
         <m3e-heading variant="headline" size="medium" level="2">API</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package includes a
+          The <code>@wanjie/m3e-web</code> package includes a
           <a href="https://github.com/webcomponents/custom-elements-manifest" target="_blank"
             >Custom Elements Manifest</a
           >

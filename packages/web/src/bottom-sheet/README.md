@@ -1,4 +1,4 @@
-# @m3e/web/bottom-sheet
+# @wanjie/m3e-web/bottom-sheet
 
 The `m3e-bottom-sheet` component implements a Material 3 bottom sheet with gesture‑driven resizing, detent snapping, and adaptive motion. It behaves as a heavy surface: transitions use non‑bouncy, decelerating motion.
 
@@ -7,7 +7,7 @@ The sheet supports direct manipulation through vertical drag gestures. Movement 
 When detents are defined, the sheet snaps to the nearest detent on release. If hideable, downward gestures may dismiss the sheet using either velocity or a small distance threshold below the collapsed detent. When no detents are present, the sheet behaves as a simple open/hidden surface with a bottom‑measured hide threshold.
 
 ```ts
-import "@m3e/web/bottom-sheet";
+import "@wanjie/m3e-web/bottom-sheet";
 ```
 
 ## 🗂️ Elements

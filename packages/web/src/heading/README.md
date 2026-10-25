@@ -1,9 +1,9 @@
-# @m3e/web/heading
+# @wanjie/m3e-web/heading
 
 The `m3e-heading` component provides expressive, accessible headings for pages and sections, supporting display, headline, title, and label variants in multiple sizes. It applies Material 3 typographic tokens for font size, weight, line height, and letter spacing, ensuring visual hierarchy and clarity.
 
 ```ts
-import "@m3e/web/heading";
+import "@wanjie/m3e-web/heading";
 ```
 
 ## 🗂️ Elements

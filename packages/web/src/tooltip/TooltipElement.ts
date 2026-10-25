@@ -1,10 +1,10 @@
 import { css, CSSResultGroup, html, PropertyValues, unsafeCSS } from "lit";
 import { property } from "lit/decorators.js";
 
-import { customElement, DesignToken, getTextContent, setCustomState } from "@m3e/web/core";
-import { M3eAriaDescriber } from "@m3e/web/core/a11y";
-import { AnchorPosition } from "@m3e/web/core/anchoring";
-import { Direction, M3eDirectionality } from "@m3e/web/core/bidi";
+import { customElement, DesignToken, getTextContent, setCustomState } from "@wanjie/m3e-web/core";
+import { M3eAriaDescriber } from "@wanjie/m3e-web/core/a11y";
+import { AnchorPosition } from "@wanjie/m3e-web/core/anchoring";
+import { Direction, M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import { isTooltipPosition, TooltipPosition } from "./TooltipPosition";
 import { TooltipElementBase } from "./TooltipElementBase";

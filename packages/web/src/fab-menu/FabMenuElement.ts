@@ -15,13 +15,13 @@ import {
   setCustomEnumState,
   setCustomState,
   SuppressInitialAnimation,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { RovingTabIndexManager } from "@m3e/web/core/a11y";
-import { M3eDirectionality } from "@m3e/web/core/bidi";
-import { positionAnchor } from "@m3e/web/core/anchoring";
+import { RovingTabIndexManager } from "@wanjie/m3e-web/core/a11y";
+import { M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
+import { positionAnchor } from "@wanjie/m3e-web/core/anchoring";
 
-import { M3eFabElement } from "@m3e/web/fab";
+import { M3eFabElement } from "@wanjie/m3e-web/fab";
 
 import { FabMenuVariant, isFabMenuVariant } from "./FabMenuVariant";
 

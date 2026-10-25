@@ -1,9 +1,9 @@
-# @m3e/web/textarea-autosize
+# @wanjie/m3e-web/textarea-autosize
 
 The `m3e-textarea-autosize` component automatically adjusts the height of a linked `textarea` to fit its content, preserving layout integrity and user experience. This non-visual element listens to input changes and applies dynamic resizing, constrained by optional row limits. It supports declarative configuration via attributes and can be disabled when manual control is preferred.
 
 ```ts
-import "@m3e/web/textarea-autosize";
+import "@wanjie/m3e-web/textarea-autosize";
 ```
 
 ## 🗂️ Elements

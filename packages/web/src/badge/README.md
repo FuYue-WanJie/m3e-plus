@@ -1,9 +1,9 @@
-# @m3e/web/badge
+# @wanjie/m3e-web/badge
 
 The `m3e-badge` component is a compact visual indicator used to label content. Designed according to Material Design 3 guidelines, it can display counts, presence, or semantic emphasis, and is attachable to icons, buttons, or other components. Badges support dynamic sizing, color, and shape, ensuring clarity and accessibility while maintaining a consistent, expressive appearance across surfaces.
 
 ```ts
-import "@m3e/web/badge";
+import "@wanjie/m3e-web/badge";
 ```
 
 ## 🗂️ Elements

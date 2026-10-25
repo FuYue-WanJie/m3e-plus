@@ -1,9 +1,9 @@
-# @m3e/web/gestures/pan
+# @wanjie/m3e-web/gestures/pan
 
 Recognizes continuous pointer movement and reports translation and velocity.
 
 ```ts
-import { pan } from "@m3e/web/gestures/pan";
+import { pan } from "@wanjie/m3e-web/gestures/pan";
 
 const recognizer = pan({ pointers: 2 });
 recognizer.addListener((detail) => {
@@ -14,7 +14,7 @@ recognizer.addListener((detail) => {
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/pan";
+import "@wanjie/m3e-web/gestures/pan";
 ```
 
 ```html

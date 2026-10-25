@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eTabElement } from "@m3e/web/tabs";
-export type { M3eTabElement } from "@m3e/web/tabs";
+import { M3eTabElement } from "@wanjie/m3e-web/tabs";
+export type { M3eTabElement } from "@wanjie/m3e-web/tabs";
 
 /**
- * React binding for the `m3e-tab` Web Component from `@m3e/web/tabs`.
+ * React binding for the `m3e-tab` Web Component from `@wanjie/m3e-web/tabs`.
  *
  * This component renders the underlying `<m3e-tab>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

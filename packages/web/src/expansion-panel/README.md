@@ -1,13 +1,13 @@
-# @m3e/web/expansion-panel
+# @wanjie/m3e-web/expansion-panel
 
-The `@m3e/web/expansion-panel` module provides expressive, accessible components for organizing content in collapsible sections and coordinated groups. It includes:
+The `@wanjie/m3e-web/expansion-panel` module provides expressive, accessible components for organizing content in collapsible sections and coordinated groups. It includes:
 
 - **`m3e-expansion-panel`** — An accessible, animated details-summary view for organizing content in collapsible sections. Supports custom header, content, actions, and toggle icon slots, configurable toggle position and direction, open/close states, lifecycle events, and rich theming via CSS custom properties for elevation, shape, spacing, and color.
 
 - **`m3e-accordion`** — Organizes multiple expansion panels into a coordinated, accessible group. Supports single or multiple open panels via the `multi` attribute, expressive theming and shape control for grouped layouts, and manages open/close state across child panels for interactive disclosure patterns.
 
 ```ts
-import "@m3e/web/expansion-panel";
+import "@wanjie/m3e-web/expansion-panel";
 ```
 
 ## 🗂️ Elements

@@ -20,7 +20,7 @@
     <link href="api-viewer.css" rel="stylesheet" />
     <script src="snackbar.js"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/api-viewer-element/+esm"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/web@2.10.2/dist/all.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-web@2.10.2/dist/all.min.js"></script>
     <script src="../main.js"></script>
   </head>
   <body>
@@ -29,12 +29,12 @@
       <m3e-content-pane id="body">
         <m3e-heading m3e-toc-ignore variant="display" size="large" level="1">Snackbar</m3e-heading>
         <p>
-          The <code>@m3e/web/snackbar</code> module provides the <code>M3eSnackbar</code> global service on
+          The <code>@wanjie/m3e-web/snackbar</code> module provides the <code>M3eSnackbar</code> global service on
           <code>window</code> (<code>globalThis</code>) used to present short updates about application processes at the
           bottom of the screen from anywhere in an application.
         </p>
 
-        <m3e-card variant="outlined" class="install"><pre slot="content">import "@m3e/web/snackbar";</pre></m3e-card>
+        <m3e-card variant="outlined" class="install"><pre slot="content">import "@wanjie/m3e-web/snackbar";</pre></m3e-card>
 
         <m3e-heading variant="headline" size="medium" level="2">Usage</m3e-heading>
         <p>This section outlines usage examples and configuration guidance for the components in this module.</p>
@@ -108,7 +108,7 @@ M3eSnackbar.open(&quot;File deleted&quot;, &quot;Undo&quot;, {
 
         <m3e-heading variant="headline" size="medium" level="2">Native module support</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package uses
+          The <code>@wanjie/m3e-web</code> package uses
           <a
             href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#module_specifiers"
             target="_blank"
@@ -118,7 +118,7 @@ M3eSnackbar.open(&quot;File deleted&quot;, &quot;Undo&quot;, {
 
         <m3e-card variant="outlined" class="install">
           <pre slot="content">
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/snackbar.js&quot;&gt;&lt;/script&gt;</pre
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/snackbar.js&quot;&gt;&lt;/script&gt;</pre
           >
         </m3e-card>
         <p>
@@ -144,9 +144,9 @@ M3eSnackbar.open(&quot;File deleted&quot;, &quot;Undo&quot;, {
       &quot;lit-html/directives/class-map.js&quot;: &quot;https://cdn.jsdelivr.net/npm/lit-html@3.3.0/directives/class-map.js&quot;,
       &quot;@lit/reactive-element&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/+esm&quot;,
       &quot;@lit/reactive-element/&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/&quot;,
-      &quot;@m3e/web/core&quot;: &quot;/node_modules/@m3e/web/dist/core.js&quot;,
-      &quot;@m3e/web/button&quot;: &quot;/node_modules/@m3e/web/dist/button.js&quot;,
-      &quot;@m3e/web/icon-button&quot;: &quot;/node_modules/@m3e/web/dist/icon-button.js&quot;
+      &quot;@wanjie/m3e-web/core&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core.js&quot;,
+      &quot;@wanjie/m3e-web/button&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/button.js&quot;,
+      &quot;@wanjie/m3e-web/icon-button&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/icon-button.js&quot;
     }
   }
 &lt;/script&gt;</pre
@@ -156,7 +156,7 @@ M3eSnackbar.open(&quot;File deleted&quot;, &quot;Undo&quot;, {
 
         <m3e-heading variant="headline" size="medium" level="2">API</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package includes a
+          The <code>@wanjie/m3e-web</code> package includes a
           <a href="https://github.com/webcomponents/custom-elements-manifest" target="_blank"
             >Custom Elements Manifest</a
           >

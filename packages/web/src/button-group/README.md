@@ -1,9 +1,9 @@
-# @m3e/web/button-group
+# @wanjie/m3e-web/button-group
 
 The `m3e-button-group` component arranges multiple into a unified, expressive layout, supporting both `standard` and `connected` variants. It enables seamless, accessible grouping of actions, adapts to various sizes, and ensures consistent spacing, shape, and alignment. Designed according to Material 3 principles, it empowers users to interact with related actions in a visually harmonious and intuitive way.
 
 ```ts
-import "@m3e/web/button-group";
+import "@wanjie/m3e-web/button-group";
 ```
 
 ## 🗂️ Elements

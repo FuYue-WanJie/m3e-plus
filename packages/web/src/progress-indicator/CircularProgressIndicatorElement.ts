@@ -9,7 +9,7 @@ import {
   DesignToken,
   ResizeController,
   resolveFragmentUrl,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
 import { ProgressElementIndicatorBase } from "./ProgressElementIndicatorBase";
 

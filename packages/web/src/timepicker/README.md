@@ -1,11 +1,11 @@
-# @m3e/web/timepicker
+# @wanjie/m3e-web/timepicker
 
 The `m3e-timepicker` component presents a temporary surface for selecting time using dial and
 keyboard modes. It supports hour and minute selection across 12-hour and 24-hour formats, enforces minimum and
 maximum constraints, and adapts between docked and modal layouts based on available space.
 
 ```ts
-import "@m3e/web/timepicker";
+import "@wanjie/m3e-web/timepicker";
 ```
 
 ## 🗂️ Elements

@@ -1,6 +1,6 @@
 import { css, CSSResultGroup, html, LitElement } from "lit";
 
-import { customElement, DesignToken } from "@m3e/web/core";
+import { customElement, DesignToken } from "@wanjie/m3e-web/core";
 
 /**
  * An image, icon or textual initials representing a user or other identity.
@@ -18,7 +18,7 @@ import { customElement, DesignToken } from "@m3e/web/core";
  * @example
  * The next example illustrates use of the `m3e-avatar` to present an icon.
  *
- * Note: This example uses the `@m3e/icon` package to present Material Design symbols, but any icon package can be
+ * Note: This example uses the `@wanjie/m3e-icon` package to present Material Design symbols, but any icon package can be
  * substituted depending on your design system or preferences.
  *
  * ```html

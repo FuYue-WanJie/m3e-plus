@@ -13,4 +13,4 @@ export type {
   GestureInputKind,
   GestureOptions,
   PointerType,
-} from "@m3e/web/gestures";
+} from "@wanjie/m3e-web/gestures";

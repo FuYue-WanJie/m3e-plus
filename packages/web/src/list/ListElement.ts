@@ -1,7 +1,7 @@
 import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
-import { AttachInternals, customElement, DesignToken, Role, setCustomEnumState, setCustomState } from "@m3e/web/core";
+import { AttachInternals, customElement, DesignToken, Role, setCustomEnumState, setCustomState } from "@wanjie/m3e-web/core";
 
 import { isListVariant, ListVariant } from "./ListVariant";
 import { M3eListItemElement } from "./ListItemElement";
@@ -18,7 +18,7 @@ import { ListItemContentType } from "./ListItemContentType";
  * @example
  * The following example illustrates a list with a single item using all supported slots.
  *
- * Note: This example uses the `@m3e/icon` package to present Material Design symbols, but any icon package can be
+ * Note: This example uses the `@wanjie/m3e-icon` package to present Material Design symbols, but any icon package can be
  * substituted depending on your design system or preferences
  *
  * ```html

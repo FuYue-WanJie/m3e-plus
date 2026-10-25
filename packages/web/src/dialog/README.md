@@ -1,9 +1,9 @@
-# @m3e/web/dialog
+# @wanjie/m3e-web/dialog
 
 The `m3e-dialog` component presents important prompts, alerts, and actions in user flows. Designed according to Material 3 principles, it supports custom header, content, and close icon slots, ARIA accessibility, focus management, and theming via CSS custom properties.
 
 ```ts
-import "@m3e/web/dialog";
+import "@wanjie/m3e-web/dialog";
 ```
 
 ## 🗂️ Elements

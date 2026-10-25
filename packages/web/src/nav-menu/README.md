@@ -1,9 +1,9 @@
-# @m3e/web/nav-menu
+# @wanjie/m3e-web/nav-menu
 
 The `m3e-nav-menu` component provides a hierarchical, accessible navigation menu. Designed for sidebars, navigation drawers, and complex menu structures, it supports nested expandable items, keyboard navigation, selection, and extensive theming via CSS custom properties.
 
 ```ts
-import "@m3e/web/nav-menu";
+import "@wanjie/m3e-web/nav-menu";
 ```
 
 ## 🗂️ Elements

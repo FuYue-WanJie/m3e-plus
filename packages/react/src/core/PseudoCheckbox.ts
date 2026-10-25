@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3ePseudoCheckboxElement } from "@m3e/web/core";
-export type { M3ePseudoCheckboxElement } from "@m3e/web/core";
+import { M3ePseudoCheckboxElement } from "@wanjie/m3e-web/core";
+export type { M3ePseudoCheckboxElement } from "@wanjie/m3e-web/core";
 
 /**
- * React binding for the `m3e-pseudo-checkbox` Web Component from `@m3e/web/core`.
+ * React binding for the `m3e-pseudo-checkbox` Web Component from `@wanjie/m3e-web/core`.
  *
  * This component renders the underlying `<m3e-pseudo-checkbox>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

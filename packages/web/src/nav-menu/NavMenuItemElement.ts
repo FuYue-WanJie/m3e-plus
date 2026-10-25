@@ -17,9 +17,9 @@ import {
   Selected,
   setCustomState,
   SuppressInitialAnimation,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { selectionManager } from "@m3e/web/core/a11y";
+import { selectionManager } from "@wanjie/m3e-web/core/a11y";
 
 import type { M3eNavMenuElement } from "./NavMenuElement";
 

@@ -1,7 +1,7 @@
 import { css, CSSResultGroup, LitElement, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
-import { AttachInternals, ReconnectedCallback, Role, setCustomEnumState } from "@m3e/web/core";
+import { AttachInternals, ReconnectedCallback, Role, setCustomEnumState } from "@wanjie/m3e-web/core";
 
 import { isProgressIndicatorVariant, ProgressIndicatorVariant } from "./ProgressIndicatorVariant";
 

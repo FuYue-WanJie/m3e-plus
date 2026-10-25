@@ -22,10 +22,10 @@ import {
   setCustomEnumState,
   setCustomState,
   SuppressInitialAnimation,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { selectionManager } from "@m3e/web/core/a11y";
-import { SupportsDirectionality } from "@m3e/web/core/bidi";
+import { selectionManager } from "@wanjie/m3e-web/core/a11y";
+import { SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import type { M3eNavBarElement } from "./NavBarElement";
 import { isNavItemOrientation, NavItemOrientation } from "./NavItemOrientation";

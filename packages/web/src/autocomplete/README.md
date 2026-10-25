@@ -1,9 +1,9 @@
-# @m3e/web/autocomplete
+# @wanjie/m3e-web/autocomplete
 
 The `m3e-autocomplete` component enhances a text input field with a dynamically positioned menu of filterable suggestions. Following Material Design 3 principles, it provides real-time filtering, keyboard navigation, automatic option activation, and text highlighting to guide user selection.
 
 ```ts
-import "@m3e/web/autocomplete";
+import "@wanjie/m3e-web/autocomplete";
 ```
 
 ## 🗂️ Elements

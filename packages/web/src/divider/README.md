@@ -1,9 +1,9 @@
-# @m3e/web/divider
+# @wanjie/m3e-web/divider
 
 The `m3e-divider` component visually separates content within layouts, lists, or containers using a thin, unobtrusive line. It supports horizontal and vertical orientation, with optional inset variants to align with layout padding and visual hierarchy. The divider thickness, color, and inset behavior are customizable via CSS properties to maintain consistency across surfaces. It is designed to reinforce spatial relationships without drawing attention, preserving focus on primary content.
 
 ```ts
-import "@m3e/web/divider";
+import "@wanjie/m3e-web/divider";
 ```
 
 ## 🗂️ Elements

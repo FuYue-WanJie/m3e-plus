@@ -1,9 +1,9 @@
-# @m3e/web/gestures/swipe
+# @wanjie/m3e-web/gestures/swipe
 
 Recognizes fast directional pointer movement.
 
 ```ts
-import { swipe } from "@m3e/web/gestures/swipe";
+import { swipe } from "@wanjie/m3e-web/gestures/swipe";
 
 const recognizer = swipe({ minVelocity: 0.3 });
 recognizer.addListener((detail) => console.log(detail.direction));
@@ -12,7 +12,7 @@ recognizer.addListener((detail) => console.log(detail.direction));
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/swipe";
+import "@wanjie/m3e-web/gestures/swipe";
 ```
 
 ```html

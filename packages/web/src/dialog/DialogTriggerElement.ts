@@ -1,4 +1,4 @@
-import { ActionElementBase, customElement, HtmlFor } from "@m3e/web/core";
+import { ActionElementBase, customElement, HtmlFor } from "@wanjie/m3e-web/core";
 
 import { M3eDialogElement } from "./DialogElement";
 

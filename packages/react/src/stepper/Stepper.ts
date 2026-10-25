@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eStepperElement } from "@m3e/web/stepper";
-export type { M3eStepperElement, StepperOrientation, StepLabelPosition, StepHeaderPosition } from "@m3e/web/stepper";
+import { M3eStepperElement } from "@wanjie/m3e-web/stepper";
+export type { M3eStepperElement, StepperOrientation, StepLabelPosition, StepHeaderPosition } from "@wanjie/m3e-web/stepper";
 
 /**
- * React binding for the `m3e-stepper` Web Component from `@m3e/web/stepper`.
+ * React binding for the `m3e-stepper` Web Component from `@wanjie/m3e-web/stepper`.
  *
  * This component renders the underlying `<m3e-stepper>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

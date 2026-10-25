@@ -9,7 +9,7 @@ import {
   KeyboardClick,
   LinkButton,
   Role,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
 import { M3eChipElement } from "./ChipElement";
 

@@ -24,7 +24,7 @@ Thank you for your interest in contributing to the M3E monorepo! We welcome cont
    - Tests use [Playwright](https://playwright.dev) and run against the built bundle:
      ```
      npx playwright install chromium
-     npm run build -w @m3e/web
+     npm run build -w @wanjie/m3e-web
      npm test
      ```
 6. **Commit and Push**

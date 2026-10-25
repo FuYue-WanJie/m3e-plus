@@ -1,11 +1,11 @@
-# @m3e/web/datepicker
+# @wanjie/m3e-web/datepicker
 
 The `m3e-datepicker` component presents a temporary, structured surface for selecting dates across
 month, year, and multi-year views. It supports single-date and range selection, enforces minimum, maximum, and
 blackout constraints, and exposes styling hooks for highlighting special date states.
 
 ```ts
-import "@m3e/web/datepicker";
+import "@wanjie/m3e-web/datepicker";
 ```
 
 ## 🗂️ Elements

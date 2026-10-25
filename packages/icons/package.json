@@ -1,5 +1,5 @@
 {
-  "name": "@m3e/icons",
+  "name": "@wanjie/m3e-icons",
   "version": "1.0.20",
   "description": "Icons for M3E Web Components",
   "author": "matraic <matraic@yahoo.com>",
@@ -30,12 +30,12 @@
   },
   "scripts": {
     "build": "rimraf dist && node build.js",
-    "cem": "echo \"@m3e/icons: skipping cem\"",
-    "lint": "echo \"@m3e/icons: skipping lint\"",
+    "cem": "echo \"@wanjie/m3e-icons: skipping cem\"",
+    "lint": "echo \"@wanjie/m3e-icons: skipping lint\"",
     "clean": "rimraf dist"
   },
   "peerDependencies": {
-    "@m3e/web": "^2.3.2"
+    "@wanjie/m3e-web": "^2.3.2"
   },
   "devDependencies": {
     "@material-symbols/svg-400": "^0.48.0"

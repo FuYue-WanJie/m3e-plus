@@ -1,6 +1,6 @@
 import { css, CSSResultGroup, html, LitElement } from "lit";
 
-import { customElement, Role } from "@m3e/web/core";
+import { customElement, Role } from "@wanjie/m3e-web/core";
 
 /**
  * Groups related items (such a radios) in a menu.

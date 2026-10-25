@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eDatepickerToggleElement } from "@m3e/web/datepicker";
-export type { M3eDatepickerToggleElement } from "@m3e/web/datepicker";
+import { M3eDatepickerToggleElement } from "@wanjie/m3e-web/datepicker";
+export type { M3eDatepickerToggleElement } from "@wanjie/m3e-web/datepicker";
 
 /**
- * React binding for the `m3e-datepicker-toggle` Web Component from `@m3e/web/datepicker`.
+ * React binding for the `m3e-datepicker-toggle` Web Component from `@wanjie/m3e-web/datepicker`.
  *
  * This component renders the underlying `<m3e-datepicker-toggle>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

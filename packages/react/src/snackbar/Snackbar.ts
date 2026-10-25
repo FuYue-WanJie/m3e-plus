@@ -1,2 +1,2 @@
-export { M3eSnackbar } from "@m3e/web/snackbar";
-export type { M3eSnackbarElement, SnackbarOptions } from "@m3e/web/snackbar";
+export { M3eSnackbar } from "@wanjie/m3e-web/snackbar";
+export type { M3eSnackbarElement, SnackbarOptions } from "@wanjie/m3e-web/snackbar";

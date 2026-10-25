@@ -20,9 +20,9 @@ import {
   HoverController,
   customElement,
   setCustomState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { SupportsDirectionality } from "@m3e/web/core/bidi";
+import { SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import { SwitchHandleStyle, SwitchIconStyle, SwitchStateLayerStyle, SwitchStyle, SwitchTrackStyle } from "./styles";
 

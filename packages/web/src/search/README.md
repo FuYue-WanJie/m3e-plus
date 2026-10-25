@@ -1,9 +1,9 @@
-# @m3e/web/search
+# @wanjie/m3e-web/search
 
 The `m3e-search-bar` and `m3e-search-view` components provide a Material 3 expressive search experience. The search bar offers a prominent entry point for text input, while the search view presents suggestions, history, and results in contained, docked, or full screen configurations. Both components support ARIA accessibility, keyboard interaction, and theming via CSS custom properties.
 
 ```ts
-import "@m3e/web/search";
+import "@wanjie/m3e-web/search";
 ```
 
 ## 🗂️ Elements

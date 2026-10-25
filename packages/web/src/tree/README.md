@@ -1,9 +1,9 @@
-# @m3e/web/tree
+# @wanjie/m3e-web/tree
 
 The `m3e-tree` component presents hierarchical data in a structure that users can navigate, with nested levels that open and collapse as needed.
 
 ```ts
-import "@m3e/web/tree";
+import "@wanjie/m3e-web/tree";
 ```
 
 ## 🗂️ Elements

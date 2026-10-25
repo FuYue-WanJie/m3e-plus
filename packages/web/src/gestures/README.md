@@ -1,6 +1,6 @@
 # Gestures
 
-The `@m3e/web/gestures` module provides a gesture recognition subsystem supporting declarative and programmatic gesture detection. It uses a modular recognizer architecture with a priority-based disposition system that resolves competing claims on input.
+The `@wanjie/m3e-web/gestures` module provides a gesture recognition subsystem supporting declarative and programmatic gesture detection. It uses a modular recognizer architecture with a priority-based disposition system that resolves competing claims on input.
 
 Features include:
 
@@ -15,39 +15,39 @@ Features include:
 Import the base module when using the shared types or `detectGesture`:
 
 ```ts
-import { detectGesture } from "@m3e/web/gestures";
+import { detectGesture } from "@wanjie/m3e-web/gestures";
 ```
 
 Each recognizer has its own entry point. Import only the recognizers used by an application:
 
 ```ts
-import { tap } from "@m3e/web/gestures/tap";
-import { swipe } from "@m3e/web/gestures/swipe";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
+import { swipe } from "@wanjie/m3e-web/gestures/swipe";
 ```
 
 The recognizer entry points are:
 
 | Entry point                                                                                                               | Factory       | Gesture                                                  | Element                    |
 | ------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------- | -------------------------- |
-| [`@m3e/web/gestures/long-press`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/long-press/README.md) | `longPress()` | Press held for a minimum duration                        | `<m3e-long-press-gesture>` |
-| [`@m3e/web/gestures/pan`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/pan/README.md)               | `pan()`       | Continuous dragging                                      | `<m3e-pan-gesture>`        |
-| [`@m3e/web/gestures/repeat`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/repeat/README.md)         | `repeat()`    | Repeated child gesture                                   | `<m3e-repeat-gesture>`     |
-| [`@m3e/web/gestures/rotate`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/rotate/README.md)         | `rotate()`    | Multi-pointer rotation                                   | `<m3e-rotate-gesture>`     |
-| [`@m3e/web/gestures/scale`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/scale/README.md)           | `scale()`     | Pinch or spread                                          | `<m3e-scale-gesture>`      |
-| [`@m3e/web/gestures/sequence`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/sequence/README.md)     | `sequence()`  | Child gestures in order                                  | `<m3e-sequence-gesture>`   |
-| [`@m3e/web/gestures/swipe`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/swipe/README.md)           | `swipe()`     | Fast directional movement                                | `<m3e-swipe-gesture>`      |
-| [`@m3e/web/gestures/tap`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/tap/README.md)               | `tap()`       | One or more taps                                         | `<m3e-tap-gesture>`        |
-| [`@m3e/web/gestures/transform`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/transform/README.md)   | `transform()` | Low-level multi-pointer translation, scale, and rotation | `<m3e-transform-gesture>`  |
+| [`@wanjie/m3e-web/gestures/long-press`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/long-press/README.md) | `longPress()` | Press held for a minimum duration                        | `<m3e-long-press-gesture>` |
+| [`@wanjie/m3e-web/gestures/pan`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/pan/README.md)               | `pan()`       | Continuous dragging                                      | `<m3e-pan-gesture>`        |
+| [`@wanjie/m3e-web/gestures/repeat`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/repeat/README.md)         | `repeat()`    | Repeated child gesture                                   | `<m3e-repeat-gesture>`     |
+| [`@wanjie/m3e-web/gestures/rotate`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/rotate/README.md)         | `rotate()`    | Multi-pointer rotation                                   | `<m3e-rotate-gesture>`     |
+| [`@wanjie/m3e-web/gestures/scale`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/scale/README.md)           | `scale()`     | Pinch or spread                                          | `<m3e-scale-gesture>`      |
+| [`@wanjie/m3e-web/gestures/sequence`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/sequence/README.md)     | `sequence()`  | Child gestures in order                                  | `<m3e-sequence-gesture>`   |
+| [`@wanjie/m3e-web/gestures/swipe`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/swipe/README.md)           | `swipe()`     | Fast directional movement                                | `<m3e-swipe-gesture>`      |
+| [`@wanjie/m3e-web/gestures/tap`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/tap/README.md)               | `tap()`       | One or more taps                                         | `<m3e-tap-gesture>`        |
+| [`@wanjie/m3e-web/gestures/transform`](https://github.com/matraic/m3e/tree/HEAD/packages/web/src/gestures/transform/README.md)   | `transform()` | Low-level multi-pointer translation, scale, and rotation | `<m3e-transform-gesture>`  |
 
-The base `@m3e/web/gestures` entry point exports shared types, recognizer base classes, pointer tracking, and `detectGesture`. Individual recognizer APIs and their detail and option types are exported from their entry points.
+The base `@wanjie/m3e-web/gestures` entry point exports shared types, recognizer base classes, pointer tracking, and `detectGesture`. Individual recognizer APIs and their detail and option types are exported from their entry points.
 
 ## Programmatic API
 
 Create a recognizer, bind it to an element, and destroy the binding when it is no longer needed:
 
 ```ts
-import { detectGesture } from "@m3e/web/gestures";
-import { tap } from "@m3e/web/gestures/tap";
+import { detectGesture } from "@wanjie/m3e-web/gestures";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const button = document.querySelector("button")!;
 const recognizer = tap(
@@ -69,7 +69,7 @@ controller.destroy();
 Factories accept a listener, partial options, or both:
 
 ```ts
-import { pan } from "@m3e/web/gestures/pan";
+import { pan } from "@wanjie/m3e-web/gestures/pan";
 
 const recognizer = pan({
   activationMode: "move",
@@ -87,10 +87,10 @@ recognizer.addListener((detail) => {
 Every recognizer also exposes its options and can be combined with other recognizers on the same element:
 
 ```ts
-import { detectGesture } from "@m3e/web/gestures";
-import { longPress } from "@m3e/web/gestures/long-press";
-import { swipe } from "@m3e/web/gestures/swipe";
-import { tap } from "@m3e/web/gestures/tap";
+import { detectGesture } from "@wanjie/m3e-web/gestures";
+import { longPress } from "@wanjie/m3e-web/gestures/long-press";
+import { swipe } from "@wanjie/m3e-web/gestures/swipe";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const controller = detectGesture(element, tap(), longPress(), swipe());
 ```
@@ -124,7 +124,7 @@ Priority is compared only when a recognizer has a strictly higher value, so equa
 Import the element entry point, then bind a gesture element to a target with `for`:
 
 ```ts
-import "@m3e/web/gestures/tap";
+import "@wanjie/m3e-web/gestures/tap";
 ```
 
 ```html
@@ -159,9 +159,9 @@ Recognizer-specific attributes are documented by each element's option type in i
 `sequence` and `repeat` accept recognizers as children when used programmatically, or gesture elements when used declaratively.
 
 ```ts
-import { detectGesture } from "@m3e/web/gestures";
-import { repeat } from "@m3e/web/gestures/repeat";
-import { tap } from "@m3e/web/gestures/tap";
+import { detectGesture } from "@wanjie/m3e-web/gestures";
+import { repeat } from "@wanjie/m3e-web/gestures/repeat";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const doubleTap = repeat({ count: 2 }, tap());
 
@@ -214,8 +214,8 @@ recognizer.addListener((detail) => {
 The `phase()` helper provides a convenient way to register handlers for specific phases without writing a `switch` statement.
 
 ```ts
-import { detectGesture, phase } from "@m3e/web/gestures";
-import { tap } from "@m3e/web/gestures/tap";
+import { detectGesture, phase } from "@wanjie/m3e-web/gestures";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 detectGesture(
   button,
@@ -254,8 +254,8 @@ Details share an `inputId`, `timestamp`, `gestureName`, and `phase`. The remaini
 Use the generated TypeScript declarations for the complete detail and option contracts:
 
 ```ts
-import type { TapGestureDetail } from "@m3e/web/gestures/tap";
-import type { PanGestureOptions } from "@m3e/web/gestures/pan";
+import type { TapGestureDetail } from "@wanjie/m3e-web/gestures/tap";
+import type { PanGestureOptions } from "@wanjie/m3e-web/gestures/pan";
 ```
 
 ## Creating custom recognizers
@@ -269,7 +269,7 @@ import {
   GestureOptions,
   PointerInput,
   GestureRecognizerBase,
-} from "@m3e/web/gestures";
+} from "@wanjie/m3e-web/gestures";
 
 interface CustomGestureOptions extends GestureOptions {
   minDistance: number;
@@ -320,7 +320,7 @@ class CustomGestureRecognizer extends GestureRecognizerBase<CustomGestureOptions
 Implement `_onAccept`, `_onReject`, and `reset` to handle resolver results and cleanup. Bind a custom recognizer with `detectGesture` just like a built-in recognizer:
 
 ```ts
-import { detectGesture } from "@m3e/web/gestures";
+import { detectGesture } from "@wanjie/m3e-web/gestures";
 
 const recognizer = new CustomGestureRecognizer({ minDistance: 12 });
 const controller = detectGesture(element, recognizer);
@@ -332,8 +332,8 @@ To expose the recognizer declaratively, extend `GestureElementBase`, expose any 
 import { PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
-import { customElement } from "@m3e/web/core";
-import { GestureElementBase } from "@m3e/web/gestures";
+import { customElement } from "@wanjie/m3e-web/core";
+import { GestureElementBase } from "@wanjie/m3e-web/gestures";
 
 import { CustomGestureDetail, CustomGestureOptions, CustomGestureRecognizer } from "./CustomGestureRecognizer";
 

@@ -1,9 +1,9 @@
-# @m3e/web/slider
+# @wanjie/m3e-web/slider
 
 The `m3e-slider` component enables users to select a numeric value from a continuous or discrete range. Designed according to Material 3 principles, it supports labeled value indicators, tick marks, and snapping behavior.
 
 ```ts
-import "@m3e/web/slider";
+import "@wanjie/m3e-web/slider";
 ```
 
 ## 🗂️ Elements
@@ -50,10 +50,12 @@ This section details the attributes, events and CSS custom properties available 
 | ------------- | ------------------------------------------------------------------ | --------------- | -------------------------------------------- |
 | `disabled`    | `boolean`                                                          | `false`         | Whether the element is disabled.             |
 | `discrete`    | `boolean`                                                          | `false`         | Whether to show tick marks.                  |
+| `centered`    | `boolean`                                                          | `false`         | Fill the active track from the centre of the range outwards. |
 | `labelled`    | `boolean`                                                          | `false`         | Whether to show value labels when activated. |
 | `min`         | `number`                                                           | `0`             | The minimum allowable value.                 |
 | `max`         | `number`                                                           | `100`           | The maximum allowable value.                 |
 | `step`        | `number`                                                           | `1`             | The value at which the thumb will snap.      |
+| `steps`       | `number`                                                           | `0`             | Discrete divisions between the endpoints (AndroidX semantics); takes precedence over `step`. |
 | `orientation` | `"horizontal"`, `"vertical"`                                       | `"horizontal"`  | The orientation of the slider.               |
 | `size`        | `"extra-small"`, `"small"`, `"medium"`, `"large"`, `"extra-large"` | `"extra-small"` | The size of the slider.                      |
 

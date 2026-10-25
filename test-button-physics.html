@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>m3e Button — spring physics + shape morph test</title>
+    <style>
+      body {
+        font-family: Roboto, system-ui, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        gap: 28px;
+        background: #f5f2f8;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        justify-content: center;
+        max-width: 720px;
+        padding: 24px;
+      }
+      .hint {
+        color: #49454f;
+        font-size: 13px;
+        text-align: center;
+      }
+    </style>
+
+    <!-- Load the built library. ?v= bumps to bypass the browser cache after a rebuild. -->
+    <script type="module" src="../packages/web/dist/all.min.js?v=20261025"></script>
+  </head>
+  <body>
+    <!-- Theme provides color/typography tokens. -->
+    <m3e-theme strong-focus></m3e-theme>
+
+    <div class="row">
+      <m3e-button variant="filled">Filled</m3e-button>
+      <m3e-button variant="tonal">Tonal</m3e-button>
+      <m3e-button variant="elevated">Elevated</m3e-button>
+      <m3e-button variant="outlined">Outlined</m3e-button>
+      <m3e-button variant="text">Text</m3e-button>
+    </div>
+
+    <div class="row">
+      <m3e-button variant="filled" size="extra-small">XS</m3e-button>
+      <m3e-button variant="filled" size="small">S</m3e-button>
+      <m3e-button variant="filled" size="medium">M</m3e-button>
+      <m3e-button variant="filled" size="large">L</m3e-button>
+      <m3e-button variant="filled" size="extra-large">XL</m3e-button>
+    </div>
+
+    <div class="row">
+      <m3e-button variant="filled" shape="square">Square shape</m3e-button>
+      <m3e-button variant="tonal" shape="square">Square tonal</m3e-button>
+    </div>
+
+    <p class="hint">
+      Press and hold any button: it morphs (pill → small radius) and squishes via a damped spring.
+      Release: it springs back with inertial overshoot.
+    </p>
+  </body>
+</html>

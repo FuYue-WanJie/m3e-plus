@@ -1,9 +1,9 @@
-# @m3e/web/tabs
+# @wanjie/m3e-web/tabs
 
 The `m3e-tabs` component provides a structured navigation surface for organizing content into distinct views, where only one view is visible at a time. It supports scrollable tab headers with optional pagination, accessible labeling for navigation controls, and configurable header positioning to suit various layout contexts. Two visual variants are available: `primary`, which emphasizes active indicators and shape styling for prominent navigation, and `secondary`, which offers a more subtle presentation with reduced indicator thickness. Stretch behavior allows tabs to expand and align rhythmically within their container, consistent with Material 3 guidance.
 
 ```ts
-import "@m3e/web/tabs";
+import "@wanjie/m3e-web/tabs";
 ```
 
 ## 🗂️ Elements

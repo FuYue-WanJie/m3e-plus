@@ -18,16 +18,16 @@ import {
   registerStyleSheet,
   setCustomState,
   spaceSeparatedStringConverter,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { Breakpoint, M3eBreakpointObserver } from "@m3e/web/core/layout";
-import { Direction, M3eDirectionality } from "@m3e/web/core/bidi";
-import { PanGestureDetail } from "@m3e/web/gestures/pan";
-import { RepeatGestureDetail } from "@m3e/web/gestures/repeat";
+import { Breakpoint, M3eBreakpointObserver } from "@wanjie/m3e-web/core/layout";
+import { Direction, M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
+import { PanGestureDetail } from "@wanjie/m3e-web/gestures/pan";
+import { RepeatGestureDetail } from "@wanjie/m3e-web/gestures/repeat";
 
-import "@m3e/web/gestures/pan";
-import "@m3e/web/gestures/repeat";
-import "@m3e/web/gestures/tap";
+import "@wanjie/m3e-web/gestures/pan";
+import "@wanjie/m3e-web/gestures/repeat";
+import "@wanjie/m3e-web/gestures/tap";
 
 import { isSplitPaneOrientation, SplitPaneOrientation } from "./SplitPaneOrientation";
 

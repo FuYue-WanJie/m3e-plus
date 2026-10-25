@@ -17,7 +17,7 @@
       rel="stylesheet"
     />
     <link href="../main.css" rel="stylesheet" />
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/web@2.10.2/dist/all.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-web@2.10.2/dist/all.min.js"></script>
     <script src="../main.js"></script>
   </head>
   <body>
@@ -26,7 +26,7 @@
       <m3e-content-pane id="body">
         <m3e-heading variant="display" size="large" level="1">React</m3e-heading>
         <p>
-          The <strong>@m3e/react</strong> package provides idiomatic React bindings for all M3E Web Components. Each
+          The <strong>@wanjie/m3e-react</strong> package provides idiomatic React bindings for all M3E Web Components. Each
           component is exposed as its own React module, offering typed props, event mappings, and seamless integration
           with the React rendering model.
         </p>
@@ -38,34 +38,34 @@
         </m3e-callout>
 
         <m3e-card variant="outlined" class="install">
-          <pre slot="content">npm i @m3e/react</pre>
+          <pre slot="content">npm i @wanjie/m3e-react</pre>
         </m3e-card>
 
         <p>
           After installation, import the React module for any component you want to use. Each module wraps the
-          corresponding <code>@m3e/web</code> module and exposes a familiar React component API.
+          corresponding <code>@wanjie/m3e-web</code> module and exposes a familiar React component API.
         </p>
 
         <p>For example:</p>
         <m3e-card variant="outlined" class="install">
-          <pre slot="content">import { M3eButton } from "@m3e/react/button";</pre>
+          <pre slot="content">import { M3eButton } from "@wanjie/m3e-react/button";</pre>
         </m3e-card>
 
         <p>
           React modules automatically register their underlying Web Component, so no additional side-effect imports from
-          <code>@m3e/web</code> are required.
+          <code>@wanjie/m3e-web</code> are required.
         </p>
 
         <p>
           <strong>
-            Alternatively, import the <code>@m3e/react/all</code> module to load every React binding at once.
+            Alternatively, import the <code>@wanjie/m3e-react/all</code> module to load every React binding at once.
           </strong>
           This option is convenient when you want full access to the M3E component suite without managing individual
           modules.
         </p>
 
         <m3e-card variant="outlined" class="install">
-          <pre slot="content">import "@m3e/react/all";</pre>
+          <pre slot="content">import "@wanjie/m3e-react/all";</pre>
         </m3e-card>
 
         <p>

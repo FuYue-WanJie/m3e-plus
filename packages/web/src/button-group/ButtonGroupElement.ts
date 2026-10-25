@@ -15,10 +15,10 @@ import {
   waitForUpdate,
   setCustomEnumState,
   AttachInternals,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { M3eButtonElement } from "@m3e/web/button";
-import { M3eIconButtonElement } from "@m3e/web/icon-button";
+import { M3eButtonElement } from "@wanjie/m3e-web/button";
+import { M3eIconButtonElement } from "@wanjie/m3e-web/icon-button";
 
 import { ButtonGroupVariant, isButtonGroupVariant } from "./ButtonGroupVariant";
 import { ButtonGroupSize, isButtonGroupSize } from "./ButtonGroupSize";

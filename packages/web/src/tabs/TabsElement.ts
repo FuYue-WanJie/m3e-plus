@@ -13,16 +13,16 @@ import {
   ResizeController,
   setCustomEnumState,
   setCustomState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { SelectionManager, selectionManager, M3eInteractivityChecker } from "@m3e/web/core/a11y";
-import { M3eDirectionality, SupportsDirectionality } from "@m3e/web/core/bidi";
-import { M3eSlideGroupElement } from "@m3e/web/slide-group";
-import { GestureInput } from "@m3e/web/gestures";
-import { SwipeGestureDetail } from "@m3e/web/gestures/swipe";
+import { SelectionManager, selectionManager, M3eInteractivityChecker } from "@wanjie/m3e-web/core/a11y";
+import { M3eDirectionality, SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
+import { M3eSlideGroupElement } from "@wanjie/m3e-web/slide-group";
+import { GestureInput } from "@wanjie/m3e-web/gestures";
+import { SwipeGestureDetail } from "@wanjie/m3e-web/gestures/swipe";
 
-import "@m3e/web/slide-group";
-import "@m3e/web/gestures/swipe";
+import "@wanjie/m3e-web/slide-group";
+import "@wanjie/m3e-web/gestures/swipe";
 
 import { M3eTabElement } from "./TabElement";
 import { isTabVariant, TabVariant } from "./TabVariant";

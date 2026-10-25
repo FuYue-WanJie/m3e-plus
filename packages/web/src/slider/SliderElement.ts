@@ -1,4 +1,4 @@
-import { css, CSSResultGroup, html, LitElement, PropertyValues, unsafeCSS } from "lit";
+import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
 import { property, query, state } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
@@ -11,15 +11,15 @@ import {
   hasCustomState,
   prefersReducedMotion,
   ResizeController,
-  safeStyleMap,
   setCustomEnumState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { M3eDirectionality, SupportsDirectionality } from "@m3e/web/core/bidi";
+import { M3eDirectionality, SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import { M3eSliderThumbElement } from "./SliderThumbElement";
 import { isSliderOrientation, SliderOrientation } from "./SliderOrientation";
 import { isSliderSize, SliderSize } from "./SliderSize";
+import { sliderValueFraction } from "./slider-track";
 
 /**
  * Allows for the selection of numeric values from a range.
@@ -60,11 +60,13 @@ import { isSliderSize, SliderSize } from "./SliderSize";
  *
  * @attr disabled - Whether the element is disabled.
  * @attr discrete - Whether to show tick marks.
+ * @attr centered - Whether the active track fills from the centre of the range outwards.
  * @attr labelled - Whether to show value labels when activated.
  * @attr max - The maximum allowable value.
  * @attr min - The minimum allowable value.
  * @attr orientation - The orientation of the slider.
  * @attr step - The value at which the thumb will snap.
+ * @attr steps - The number of discrete divisions between the endpoints (AndroidX semantics).
  * @attr size - The size of the slider.
  *
  * @fires beforeinput - Dispatched before the value of a thumb changes.
@@ -251,12 +253,6 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     :host(:is(:state(--extra-large), :--extra-large)) .track {
       height: var(--m3e-slider-extra-large-track-height, 96px);
     }
-    :host(:is(:state(--animating), :--animating)) .track-active,
-    :host(:is(:state(--animating), :--animating)) .track-inactive.start,
-    :host(:is(:state(--animating), :--animating)) .track-inactive.end {
-      transition: ${unsafeCSS(`margin-inline-start ${DesignToken.motion.spring.fastEffects},
-        width ${DesignToken.motion.spring.fastEffects}`)};
-    }
     .base {
       contain: layout style;
       display: inline-flex;
@@ -267,88 +263,161 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       border-radius: inherit;
       outline: none;
       touch-action: none;
+      /* Small corner used where a track segment meets another segment or the thumb gap, matching
+         AndroidX TrackInsideCornerSize (2dp). Overridable per element. */
+      --_slider-inside-corner: var(--m3e-slider-inside-corner, 2px);
     }
+    /* Track: three percentage-positioned segments (inactive head / active / inactive tail) inset by
+       half a thumb along the axis, following the verified centred-slider geometry. Segment widths come
+       from --_start-w / --_active-l / --_active-w / --_end-w set by the element. The outer radius
+       (default half the track height) rounds the two outer ends; the inner radius rounds the seams. */
     .track {
-      contain: layout style paint;
-      position: relative;
-      flex: 1 1 auto;
-      touch-action: none;
-    }
-    .track-inactive,
-    .track-active {
-      contain: layout style paint;
       position: absolute;
-      height: 100%;
+      inset-inline: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
       touch-action: none;
+      /* Cross-axis thickness comes from the per-size track height/width rules. */
+      --_outer-r: var(--m3e-slider-track-outer-radius, calc(var(--_track-h, 16px) / 2));
+      --_inner-r: var(--m3e-slider-track-inner-radius, 2px);
     }
-    .track-active {
-      margin-inline-start: var(--_slider-active-track-offset, 0px);
-      width: var(--_slider-active-track-size, 0px);
-      border-radius: var(--_slider-active-track-middle-shape, var(--_slider-active-track-shape));
-    }
-    .track-inactive.start {
-      width: var(--_slider-inactive-track-before-size, 0px);
-      border-radius: var(--_slider-inactive-track-start-shape);
-    }
-    .track-inactive.end {
-      margin-inline-start: var(--_slider-inactive-track-after-offset, 0px);
-      width: var(--_slider-inactive-track-after-size, 0px);
-      border-radius: var(--_slider-inactive-track-end-shape);
-    }
-    .ticks {
-      position: absolute;
-      width: 100%;
-      height: var(--m3e-slider-tick-size, 4px);
-      overflow: visible;
-      touch-action: none;
-    }
-    .tick {
-      position: absolute;
+    :host([orientation="vertical"]) .track {
+      inset-inline: 0;
+      left: 50%;
+      right: auto;
       top: 0;
-      touch-action: none;
-      inset-inline-start: calc(var(--m3e-slider-tick-size, 4px) + calc(var(--m3e-slider-tick-size, 4px) / 2));
+      bottom: 0;
+      transform: translateX(-50%);
+    }
+    .track .seg {
+      position: absolute;
+      inset-block: 0;
+    }
+    :host([orientation="vertical"]) .track .seg {
+      inset-block: auto;
+      inset-inline: 0;
+      left: 0;
+      right: 0;
+    }
+    /* Inactive head 0..lo: outer corner on the start end, inner corner on the seam end. */
+    .track .inactive.start {
+      inset-inline-start: 0;
+      width: var(--_start-w, 0%);
+      border-start-start-radius: var(--_outer-r);
+      border-end-start-radius: var(--_outer-r);
+      border-start-end-radius: var(--_inner-r);
+      border-end-end-radius: var(--_inner-r);
+    }
+    /* Active lo..hi: inner corners at both ends (a slim bar, not a capsule). */
+    .track .active {
+      inset-inline-start: var(--_active-l, 0%);
+      width: var(--_active-w, 0%);
+      border-radius: var(--_inner-r);
+    }
+    /* Inactive tail hi..1: inner corner on the seam end, outer corner on the end. */
+    .track .inactive.end {
+      inset-inline-end: 0;
+      width: var(--_end-w, 0%);
+      border-start-start-radius: var(--_inner-r);
+      border-end-start-radius: var(--_inner-r);
+      border-start-end-radius: var(--_outer-r);
+      border-end-end-radius: var(--_outer-r);
+    }
+    :host([orientation="vertical"]) .track .inactive.start {
+      inset-inline-start: auto;
+      inset-block-start: 0;
+      height: var(--_start-w, 0%);
+      width: 100%;
+      border-start-start-radius: var(--_inner-r);
+      border-end-start-radius: var(--_outer-r);
+      border-start-end-radius: var(--_inner-r);
+      border-end-end-radius: var(--_outer-r);
+    }
+    :host([orientation="vertical"]) .track .active {
+      inset-inline-start: 0;
+      inset-block-start: var(--_active-l, 0%);
+      height: var(--_active-w, 0%);
+      width: 100%;
+    }
+    :host([orientation="vertical"]) .track .inactive.end {
+      inset-inline-end: auto;
+      inset-block-end: 0;
+      height: var(--_end-w, 0%);
+      width: 100%;
+      border-start-start-radius: var(--_outer-r);
+      border-end-start-radius: var(--_inner-r);
+      border-start-end-radius: var(--_outer-r);
+      border-end-end-radius: var(--_inner-r);
+    }
+    /* Step / stop ticks: small dots centred across the track at each anchor. */
+    .track .tick {
+      position: absolute;
+      top: 50%;
+      inset-inline-start: var(--_tick-pos, 0%);
       width: var(--m3e-slider-tick-size, 4px);
       height: var(--m3e-slider-tick-size, 4px);
+      margin-inline-start: calc(var(--m3e-slider-tick-size, 4px) / -2);
+      margin-block-start: calc(var(--m3e-slider-tick-size, 4px) / -2);
       border-radius: var(--m3e-slider-tick-shape, ${DesignToken.shape.corner.full});
+      transform: none;
     }
-    .tick.hidden {
+    :host([orientation="vertical"]) .track .tick {
+      top: auto;
+      inset-inline-start: 50%;
+      inset-block-start: var(--_tick-pos, 0%);
+      margin-inline-start: calc(var(--m3e-slider-tick-size, 4px) / -2);
+      margin-block-start: calc(var(--m3e-slider-tick-size, 4px) / -2);
+    }
+    .track .tick.hidden {
       visibility: hidden;
     }
-    :host(:not([disabled])) .track-inactive {
-      background-color: var(--m3e-slider-inactive-track-color, ${DesignToken.color.secondaryContainer});
+    :host(:not([disabled])) .track .inactive {
+      background: var(--m3e-slider-inactive-track-color, ${DesignToken.color.secondaryContainer});
     }
-    :host([disabled]) .track-inactive {
-      background-color: color-mix(
+    :host([disabled]) .track .inactive {
+      background: color-mix(
         in srgb,
         var(--m3e-slider-disabled-inactive-track-color, ${DesignToken.color.onSurface})
           var(--m3e-slider-disabled-inactive-track-opacity, 12%),
         transparent
       );
     }
-    :host(:not([disabled])) .track-active {
-      background-color: var(--m3e-slider-active-track-color, ${DesignToken.color.primary});
+    :host(:not([disabled])) .track .active {
+      background: var(--m3e-slider-active-track-color, ${DesignToken.color.primary});
     }
-    :host([disabled]) .track-active {
-      background-color: color-mix(
+    :host([disabled]) .track .active {
+      background: color-mix(
         in srgb,
         var(--m3e-slider-disabled-active-track-color, ${DesignToken.color.onSurface})
           var(--m3e-slider-disabled-active-track-opacity, 38%),
         transparent
       );
     }
-    :host(:not([disabled])) .tick.active {
-      background-color: var(--m3e-slider-tick-active-color, ${DesignToken.color.onPrimary});
+    /* AndroidX SliderDefaults cross-maps tick colours to the opposite track role. */
+    :host(:not([disabled])) .track .tick.active {
+      background: var(--m3e-slider-tick-active-color, ${DesignToken.color.secondaryContainer});
     }
-    :host([disabled]) .tick.active {
-      background-color: var(--m3e-slider-disabled-tick-active-color, ${DesignToken.color.inverseOnSurface});
+    :host([disabled]) .track .tick.active {
+      background: color-mix(
+        in srgb,
+        var(--m3e-slider-disabled-tick-active-color, ${DesignToken.color.onSurface})
+          var(--m3e-slider-disabled-tick-active-opacity, 12%),
+        transparent
+      );
     }
-    :host(:not([disabled])) .tick.inactive {
-      background-color: var(--m3e-slider-tick-inactive-color, ${DesignToken.color.onSecondaryContainer});
+    :host(:not([disabled])) .track .tick.inactive {
+      background: var(--m3e-slider-tick-inactive-color, ${DesignToken.color.primary});
     }
-    :host([disabled]) .tick.inactive {
-      background-color: var(--m3e-slider-disabled-tick-inactive-color, ${DesignToken.color.onSurface});
+    :host([disabled]) .track .tick.inactive {
+      background: color-mix(
+        in srgb,
+        var(--m3e-slider-disabled-tick-inactive-color, ${DesignToken.color.onSurface})
+          var(--m3e-slider-disabled-tick-inactive-opacity, 38%),
+        transparent
+      );
     }
-    :host(:not([discrete])) .tick.active {
+    :host(:not([discrete])) .track .tick.active {
       display: none;
     }
     :host(:hover[labelled]) .base,
@@ -358,36 +427,21 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       --_slider-label-transform: scale(1);
     }
     @media (forced-colors: active) {
-      :host(:not([disabled])) .track-inactive {
-        background-color: unset;
+      :host(:not([disabled])) .track .inactive {
+        background: CanvasText;
       }
-      :host(:not([disabled])) .base.range .track-inactive.start,
-      :host(:not([disabled])) .track-inactive.end {
-        border: 1px solid CanvasText;
-        box-sizing: border-box;
+      :host(:not([disabled])) .track .active {
+        background: Highlight;
       }
-      :host(:not([disabled])) .tick.inactive {
-        background-color: CanvasText;
+      :host(:not([disabled])) .track .tick.inactive {
+        background: CanvasText;
       }
-      :host(:not([disabled])) .tick.active {
-        background-color: Canvas;
+      :host(:not([disabled])) .track .tick.active {
+        background: Canvas;
       }
-      :host(:not([disabled])) .track-active {
-        background-color: CanvasText;
-      }
-      :host([disabled]) .base.range .track-inactive.start,
-      :host([disabled]) .track-inactive.end {
-        border: 1px solid GrayText;
-        box-sizing: border-box;
-      }
-      :host([disabled]) .track-active {
-        background-color: GrayText;
-      }
-      :host([disabled]) .tick.inactive {
-        background-color: GrayText;
-      }
-      :host([disabled]) .tick.active {
-        background-color: Canvas;
+      :host([disabled]) .track .inactive,
+      :host([disabled]) .track .active {
+        background: GrayText;
       }
     }
 
@@ -461,109 +515,6 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       height: auto;
       width: var(--m3e-slider-extra-large-track-height, 96px);
     }
-    :host(:is(:state(--vertical), :--vertical):is(:state(--extra-small), :--extra-small)) .base {
-      --_slider-active-track-shape: var(
-        --m3e-slider-extra-small-active-track-shape,
-        0 0 ${DesignToken.shape.corner.small} ${DesignToken.shape.corner.small}
-      );
-      --_slider-inactive-track-start-shape: var(
-        --m3e-slider-extra-small-inactive-active-track-start-shape,
-        0 0 ${DesignToken.shape.corner.small} ${DesignToken.shape.corner.small}
-      );
-      --_slider-inactive-track-end-shape: var(
-        --m3e-slider-extra-small-inactive-track-end-shape,
-        ${DesignToken.shape.corner.small} ${DesignToken.shape.corner.small} 0 0
-      );
-    }
-    :host(:is(:state(--vertical), :--vertical):is(:state(--small), :--small)) .base {
-      --_slider-active-track-shape: var(
-        --m3e-slider-small-active-track-shape,
-        0 0 ${DesignToken.shape.corner.small} ${DesignToken.shape.corner.small}
-      );
-      --_slider-inactive-track-start-shape: var(
-        --m3e-slider-small-inactive-active-track-start-shape,
-        0 0 ${DesignToken.shape.corner.small} ${DesignToken.shape.corner.small}
-      );
-      --_slider-inactive-track-end-shape: var(
-        --m3e-slider-small-inactive-track-end-shape,
-        ${DesignToken.shape.corner.small} ${DesignToken.shape.corner.small} 0 0
-      );
-    }
-    :host(:is(:state(--vertical), :--vertical):is(:state(--medium), :--medium)) .base {
-      --_slider-active-track-shape: var(
-        --m3e-slider-medium-active-track-shape,
-        0 0 ${DesignToken.shape.corner.medium} ${DesignToken.shape.corner.medium}
-      );
-      --_slider-inactive-track-start-shape: var(
-        --m3e-slider-medium-inactive-active-track-start-shape,
-        0 0 ${DesignToken.shape.corner.medium} ${DesignToken.shape.corner.medium}
-      );
-      --_slider-inactive-track-end-shape: var(
-        --m3e-slider-medium-inactive-track-end-shape,
-        ${DesignToken.shape.corner.medium} ${DesignToken.shape.corner.medium} 0 0
-      );
-    }
-    :host(:is(:state(--vertical), :--vertical):is(:state(--large), :--large)) .base {
-      --_slider-active-track-shape: var(
-        --m3e-slider-large-active-track-shape,
-        0 0 ${DesignToken.shape.corner.large} ${DesignToken.shape.corner.large}
-      );
-      --_slider-inactive-track-start-shape: var(
-        --m3e-slider-large-inactive-active-track-start-shape,
-        0 0 ${DesignToken.shape.corner.large} ${DesignToken.shape.corner.large}
-      );
-      --_slider-inactive-track-end-shape: var(
-        --m3e-slider-large-inactive-track-end-shape,
-        ${DesignToken.shape.corner.large} ${DesignToken.shape.corner.large} 0 0
-      );
-    }
-    :host(:is(:state(--vertical), :--vertical):is(:state(--extra-large), :--extra-large)) .base {
-      --_slider-active-track-shape: var(
-        --m3e-slider-extra-large-active-track-shape,
-        0 0 ${DesignToken.shape.corner.extraLarge} ${DesignToken.shape.corner.extraLarge}
-      );
-      --_slider-inactive-track-start-shape: var(
-        --m3e-slider-extra-large-inactive-active-track-start-shape,
-        0 0 ${DesignToken.shape.corner.extraLarge} ${DesignToken.shape.corner.extraLarge}
-      );
-      --_slider-inactive-track-end-shape: var(
-        --m3e-slider-extra-large-inactive-track-end-shape,
-        ${DesignToken.shape.corner.extraLarge} ${DesignToken.shape.corner.extraLarge} 0 0
-      );
-    }
-    :host(:is(:state(--vertical), :--vertical)) .track-inactive,
-    :host(:is(:state(--vertical), :--vertical)) .track-active {
-      width: 100%;
-      height: auto;
-      margin-inline-start: 0;
-    }
-    :host(:is(:state(--vertical), :--vertical)) .track-active {
-      bottom: var(--_slider-active-track-offset, 0px);
-      height: var(--_slider-active-track-size, 0px);
-    }
-    :host(:is(:state(--vertical), :--vertical)) .track-inactive.start {
-      bottom: 0;
-      height: var(--_slider-inactive-track-before-size, 0px);
-    }
-    :host(:is(:state(--vertical), :--vertical)) .track-inactive.end {
-      bottom: var(--_slider-inactive-track-after-offset, 0px);
-      height: var(--_slider-inactive-track-after-size, 0px);
-    }
-    :host(:is(:state(--vertical), :--vertical):is(:state(--animating), :--animating)) .track-active,
-    :host(:is(:state(--vertical), :--vertical):is(:state(--animating), :--animating)) .track-inactive.start,
-    :host(:is(:state(--vertical), :--vertical):is(:state(--animating), :--animating)) .track-inactive.end {
-      transition: ${unsafeCSS(`bottom ${DesignToken.motion.spring.fastEffects},
-        height ${DesignToken.motion.spring.fastEffects}`)};
-    }
-    :host(:is(:state(--vertical), :--vertical)) .ticks {
-      width: var(--m3e-slider-tick-size, 4px);
-      height: 100%;
-    }
-    :host(:is(:state(--vertical), :--vertical)) .tick {
-      top: auto;
-      inset-inline-start: 0;
-      bottom: calc(var(--m3e-slider-tick-size, 4px) + calc(var(--m3e-slider-tick-size, 4px) / 2));
-    }
   `;
 
   /** @private */ #directionalitySubscription?: () => void;
@@ -572,6 +523,9 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
   @query(".base") private readonly _base?: HTMLElement;
 
   /** @private */
+  @query(".track") private readonly _track?: HTMLElement;
+
+  /** Step / stop tick descriptors rendered inside the track. @private */
   @state() private _ticks = new Array<{ value: number; active: boolean; hidden: boolean }>();
 
   /** @private */ readonly #changedThumbs = new Set<M3eSliderThumbElement>();
@@ -633,6 +587,23 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
    * @default 1
    */
   @property({ type: Number }) step = 1;
+
+  /**
+   * The number of discrete divisions between the endpoints, matching AndroidX Compose's `steps`
+   * parameter. When positive this takes precedence over `step`: the value snaps to `steps + 2`
+   * evenly-spaced anchors across `[min, max]` (i.e. the endpoints plus `steps` interior stops).
+   * For example, a range of 0..10 with `steps="4"` snaps to 0, 2, 4, 6, 8, 10.
+   * @default 0
+   */
+  @property({ type: Number }) steps = 0;
+
+  /**
+   * Whether the active track fills from the centre of the range outwards (a "centered" slider),
+   * rather than from the minimum end. The centre is the value `0` when it lies within `[min, max]`,
+   * otherwise the midpoint of the range. Only applies to single-thumb sliders.
+   * @default false
+   */
+  @property({ type: Boolean, reflect: true }) centered = false;
 
   /**
    * Whether to show value labels when activated.
@@ -720,6 +691,40 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       this.#updateThumbs();
       this.#updateDimensions(true);
     }
+    // Snapping / tick geometry and centred fill all depend on the range and stepping.
+    if (
+      _changedProperties.has("min") ||
+      _changedProperties.has("max") ||
+      _changedProperties.has("step") ||
+      _changedProperties.has("steps") ||
+      _changedProperties.has("centered") ||
+      _changedProperties.has("discrete")
+    ) {
+      this.#syncThumbValues();
+      this.#updateThumbs();
+      this.#updateDimensions(true);
+    }
+    // `displayWith` affects the accessible value text, so refresh the thumbs' aria-valuetext.
+    if (_changedProperties.has("displayWith")) {
+      this.#updateThumbs();
+    }
+  }
+
+  /**
+   * Re-clamps/snaps existing thumb values into the current range so changing `min`/`max`/`steps`
+   * never leaves a thumb out of bounds or off an anchor.
+   * @private
+   */
+  #syncThumbValues(): void {
+    const lower = this.min;
+    const upper = this.max;
+    let previousMax = lower;
+    for (const thumb of this.#thumbs) {
+      if (thumb.value == null) continue;
+      const snapped = Math.min(upper, Math.max(Math.max(lower, previousMax), this.#snapValue(thumb.value)));
+      if (snapped !== thumb.value) thumb.value = snapped;
+      previousMax = snapped;
+    }
   }
 
   /** @inheritdoc */
@@ -735,11 +740,11 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       @value-change=${this.#handleThumbChange}
     >
       <div class="track" aria-hidden="true">
-        <div class="track-inactive start"></div>
-        <div class="track-active"></div>
-        <div class="track-inactive end"></div>
+        <span class="seg inactive start"></span>
+        <span class="seg active"></span>
+        <span class="seg inactive end"></span>
+        ${this._ticks.map((t) => this.#renderTick(t))}
       </div>
-      <div class="ticks" aria-hidden="true">${this._ticks.map((x) => this.#renderTick(x))}</div>
       <slot @slotchange=${this.#handleSlotChange}></slot>
     </div>`;
   }
@@ -761,16 +766,6 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
   }
 
   /** @private */
-  #renderTick(tick: { value: number; active: boolean; hidden: boolean }) {
-    return html`<div
-      class="tick ${tick.active ? "active" : "inactive"}${tick.hidden ? " hidden" : ""}"
-      style="${safeStyleMap({
-        transform: this.#translate(this.#pointFromValue(tick.value)),
-      })}"
-    ></div>`;
-  }
-
-  /** @private */
   #handleSlotChange(e: Event): void {
     this.#thumbs = (<HTMLSlotElement>e.target)
       .assignedElements({ flatten: true })
@@ -778,11 +773,6 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
 
     if (this.#thumbs.length > 2) {
       this.#thumbs.length = 2;
-    }
-    if (this.isRange) {
-      this._base?.style.setProperty("--_slider-active-track-middle-shape", `0`);
-    } else {
-      this._base?.style.removeProperty("--_slider-active-track-middle-shape");
     }
 
     this.#updateThumbs();
@@ -794,9 +784,13 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       if (this.disabled) {
         thumb.disabled = true;
       }
+      const value = thumb.value ?? this.#thumbs[i - 1]?.value ?? this.min;
       thumb.ariaValueMin = `${this.#thumbs[i - 1]?.value ?? this.min}`;
       thumb.ariaValueMax = `${this.#thumbs[i + 1]?.value ?? this.max}`;
-      thumb.ariaValueNow = `${thumb.value ?? this.#thumbs[i - 1]?.value ?? this.min}`;
+      thumb.ariaValueNow = `${value}`;
+      // Surface the human-formatted value to assistive tech when `displayWith` is supplied, since the
+      // visible label is aria-hidden.
+      thumb.ariaValueText = this.displayWith ? this.displayWith(value) : null;
       thumb.ariaOrientation = this.orientation;
 
       // The thumb is slotted light DOM, so its own stylesheet cannot select on the
@@ -810,20 +804,51 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
   }
 
   /**
-   * Positions an element `pos` along the slider's axis, measured from the end that
-   * holds `min`. Vertical sliders run bottom-to-top, so the offset is negated and
-   * directionality does not apply.
+   * The number of interior stops: `steps` when set, otherwise derived from `step`. Returns `-1`
+   * (disabled/continuous) when there is no usable stepping.
    * @private
    */
-  #translate(pos: number): string {
-    return this.#vertical
-      ? `translate(0, ${-pos}px)`
-      : `translate(${M3eDirectionality.current === "rtl" ? -pos : pos}px, 0)`;
+  get #stopCount(): number {
+    if (this.steps > 0) return Math.trunc(this.steps);
+    const step = this.step;
+    if (step <= 0) return -1;
+    const span = this.max - this.min;
+    if (span <= 0) return -1;
+    return Math.max(0, Math.round(span / step) - 1);
   }
 
-  /** @private */
-  #pointFromValue(value: number): number {
-    return (this.#cachedSize - this.#cachedThumbSize) * ((value - this.min) / (this.max - this.min));
+  /**
+   * The evenly-spaced snap anchors (values) across `[min, max]`, matching AndroidX's
+   * `stepsToTickFractions`: `stops + 2` values including both endpoints. Empty when continuous.
+   * @private
+   */
+  #anchors(): number[] {
+    const stops = this.#stopCount;
+    if (stops < 0) return [];
+    const count = stops + 2;
+    const out = new Array<number>(count);
+    for (let i = 0; i < count; i++) out[i] = this.min + ((this.max - this.min) * i) / (stops + 1);
+    return out;
+  }
+
+  /**
+   * Snaps `value` to the nearest anchor. Mirrors AndroidX `snapValueToTick`: ties resolve to the
+   * lower anchor (first in iteration survives an equal distance). Continuous when no anchors.
+   * @private
+   */
+  #snapValue(value: number): number {
+    const anchors = this.#anchors();
+    if (anchors.length === 0) return value;
+    let closest = anchors[0];
+    let minDistance = Number.POSITIVE_INFINITY;
+    for (const anchor of anchors) {
+      const distance = Math.abs(anchor - value);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closest = anchor;
+      }
+    }
+    return closest;
   }
 
   /** @private */
@@ -834,15 +859,14 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
         ? this.#cachedClientEnd - (this.#vertical ? e.clientY : e.clientX)
         : e.clientX - this.#cachedClientStart;
 
-    const step = this.step === 0 ? 1 : this.step;
-    const numSteps = Math.floor((this.max - this.min) / step);
-
     const thumbRatio = this.#cachedSize ? this.#cachedThumbSize / this.#cachedSize : 0;
     const percentage = (pos / this.#cachedClientSize - thumbRatio / 2) / (1 - thumbRatio || 1);
+    const clamped = Math.min(1, Math.max(0, percentage));
+    const raw = clamped * (this.max - this.min) + this.min;
 
-    const fixedPercentage = Math.round(percentage * numSteps) / numSteps;
-    const impreciseValue = fixedPercentage * (this.max - this.min) + this.min;
-    return Math.round(impreciseValue / step) * step;
+    // Snap to the nearest anchor (endpoints + interior stops), ties toward the lower anchor.
+    const snapped = this.#snapValue(raw);
+    return Math.min(this.max, Math.max(this.min, snapped));
   }
 
   /** @private */
@@ -870,70 +894,162 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     this.#updateCachedDimensions(force);
     if (!this.lowerThumb) return;
 
+    const vertical = this.#vertical;
+    const rtl = M3eDirectionality.current === "rtl";
+
     const lowerValue = this.lowerThumb.value ?? this.min;
-    const lowerPos = this.#pointFromValue(lowerValue);
-    this.lowerThumb.style.transform = this.#translate(lowerPos);
+    const upperValue = this.upperThumb?.value ?? null;
+    const isRange = upperValue != null;
+    const centered = this.centered && !isRange;
+    this._base?.classList.toggle("range", isRange);
+    this._base?.classList.toggle("centered", centered);
 
-    if (!this.upperThumb) {
-      this._base?.classList.toggle("range", false);
-      this._base?.style.setProperty("--_slider-active-track-size", `${lowerPos}px`);
-      this._base?.style.setProperty("--_slider-inactive-track-after-offset", `${lowerPos + this.#cachedThumbSize}px`);
-      this._base?.style.setProperty(
-        "--_slider-inactive-track-after-size",
-        `${this.#cachedSize - lowerPos - this.#cachedThumbSize}px`,
-      );
+    // The AndroidX-style `steps` attribute creates discrete stops/ticks; the m3e `step`
+    // value-increment only drives pointer snapping (via #snapValue), so a continuous slider is not
+    // chopped into a stop per unit.
+    const total = this.#cachedSize;
+    const along = this.#cachedThumbSize;
+    const length = Math.max(0, total - along);
 
-      this.#updateTicks((i) => i < lowerValue);
+    // Normalised (0..1) value positions; the thumb centre travels across `length` inset by thumb/2.
+    const lo = sliderValueFraction(lowerValue, this.min, this.max);
+    const hi = isRange ? sliderValueFraction(upperValue!, this.min, this.max) : lo;
+
+    // Work in px along the full slider extent (0..total) so segments and thumb share one coordinate
+    // space: the thumb centre for a value sits at `along/2 + fraction*length`.
+    const gap = this.#thumbTrackGap;
+    const centerGap = this.#centerGap;
+    const thumbGap = along / 2 + gap; // centre → segment end when the boundary holds a thumb
+    const cg = centerGap / 2; // centre → segment end when the boundary is the centre
+    const centerLo = along / 2 + lo * length;
+    const centerHi = along / 2 + hi * length;
+
+    let headEnd: number;
+    let activeLeft: number;
+    let activeRight: number;
+    let tailStart: number;
+    if (centered) {
+      const center = along / 2 + this.#centerFraction * length;
+      const segLo = Math.min(centerLo, center);
+      const segHi = Math.max(centerLo, center);
+      const gLo = centerLo < center ? thumbGap : cg;
+      const gHi = centerLo > center ? thumbGap : cg;
+      headEnd = segLo - gLo;
+      activeLeft = segLo + gLo;
+      activeRight = segHi - gHi;
+      tailStart = segHi + gHi;
+    } else if (isRange) {
+      headEnd = centerLo - thumbGap;
+      activeLeft = centerLo + thumbGap;
+      activeRight = centerHi - thumbGap;
+      tailStart = centerHi + thumbGap;
     } else {
-      const upperValue = this.upperThumb.value ?? lowerValue;
-      const upperPos = this.#pointFromValue(upperValue);
-      this.upperThumb.style.transform = this.#translate(upperPos);
-
-      this._base?.classList.toggle("range", true);
-      this._base?.style.setProperty("--_slider-inactive-track-before-size", `${lowerPos}px`);
-      this._base?.style.setProperty("--_slider-active-track-offset", `${lowerPos + this.#cachedThumbSize}px`);
-      this._base?.style.setProperty("--_slider-active-track-size", `${upperPos - lowerPos - this.#cachedThumbSize}px`);
-      this._base?.style.setProperty("--_slider-inactive-track-after-offset", `${upperPos + this.#cachedThumbSize}px`);
-      this._base?.style.setProperty(
-        "--_slider-inactive-track-after-size",
-        `${this.#cachedSize - this.#cachedThumbSize - upperPos}px`,
-      );
-
-      this.#updateTicks((i) => i > lowerValue && i < upperValue);
+      // Plain single slider: active from the start up to the thumb, inactive tail after.
+      headEnd = 0;
+      activeLeft = 0;
+      activeRight = centerLo - thumbGap;
+      tailStart = centerLo + thumbGap;
     }
+
+    const pct = (px: number): string => `${total > 0 ? (px / total) * 100 : 0}%`;
+    const startW = Math.max(0, headEnd);
+    const activeW = Math.max(0, activeRight - activeLeft);
+    const endW = Math.max(0, total - tailStart);
+
+    const track = this._track;
+    if (track) {
+      track.style.setProperty("--_track-h", `${this.#trackHeight}px`);
+      track.style.setProperty("--_start-w", pct(startW));
+      track.style.setProperty("--_active-l", pct(activeLeft));
+      track.style.setProperty("--_active-w", pct(activeW));
+      track.style.setProperty("--_end-w", pct(endW));
+      track.classList.toggle("centered", centered);
+      track.classList.toggle("range", isRange);
+    }
+
+    // Thumb placement: top-left along the axis = centre − thumb/2, expressed as a translate.
+    const place = (thumb: M3eSliderThumbElement, fraction: number): void => {
+      const topLeft = fraction * length;
+      thumb.style.transform = vertical
+        ? `translate(0, ${topLeft}px)`
+        : `translate(${rtl ? -topLeft : topLeft}px, 0)`;
+    };
+    place(this.lowerThumb, lo);
+    if (this.upperThumb && upperValue != null) place(this.upperThumb, hi);
+
+    // Ticks / stops.
+    this.#updateTickDots(activeLeft, activeRight, total);
+  }
+
+  /** The centre value as a 0..1 fraction (0 within range, else the midpoint). @private */
+  get #centerFraction(): number {
+    const centerValue = this.min <= 0 && 0 <= this.max ? 0 : (this.min + this.max) / 2;
+    return sliderValueFraction(centerValue, this.min, this.max);
+  }
+
+  /**
+   * Recomputes the visible tick/stop dots. Discrete sliders show a dot at every anchor; the dots on
+   * the active segment use the active-tick colour. Ticks that fall under a thumb or in the centre gap
+   * are hidden.
+   * @private
+   */
+  #updateTickDots(activeLeftPx: number, activeRightPx: number, total: number): void {
+    const ticks = new Array<{ value: number; active: boolean; hidden: boolean }>();
+    // Discrete stops come from the AndroidX `steps` attribute, or the legacy `step` increment when it
+    // is coarse enough (> 1). A plain step=1 slider is continuous and shows only its endpoints.
+    if (this.discrete) {
+      let anchors: number[] = [];
+      if (this.steps > 0) {
+        anchors = this.#anchors();
+      } else if (this.step > 1) {
+        const stops = Math.max(0, Math.round((this.max - this.min) / this.step) - 1);
+        anchors = Array.from({ length: stops + 2 }, (_, i) => this.min + ((this.max - this.min) * i) / (stops + 1));
+      }
+      if (anchors.length > 0) {
+        const along = this.#cachedThumbSize;
+        const length = Math.max(0, total - along);
+        for (const value of anchors) {
+          const f = sliderValueFraction(value, this.min, this.max);
+          const px = along / 2 + f * length;
+          ticks.push({ value, active: px >= activeLeftPx && px <= activeRightPx, hidden: false });
+        }
+        this._ticks = ticks;
+        return;
+      }
+    }
+    ticks.push({ value: this.min, active: false, hidden: false });
+    if (this.min < 0 && this.max > 0) ticks.push({ value: 0, active: false, hidden: false });
+    ticks.push({ value: this.max, active: false, hidden: false });
+    this._ticks = ticks;
   }
 
   /** @private */
-  #updateTicks(active: (value: number) => boolean): void {
-    this._ticks = [];
-    if (this.discrete && this.step > 1) {
-      for (let i = this.min; i <= this.max; i += this.step) {
-        this._ticks.push({ value: i, active: active(i), hidden: false });
-      }
-    } else {
-      this._ticks.push({ value: this.min, active: active(this.min), hidden: false });
-      if (this.min < 0 && this.max > 0) {
-        this._ticks.push({ value: 0, active: active(0), hidden: false });
-      }
-      this._ticks.push({ value: this.max, active: active(this.max), hidden: false });
-    }
-    this.#updateTickOverlap();
+  #renderTick(tick: { value: number; active: boolean; hidden: boolean }) {
+    const f = sliderValueFraction(tick.value, this.min, this.max);
+    return html`<span
+      class="tick ${tick.active ? "active" : "inactive"}${tick.hidden ? " hidden" : ""}"
+      style=${`--_tick-pos:${f * 100}%`}
+    ></span>`;
   }
 
-  /** @private */
-  #updateTickOverlap(): void {
-    if (this.#cachedSize === 0 || this.#cachedThumbSize === 0) return;
-    const thumbs = this.#thumbs.filter((t) => t.value != null);
-    if (thumbs.length === 0) return;
-    const thumbHalfWidth = this.#cachedThumbSize / 2;
-    this._ticks = this._ticks.map((tick) => {
-      const tickPos = this.#pointFromValue(tick.value);
-      const hidden = thumbs.some((thumb) => {
-        const thumbPos = this.#pointFromValue(thumb.value!);
-        return Math.abs(tickPos - thumbPos) < thumbHalfWidth;
-      });
-      return { ...tick, hidden };
-    });
+  /** The thumb-track gap in px, AndroidX ThumbTrackGapSize (6dp). @private */
+  get #thumbTrackGap(): number {
+    const raw = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-slider-thumb-track-gap"));
+    return Number.isFinite(raw) ? raw : 6;
+  }
+
+  /** The total gap around the centre in a centred slider (px). @private */
+  get #centerGap(): number {
+    const raw = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-slider-center-gap"));
+    return Number.isFinite(raw) ? raw : 6;
+  }
+
+  /** The track's cross-axis thickness in px (its rendered height when horizontal, width when vertical). @private */
+  get #trackHeight(): number {
+    const el = this._track;
+    if (!el) return 16;
+    const thickness = this.#vertical ? el.clientWidth : el.clientHeight;
+    return thickness > 0 ? thickness : 16;
   }
 
   /** @private */
@@ -1028,11 +1144,10 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       return;
     }
 
-    // Only animate value change when there are steps and drag speed occurs past a tolerance.
-    // Tolerance is based on visual impact to transitions during fast drag operations.
-
-    const effectiveStep = this.step === 0 ? 1 : this.step;
-    let animate = effectiveStep !== 1;
+    // Only animate value change when there are discrete stops and drag speed occurs past a
+    // tolerance. Tolerance is based on visual impact to transitions during fast drag operations.
+    const stops = this.#stopCount;
+    let animate = stops > 0;
 
     if (animate) {
       for (const coalescedEvent of e.getCoalescedEvents()) {
@@ -1092,6 +1207,17 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     // directionality — an inline-axis concern — does not apply.
     const ascending = this.#vertical || M3eDirectionality.current === "ltr";
 
+    // Step between adjacent anchors (covers both `steps` and `step`). Falls back to a tenth of the
+    // range for a continuous slider so arrow keys still move.
+    const anchors = this.#anchors();
+    const span = this.max - this.min;
+    const anchorStep = anchors.length > 1 ? anchors[1] - anchors[0] : span > 0 ? span / 10 : 1;
+    const pageStep = anchors.length > 1 ? Math.max(anchorStep, anchorStep * 10) : anchorStep;
+
+    /** Moves one anchor in the given direction, snapping to the anchor grid. @private */
+    const stepBy = (direction: 1 | -1) => this.#snapValue(value + direction * anchorStep);
+    const pageBy = (direction: 1 | -1) => this.#snapValue(value + direction * pageStep);
+
     switch (e.key) {
       case "Home":
         this.#changeThumb(this.#activeThumb, min);
@@ -1104,21 +1230,12 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
         break;
 
       case "PageUp":
-        if (ascending) {
-          this.#changeThumb(this.#activeThumb, Math.min(max, value + (this.step > 1 ? this.step : 10)));
-        } else {
-          this.#changeThumb(this.#activeThumb, Math.max(min, value - (this.step > 1 ? this.step : 10)));
-        }
-
+        this.#changeThumb(this.#activeThumb, Math.min(max, Math.max(min, ascending ? pageBy(1) : pageBy(-1))));
         e.preventDefault();
         break;
 
       case "PageDown":
-        if (ascending) {
-          this.#changeThumb(this.#activeThumb, Math.max(min, value - (this.step > 1 ? this.step : 10)));
-        } else {
-          this.#changeThumb(this.#activeThumb, Math.min(max, value + (this.step > 1 ? this.step : 10)));
-        }
+        this.#changeThumb(this.#activeThumb, Math.min(max, Math.max(min, ascending ? pageBy(-1) : pageBy(1))));
         e.preventDefault();
         break;
 
@@ -1126,26 +1243,15 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       case "ArrowDown":
       case "Left":
       case "ArrowLeft":
-        if (ascending) {
-          this.#changeThumb(this.#activeThumb, Math.max(min, value - this.step));
-        } else {
-          this.#changeThumb(this.#activeThumb, Math.min(max, value + this.step));
-        }
-
+        this.#changeThumb(this.#activeThumb, Math.min(max, Math.max(min, ascending ? stepBy(-1) : stepBy(1))));
         e.preventDefault();
-
         break;
 
       case "Up":
       case "ArrowUp":
       case "Right":
       case "ArrowRight":
-        if (ascending) {
-          this.#changeThumb(this.#activeThumb, Math.min(max, value + this.step));
-        } else {
-          this.#changeThumb(this.#activeThumb, Math.max(min, value - this.step));
-        }
-
+        this.#changeThumb(this.#activeThumb, Math.min(max, Math.max(min, ascending ? stepBy(1) : stepBy(-1))));
         e.preventDefault();
         break;
 

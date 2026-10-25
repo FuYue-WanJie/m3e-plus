@@ -1,11 +1,11 @@
-# @m3e/web/gestures/sequence
+# @wanjie/m3e-web/gestures/sequence
 
 Recognizes multiple child gestures in a required order. The sequence completes only when every child recognizer completes; a failed child cancels the sequence.
 
 ```ts
-import { sequence } from "@m3e/web/gestures/sequence";
-import { longPress } from "@m3e/web/gestures/long-press";
-import { tap } from "@m3e/web/gestures/tap";
+import { sequence } from "@wanjie/m3e-web/gestures/sequence";
+import { longPress } from "@wanjie/m3e-web/gestures/long-press";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const recognizer = sequence(longPress(), tap());
 ```
@@ -13,9 +13,9 @@ const recognizer = sequence(longPress(), tap());
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/sequence";
-import "@m3e/web/gestures/long-press";
-import "@m3e/web/gestures/tap";
+import "@wanjie/m3e-web/gestures/sequence";
+import "@wanjie/m3e-web/gestures/long-press";
+import "@wanjie/m3e-web/gestures/tap";
 ```
 
 ```html

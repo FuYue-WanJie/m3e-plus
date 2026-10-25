@@ -1,9 +1,9 @@
-# @m3e/web/switch
+# @wanjie/m3e-web/switch
 
 The `m3e-switch` component is a semantic, accessible toggle control that reflects a binary state. Designed according to Material Design 3 guidelines, it supports shape transitions, and adaptive color theming across selected, unselected, and disabled states. The component responds to user interaction with smooth motion and expressive feedback. It supports optional icons (`none`, `selected`, or `both`) and integrates with form-associated behavior, emitting `input` and `change` events when toggled.
 
 ```ts
-import "@m3e/web/switch";
+import "@wanjie/m3e-web/switch";
 ```
 
 ## 🗂️ Elements

@@ -14,13 +14,13 @@ import {
   registerStyleSheet,
   ScrollLockController,
   setCustomState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { positionAnchor } from "@m3e/web/core/anchoring";
-import { Direction, M3eDirectionality } from "@m3e/web/core/bidi";
-import { Breakpoint, M3eBreakpointObserver } from "@m3e/web/core/layout";
+import { positionAnchor } from "@wanjie/m3e-web/core/anchoring";
+import { Direction, M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
+import { Breakpoint, M3eBreakpointObserver } from "@wanjie/m3e-web/core/layout";
 
-import "@m3e/web/core/a11y";
+import "@wanjie/m3e-web/core/a11y";
 
 import { SearchViewLightDomStyle, SearchViewStyle } from "./styles";
 import { isSearchViewMode, SearchViewMode } from "./SearchViewMode";

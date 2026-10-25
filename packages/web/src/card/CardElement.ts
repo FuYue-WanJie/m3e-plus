@@ -18,7 +18,7 @@ import {
   hasAssignedNodes,
   customElement,
   setCustomEnumState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
 import { CardVariant, isCardVariant } from "./CardVariant";
 

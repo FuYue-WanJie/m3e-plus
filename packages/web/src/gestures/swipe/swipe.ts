@@ -1,4 +1,4 @@
-import { GestureListener } from "@m3e/web/gestures";
+import { GestureListener } from "@wanjie/m3e-web/gestures";
 
 import { SwipeGestureDetail } from "./SwipeGestureDetail";
 import { SwipeGestureOptions } from "./SwipeGestureOptions";

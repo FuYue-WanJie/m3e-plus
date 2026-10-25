@@ -1,9 +1,9 @@
-# @m3e/web/menu
+# @wanjie/m3e-web/menu
 
-The `@m3e/web/menu` module provides a cohesive set of components for constructing accessible, anchored menus that align with Material 3 design guidance. It supports both single and multi-selection patterns, nested menu hierarchies, and dynamically positioned floating panels. Menus are triggered from interactive elements and present checkable or exclusive choices using item variants. Grouping primitives establish selection boundaries, while nested flows support layered navigation and progressive disclosure.
+The `@wanjie/m3e-web/menu` module provides a cohesive set of components for constructing accessible, anchored menus that align with Material 3 design guidance. It supports both single and multi-selection patterns, nested menu hierarchies, and dynamically positioned floating panels. Menus are triggered from interactive elements and present checkable or exclusive choices using item variants. Grouping primitives establish selection boundaries, while nested flows support layered navigation and progressive disclosure.
 
 ```ts
-import "@m3e/web/menu";
+import "@wanjie/m3e-web/menu";
 ```
 
 ## 🗂️ Elements

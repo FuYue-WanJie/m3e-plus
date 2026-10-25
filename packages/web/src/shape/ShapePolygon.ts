@@ -1,6 +1,6 @@
 import { CSSResult, unsafeCSS } from "lit";
 
-import { generateClipPaths } from "@m3e/web/core";
+import { generateClipPaths } from "@wanjie/m3e-web/core";
 
 import { ShapeName } from "./ShapeName";
 

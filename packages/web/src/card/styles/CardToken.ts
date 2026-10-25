@@ -1,6 +1,6 @@
 import { unsafeCSS } from "lit";
 
-import { DesignToken } from "@m3e/web/core";
+import { DesignToken } from "@wanjie/m3e-web/core";
 
 /**
  * Component design tokens for `M3eCardElement`.

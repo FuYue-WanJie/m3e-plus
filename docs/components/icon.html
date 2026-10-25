@@ -21,17 +21,17 @@
     <script type="importmap">
       {
         "imports": {
-          "@m3e/web/icon": "https://cdn.jsdelivr.net/npm/@m3e/web@2.10.2/dist/all.min.js"
+          "@wanjie/m3e-web/icon": "https://cdn.jsdelivr.net/npm/@wanjie/m3e-web@2.10.2/dist/all.min.js"
         }
       }
     </script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/api-viewer-element/+esm"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/web@2.10.2/dist/all.min.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/icons/dist/outlined/search.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/icons/dist/outlined/home.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/icons/dist/outlined/settings.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/icons/dist/outlined/favorite.js"></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/icons/dist/outlined/notifications.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-web@2.10.2/dist/all.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-icons/dist/outlined/search.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-icons/dist/outlined/home.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-icons/dist/outlined/settings.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-icons/dist/outlined/favorite.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-icons/dist/outlined/notifications.js"></script>
     <script src="../main.js"></script>
   </head>
   <body>
@@ -67,11 +67,11 @@
           to determine whether your user's browser supports variable fonts.
         </p>
         <p>
-          Alternatively, the <code>@m3e/icons</code> package provides SVG versions of Material Symbols that register
+          Alternatively, the <code>@wanjie/m3e-icons</code> package provides SVG versions of Material Symbols that register
           automatically with <code>m3e-icon</code>. See the SVG Icons section below for usage details.
         </p>
 
-        <m3e-card variant="outlined" class="install"><pre slot="content">import "@m3e/web/icon";</pre></m3e-card>
+        <m3e-card variant="outlined" class="install"><pre slot="content">import "@wanjie/m3e-web/icon";</pre></m3e-card>
 
         <m3e-heading variant="headline" size="medium" level="2">Usage</m3e-heading>
         <p>This section outlines usage examples and configuration guidance for the components in this module.</p>
@@ -130,7 +130,7 @@
         <m3e-heading variant="headline" size="small" level="3">SVG icons</m3e-heading>
 
         <p>
-          As an alternative to use of variable fonts, you can use the <code>@m3e/icons</code> package for applications
+          As an alternative to use of variable fonts, you can use the <code>@wanjie/m3e-icons</code> package for applications
           that prefer SVG-based icons. This package supplies SVG data sourced from
           <code>@material-symbols/svg-400</code> and integrates with the existing <code>m3e-icon</code> component
           through an internal icon registry.
@@ -146,11 +146,11 @@
         </m3e-card>
         <m3e-card variant="outlined" class="install">
           <pre slot="content">
-import "@m3e/icons/outlined/search";
-import "@m3e/icons/outlined/home";
-import "@m3e/icons/outlined/settings";
-import "@m3e/icons/outlined/favorite";
-import "@m3e/icons/outlined/notifications";</pre
+import "@wanjie/m3e-icons/outlined/search";
+import "@wanjie/m3e-icons/outlined/home";
+import "@wanjie/m3e-icons/outlined/settings";
+import "@wanjie/m3e-icons/outlined/favorite";
+import "@wanjie/m3e-icons/outlined/notifications";</pre
           >
         </m3e-card>
         <p>
@@ -158,10 +158,10 @@ import "@m3e/icons/outlined/notifications";</pre
           <code>sharp</code>). You can register a specific icon by importing its module:
         </p>
         <m3e-card variant="outlined" class="install">
-          <pre slot="content">import "@m3e/icons/outlined/search";</pre>
+          <pre slot="content">import "@wanjie/m3e-icons/outlined/search";</pre>
         </m3e-card>
         <p>Or register an entire variant family at once:</p>
-        <m3e-card variant="outlined" class="install"><pre slot="content">import "@m3e/icons/outlined";</pre></m3e-card>
+        <m3e-card variant="outlined" class="install"><pre slot="content">import "@wanjie/m3e-icons/outlined";</pre></m3e-card>
 
         <p>
           Each icon module performs a side-effect registration with the internal registry used by
@@ -181,7 +181,7 @@ import "@m3e/icons/outlined/notifications";</pre
 
         <m3e-heading variant="headline" size="medium" level="2">Native module support</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package uses
+          The <code>@wanjie/m3e-web</code> package uses
           <a
             href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#module_specifiers"
             target="_blank"
@@ -191,7 +191,7 @@ import "@m3e/icons/outlined/notifications";</pre
 
         <m3e-card variant="outlined" class="install">
           <pre slot="content">
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/icon.js&quot;&gt;&lt;/script&gt;</pre
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/icon.js&quot;&gt;&lt;/script&gt;</pre
           >
         </m3e-card>
         <p>
@@ -217,7 +217,7 @@ import "@m3e/icons/outlined/notifications";</pre
       &quot;lit-html/directives/class-map.js&quot;: &quot;https://cdn.jsdelivr.net/npm/lit-html@3.3.0/directives/class-map.js&quot;,
       &quot;@lit/reactive-element&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/+esm&quot;,
       &quot;@lit/reactive-element/&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/&quot;,
-      &quot;@m3e/web/core&quot;: &quot;/node_modules/@m3e/web/dist/core.js&quot;
+      &quot;@wanjie/m3e-web/core&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core.js&quot;
     }
   }
 &lt;/script&gt;</pre
@@ -227,7 +227,7 @@ import "@m3e/icons/outlined/notifications";</pre
 
         <m3e-heading variant="headline" size="medium" level="2">API</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package includes a
+          The <code>@wanjie/m3e-web</code> package includes a
           <a href="https://github.com/webcomponents/custom-elements-manifest" target="_blank"
             >Custom Elements Manifest</a
           >

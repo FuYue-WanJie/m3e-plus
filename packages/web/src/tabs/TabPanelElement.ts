@@ -1,6 +1,6 @@
 import { css, CSSResultGroup, html, LitElement } from "lit";
 
-import { customElement, DesignToken, Role } from "@m3e/web/core";
+import { customElement, DesignToken, Role } from "@wanjie/m3e-web/core";
 
 /**
  * A panel presented for a tab.

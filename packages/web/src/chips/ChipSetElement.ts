@@ -1,6 +1,6 @@
 import { css, CSSResultGroup, html, LitElement } from "lit";
 
-import { customElement, DesignToken, Vertical } from "@m3e/web/core";
+import { customElement, DesignToken, Vertical } from "@wanjie/m3e-web/core";
 
 /**
  * A container used to organize chips into a cohesive unit.
