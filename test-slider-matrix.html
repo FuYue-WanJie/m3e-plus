@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>slider matrix</title>
+<style>body{font:12px system-ui;margin:16px;background:#fef7ff}.g{display:grid;grid-template-columns:repeat(3,300px);gap:14px 28px}h4{margin:0 0 2px;font-weight:600;color:#49454f}m3e-slider{width:100%}.v{display:flex;gap:40px;margin-top:20px;height:230px;align-items:flex-end}.v m3e-slider{height:210px;width:auto}</style>
+<script type="module" src="packages/web/dist/all.min.js"></script></head><body><m3e-theme></m3e-theme>
+<div class="g">
+<div><h4>plain 0</h4><m3e-slider><m3e-slider-thumb value="0"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>plain 30</h4><m3e-slider><m3e-slider-thumb value="30"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>plain 100</h4><m3e-slider><m3e-slider-thumb value="100"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>plain medium 60</h4><m3e-slider size="medium"><m3e-slider-thumb value="60"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>plain xl 40</h4><m3e-slider size="extra-large"><m3e-slider-thumb value="40"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>disabled 50</h4><m3e-slider disabled><m3e-slider-thumb value="50"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>discrete step 10 val 40</h4><m3e-slider discrete step="10"><m3e-slider-thumb value="40"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>range 20-70</h4><m3e-slider><m3e-slider-thumb value="20"></m3e-slider-thumb><m3e-slider-thumb value="70"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>range discrete step 10</h4><m3e-slider discrete step="10"><m3e-slider-thumb value="20"></m3e-slider-thumb><m3e-slider-thumb value="70"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>centered -50..50 v=25</h4><m3e-slider min="-50" max="50" centered><m3e-slider-thumb value="25"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>centered v=-30</h4><m3e-slider min="-50" max="50" centered><m3e-slider-thumb value="-30"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>centered v=0</h4><m3e-slider min="-50" max="50" centered><m3e-slider-thumb value="0"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>centered discrete step10 v=-20</h4><m3e-slider min="-50" max="50" step="10" centered discrete><m3e-slider-thumb value="-20"></m3e-slider-thumb></m3e-slider></div>
+<div dir="rtl"><h4>rtl plain 30</h4><m3e-slider><m3e-slider-thumb value="30"></m3e-slider-thumb></m3e-slider></div>
+<div><h4>centered medium v=30</h4><m3e-slider size="medium" min="-50" max="50" centered><m3e-slider-thumb value="30"></m3e-slider-thumb></m3e-slider></div>
+</div>
+<div class="v">
+<m3e-slider orientation="vertical"><m3e-slider-thumb value="30"></m3e-slider-thumb></m3e-slider>
+<m3e-slider orientation="vertical" size="medium"><m3e-slider-thumb value="70"></m3e-slider-thumb></m3e-slider>
+<m3e-slider orientation="vertical"><m3e-slider-thumb value="20"></m3e-slider-thumb><m3e-slider-thumb value="70"></m3e-slider-thumb></m3e-slider>
+<m3e-slider orientation="vertical" min="-50" max="50" centered><m3e-slider-thumb value="25"></m3e-slider-thumb></m3e-slider>
+<m3e-slider orientation="vertical" min="-50" max="50" centered><m3e-slider-thumb value="-30"></m3e-slider-thumb></m3e-slider>
+<m3e-slider orientation="vertical" discrete step="10"><m3e-slider-thumb value="40"></m3e-slider-thumb></m3e-slider>
+</div></body></html>
