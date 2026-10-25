@@ -1,6 +1,6 @@
-import { DelegatingGestureRecognizerBase, GestureDisposition, GestureListener, GesturePhase } from "@m3e/web/gestures";
+import { DelegatingGestureRecognizerBase, GestureDisposition, GestureListener, GesturePhase } from "@wanjie/m3e-web/gestures";
 
-import { PanGestureDetail, PanGestureOptions, PanGestureRecognizer } from "@m3e/web/gestures/pan";
+import { PanGestureDetail, PanGestureOptions, PanGestureRecognizer } from "@wanjie/m3e-web/gestures/pan";
 
 import { DefaultSwipeGestureOptions, SwipeGestureDirection, SwipeGestureOptions } from "./SwipeGestureOptions";
 import { SwipeGestureDetail } from "./SwipeGestureDetail";

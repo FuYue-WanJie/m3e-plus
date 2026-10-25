@@ -1,9 +1,9 @@
-# @m3e/web/slide-group
+# @wanjie/m3e-web/slide-group
 
 The `m3e-slide-group` component presents directional pagination controls for navigating overflowing content. It orchestrates scrollable layouts with expressive slot-based icons and adaptive orientation, revealing navigation affordances only when content exceeds a defined threshold. It supports both horizontal and vertical flows, and encodes accessibility through customizable labels and interaction states.
 
 ```ts
-import "@m3e/web/slide-group";
+import "@wanjie/m3e-web/slide-group";
 ```
 
 ## 🗂️ Elements

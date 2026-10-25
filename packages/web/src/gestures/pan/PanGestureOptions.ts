@@ -1,4 +1,4 @@
-import { DefaultGestureOptions, GestureOptions } from "@m3e/web/gestures";
+import { DefaultGestureOptions, GestureOptions } from "@wanjie/m3e-web/gestures";
 
 /**
  * Specifies the possible modes in which to active a pan gesture.

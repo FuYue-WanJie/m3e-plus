@@ -19,16 +19,16 @@ import {
   registerStyleSheet,
   InertController,
   hasAssignedNodes,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { isModifierAllowed, M3eInteractivityChecker } from "@m3e/web/core/a11y";
-import { GestureInput } from "@m3e/web/gestures";
-import { TapGestureDetail } from "@m3e/web/gestures/tap";
-import { M3eSwipeGestureElement, SwipeGestureDetail } from "@m3e/web/gestures/swipe";
+import { isModifierAllowed, M3eInteractivityChecker } from "@wanjie/m3e-web/core/a11y";
+import { GestureInput } from "@wanjie/m3e-web/gestures";
+import { TapGestureDetail } from "@wanjie/m3e-web/gestures/tap";
+import { M3eSwipeGestureElement, SwipeGestureDetail } from "@wanjie/m3e-web/gestures/swipe";
 
-import "@m3e/web/core/a11y";
-import "@m3e/web/gestures/swipe";
-import "@m3e/web/gestures/tap";
+import "@wanjie/m3e-web/core/a11y";
+import "@wanjie/m3e-web/gestures/swipe";
+import "@wanjie/m3e-web/gestures/tap";
 
 /**
  * A sheet used to show secondary content anchored to the bottom of the screen.

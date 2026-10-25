@@ -1,10 +1,10 @@
-# @m3e/web/gestures/repeat
+# @wanjie/m3e-web/gestures/repeat
 
 Recognizes one child gesture repeatedly. Recognition completes after the configured number of occurrences.
 
 ```ts
-import { repeat } from "@m3e/web/gestures/repeat";
-import { tap } from "@m3e/web/gestures/tap";
+import { repeat } from "@wanjie/m3e-web/gestures/repeat";
+import { tap } from "@wanjie/m3e-web/gestures/tap";
 
 const doubleTap = repeat({ count: 2 }, tap());
 doubleTap.addListener((detail) => {
@@ -15,8 +15,8 @@ doubleTap.addListener((detail) => {
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/repeat";
-import "@m3e/web/gestures/tap";
+import "@wanjie/m3e-web/gestures/repeat";
+import "@wanjie/m3e-web/gestures/tap";
 ```
 
 ```html

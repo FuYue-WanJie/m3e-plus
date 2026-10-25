@@ -1,4 +1,4 @@
-import { GestureDetail } from "@m3e/web/gestures";
+import { GestureDetail } from "@wanjie/m3e-web/gestures";
 
 /** Describes the semantic output of a rotate gesture. */
 export interface RotateGestureDetail extends GestureDetail {

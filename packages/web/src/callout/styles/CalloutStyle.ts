@@ -1,6 +1,6 @@
 import { css, CSSResultGroup } from "lit";
 
-import { DesignToken } from "@m3e/web/core";
+import { DesignToken } from "@wanjie/m3e-web/core";
 
 /**
  * Baseline styles for `M3eCalloutElement`.

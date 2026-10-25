@@ -48,9 +48,9 @@ Below is a list of all packages in this monorepo, with a short summary and insta
 
 | Package                                      | Summary                                | Installation             |
 | -------------------------------------------- | -------------------------------------- | ------------------------ |
-| [**@m3e/web**](./packages/web/README.md)     | Platform‑native Web Components for M3E | `npm install @m3e/web`   |
-| [**@m3e/react**](./packages/react/README.md) | React bindings for M3E Web Components  | `npm install @m3e/react` |
-| [**@m3e/icons**](./packages/icons/README.md) | Icons for M3E Web Components           | `npm install @m3e/icons` |
+| [**@wanjie/m3e-web**](./packages/web/README.md)     | Platform‑native Web Components for M3E | `npm install @wanjie/m3e-web`   |
+| [**@wanjie/m3e-react**](./packages/react/README.md) | React bindings for M3E Web Components  | `npm install @wanjie/m3e-react` |
+| [**@wanjie/m3e-icons**](./packages/icons/README.md) | Icons for M3E Web Components           | `npm install @wanjie/m3e-icons` |
 
 ## 📍 Roadmap
 
@@ -64,7 +64,7 @@ Contributions from the community are welcome! Please review the [Contributing Gu
 
 Every pull request **and every push** publishes a preview build of the M3E packages using **pkg.pr.new**. This makes it easy to test changes locally without cloning the repo or linking workspaces.
 
-Preview builds include the compiled output for both `@m3e/web` and `@m3e/react`, matching the structure of a standard npm release.
+Preview builds include the compiled output for both `@wanjie/m3e-web` and `@wanjie/m3e-react`, matching the structure of a standard npm release.
 
 #### Pull request builds
 

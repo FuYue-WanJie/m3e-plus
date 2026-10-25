@@ -1,4 +1,4 @@
-import { GesturePhase, GestureRecognizerBase, PointerInput, PointerTracker } from "@m3e/web/gestures";
+import { GesturePhase, GestureRecognizerBase, PointerInput, PointerTracker } from "@wanjie/m3e-web/gestures";
 
 import { PanGestureDetail } from "./PanGestureDetail";
 import { DefaultPanGestureOptions, PanGestureOptions } from "./PanGestureOptions";

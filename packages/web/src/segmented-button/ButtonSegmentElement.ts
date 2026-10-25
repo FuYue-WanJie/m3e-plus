@@ -15,9 +15,9 @@ import {
   Role,
   setCustomState,
   Touched,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { selectionManager } from "@m3e/web/core/a11y";
+import { selectionManager } from "@wanjie/m3e-web/core/a11y";
 
 /**
  * A option that can be selected within a segmented button.

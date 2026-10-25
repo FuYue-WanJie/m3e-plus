@@ -1,9 +1,9 @@
-# @m3e/web/gestures/rotate
+# @wanjie/m3e-web/gestures/rotate
 
 Recognizes rotation made by multiple pointers.
 
 ```ts
-import { rotate } from "@m3e/web/gestures/rotate";
+import { rotate } from "@wanjie/m3e-web/gestures/rotate";
 
 const recognizer = rotate({ pointers: 2 });
 recognizer.addListener((detail) => console.log(detail.rotation));
@@ -12,7 +12,7 @@ recognizer.addListener((detail) => console.log(detail.rotation));
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/rotate";
+import "@wanjie/m3e-web/gestures/rotate";
 ```
 
 ```html

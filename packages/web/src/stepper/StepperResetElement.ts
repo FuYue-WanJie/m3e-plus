@@ -1,4 +1,4 @@
-import { customElement } from "@m3e/web/core";
+import { customElement } from "@wanjie/m3e-web/core";
 
 import { StepperButtonElementBase } from "./StepperButtonElementBase";
 

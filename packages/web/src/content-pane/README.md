@@ -1,9 +1,9 @@
-# @m3e/web/content-pane
+# @wanjie/m3e-web/content-pane
 
 The `m3e-content-pane` component renders a shaped surface with padding and vertical scrolling for document‑like content.
 
 ```ts
-import "@m3e/web/content-pane";
+import "@wanjie/m3e-web/content-pane";
 ```
 
 ## 🗂️ Elements

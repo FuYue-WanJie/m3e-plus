@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eTextHighlightElement } from "@m3e/web/core";
-export type { M3eTextHighlightElement, TextHighlightMode } from "@m3e/web/core";
+import { M3eTextHighlightElement } from "@wanjie/m3e-web/core";
+export type { M3eTextHighlightElement, TextHighlightMode } from "@wanjie/m3e-web/core";
 
 /**
- * React binding for the `m3e-text-highlight` Web Component from `@m3e/web/core`.
+ * React binding for the `m3e-text-highlight` Web Component from `@wanjie/m3e-web/core`.
  *
  * This component renders the underlying `<m3e-text-highlight>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

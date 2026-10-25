@@ -1,9 +1,9 @@
-# @m3e/web/avatar
+# @wanjie/m3e-web/avatar
 
 The `m3e-avatar` component is a reusable identity primitive that displays visual or textual representation with consistent sizing, shape, and typography.
 
 ```ts
-import "@m3e/web/avatar";
+import "@wanjie/m3e-web/avatar";
 ```
 
 ## 🗂️ Elements
@@ -20,7 +20,7 @@ The following example illustrates use of the `m3e-avatar` to present textual ini
 
 The next example illustrates use of the `m3e-avatar` to present an icon.
 
-> This example uses the `@m3e/icon` package to present Material Design symbols, but any icon package can be substituted depending on your design system or preferences
+> This example uses the `@wanjie/m3e-icon` package to present Material Design symbols, but any icon package can be substituted depending on your design system or preferences
 
 ```html
 <m3e-avatar>

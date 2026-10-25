@@ -10,7 +10,7 @@ import {
   themeFromSourceColor,
 } from "@material/material-color-utilities";
 
-import { customElement, DesignToken, Role } from "@m3e/web/core";
+import { customElement, DesignToken, Role } from "@wanjie/m3e-web/core";
 
 import { ColorScheme, isColorScheme } from "./ColorScheme";
 import { isThemeVariant, ThemeVariant } from "./ThemeVariant";

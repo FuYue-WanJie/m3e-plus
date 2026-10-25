@@ -10,10 +10,10 @@ import {
   focusWhenReady,
   ScrollLockController,
   setCustomState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import "@m3e/web/core/a11y";
-import "@m3e/web/icon-button";
+import "@wanjie/m3e-web/core/a11y";
+import "@wanjie/m3e-web/icon-button";
 
 /**
  * A dialog that provides important prompts in a user flow.

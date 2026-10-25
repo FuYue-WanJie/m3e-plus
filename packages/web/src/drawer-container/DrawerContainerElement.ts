@@ -11,11 +11,11 @@ import {
   ReconnectedCallback,
   ResizeController,
   waitForUpdate,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { Breakpoint, M3eBreakpointObserver } from "@m3e/web/core/layout";
-import { SupportsDirectionality } from "@m3e/web/core/bidi";
-import "@m3e/web/core/a11y";
+import { Breakpoint, M3eBreakpointObserver } from "@wanjie/m3e-web/core/layout";
+import { SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
+import "@wanjie/m3e-web/core/a11y";
 
 import { DrawerMode, isDrawerMode } from "./DrawerMode";
 

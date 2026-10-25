@@ -1,4 +1,4 @@
-# @m3e/web/shape
+# @wanjie/m3e-web/shape
 
 The `m3e-shape` component allows you to use abstract shapes thoughtfully to add emphasis and decorative flair, including built-in shape morphing.
 
@@ -7,7 +7,7 @@ All shapes are sourced from the Material Shape library: `4-leaf-clover`, `4-side
 Refer to the Material Shape library for visual references and details.
 
 ```ts
-import "@m3e/web/shape";
+import "@wanjie/m3e-web/shape";
 ```
 
 ## 🗂️ Elements

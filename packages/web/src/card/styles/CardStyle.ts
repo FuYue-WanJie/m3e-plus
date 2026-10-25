@@ -1,6 +1,6 @@
 import { css, CSSResult, unsafeCSS } from "lit";
 
-import { DesignToken } from "@m3e/web/core";
+import { DesignToken } from "@wanjie/m3e-web/core";
 
 import { CardToken } from "./CardToken";
 import { CardVariantToken } from "./CardVariantToken";

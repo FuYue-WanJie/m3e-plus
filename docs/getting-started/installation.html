@@ -17,7 +17,7 @@
       rel="stylesheet"
     />
     <link href="../main.css" rel="stylesheet" />
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@m3e/web@2.10.2/dist/all.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@wanjie/m3e-web@2.10.2/dist/all.min.js"></script>
     <script src="../main.js"></script>
   </head>
   <body>
@@ -27,22 +27,22 @@
         <m3e-heading variant="display" size="large" level="1">Installation</m3e-heading>
         <p>
           The M3E Web Component library is distributed as a single package under the
-          <strong>@m3e/web</strong> namespace.
+          <strong>@wanjie/m3e-web</strong> namespace.
         </p>
-        <m3e-card variant="outlined" class="install"><pre slot="content">npm i @m3e/web</pre></m3e-card>
+        <m3e-card variant="outlined" class="install"><pre slot="content">npm i @wanjie/m3e-web</pre></m3e-card>
         <p>After installing the package, each component can be imported individually through its own module.</p>
         <p>For example:</p>
         <m3e-card variant="outlined" class="install">
-          <pre slot="content">import "@m3e/web/button";</pre>
+          <pre slot="content">import "@wanjie/m3e-web/button";</pre>
         </m3e-card>
 
         <p>
-          <strong>Alternatively, import the <code>@m3e/web/all</code> module to load every component at once.</strong>
+          <strong>Alternatively, import the <code>@wanjie/m3e-web/all</code> module to load every component at once.</strong>
           This option is convenient when you want full access to the M3E ecosystem without managing individual modules.
         </p>
 
         <m3e-card variant="outlined" class="install">
-          <pre slot="content">import "@m3e/web/all";</pre>
+          <pre slot="content">import "@wanjie/m3e-web/all";</pre>
         </m3e-card>
 
         <m3e-heading variant="headline" size="medium" level="2">Native module support</m3e-heading>
@@ -59,7 +59,7 @@
 
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
-&lt;script type=&quot;module&quot; src=&quot;/node_modules/@m3e/web/dist/button.js&quot;&gt;&lt;/script&gt;</pre
+&lt;script type=&quot;module&quot; src=&quot;/node_modules/@wanjie/m3e-web/dist/button.js&quot;&gt;&lt;/script&gt;</pre
           >
         </m3e-card>
         <p>
@@ -70,7 +70,7 @@
             >import map</a
           >
           to include dependencies. The following is an example import map that imports all entry points for
-          <code>@m3e/web/core</code>.
+          <code>@wanjie/m3e-web/core</code>.
         </p>
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
@@ -86,12 +86,12 @@
       &quot;lit-html/directives/class-map.js&quot;: &quot;https://cdn.jsdelivr.net/npm/lit-html@3.3.0/directives/class-map.js&quot;,
       &quot;@lit/reactive-element&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/+esm&quot;,
       &quot;@lit/reactive-element/&quot;: &quot;https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.0.4/&quot;,
-      &quot;@m3e/web/core&quot;: &quot;/node_modules/@m3e/web/dist/core.js&quot;,
-      &quot;@m3e/web/core/a11y&quot;: &quot;/node_modules/@m3e/web/dist/core-a11y.js&quot;,
-      &quot;@m3e/web/core/anchoring&quot;: &quot;/node_modules/@m3e/web/dist/core-anchoring.js&quot;,
-      &quot;@m3e/web/core/bidi&quot;: &quot;/node_modules/@m3e/web/dist/core-bidi.js&quot;,
-      &quot;@m3e/web/core/layout&quot;: &quot;/node_modules/@m3e/web/dist/core-layout.js&quot;,
-      &quot;@m3e/web/core/platform&quot;: &quot;/node_modules/@m3e/web/dist/core-platform.js&quot;
+      &quot;@wanjie/m3e-web/core&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core.js&quot;,
+      &quot;@wanjie/m3e-web/core/a11y&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core-a11y.js&quot;,
+      &quot;@wanjie/m3e-web/core/anchoring&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core-anchoring.js&quot;,
+      &quot;@wanjie/m3e-web/core/bidi&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core-bidi.js&quot;,
+      &quot;@wanjie/m3e-web/core/layout&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core-layout.js&quot;,
+      &quot;@wanjie/m3e-web/core/platform&quot;: &quot;/node_modules/@wanjie/m3e-web/dist/core-platform.js&quot;
     }
   }
 &lt;/script&gt;</pre
@@ -101,7 +101,7 @@
 
         <m3e-heading variant="headline" size="medium" level="2">Editor integration</m3e-heading>
         <p>
-          The <code>@m3e/web</code> package includes a
+          The <code>@wanjie/m3e-web</code> package includes a
           <a href="https://github.com/webcomponents/custom-elements-manifest" target="_blank"
             >Custom Elements Manifest</a
           >
@@ -124,8 +124,8 @@
         <m3e-card variant="outlined" class="example">
           <pre slot="content">
 &#123;
-&nbsp;&nbsp;&quot;html.customData&quot;: [&quot;./node_modules/@m3e/web/dist/html-custom-data.json&quot;],
-&nbsp;&nbsp;&quot;css.customData&quot;: [&quot;./node_modules/@m3e/web/dist/css-custom-data.json&quot;]
+&nbsp;&nbsp;&quot;html.customData&quot;: [&quot;./node_modules/@wanjie/m3e-web/dist/html-custom-data.json&quot;],
+&nbsp;&nbsp;&quot;css.customData&quot;: [&quot;./node_modules/@wanjie/m3e-web/dist/css-custom-data.json&quot;]
 &#125;</pre
           >
         </m3e-card>

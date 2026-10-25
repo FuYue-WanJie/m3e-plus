@@ -1,9 +1,9 @@
-# @m3e/web/radio-group
+# @wanjie/m3e-web/radio-group
 
 The `m3e-radio-group` and `m3e-radio` components enable single-choice selection within a set of mutually exclusive options. They support accessible state transitions, semantic grouping, and expressive styling across interaction states.
 
 ```ts
-import "@m3e/web/radio-group";
+import "@wanjie/m3e-web/radio-group";
 ```
 
 ## 🗂️ Elements

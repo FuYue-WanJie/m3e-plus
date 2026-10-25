@@ -6,7 +6,7 @@ import {
   GestureOptions,
   GesturePhase,
   GestureRecognizer,
-} from "@m3e/web/gestures";
+} from "@wanjie/m3e-web/gestures";
 
 import { RepeatGestureDetail } from "./RepeatGestureDetail";
 import { DefaultRepeatGestureOptions, RepeatGestureOptions } from "./RepeatGestureOptions";

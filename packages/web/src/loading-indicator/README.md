@@ -1,9 +1,9 @@
-# @m3e/web/loading-indicator
+# @wanjie/m3e-web/loading-indicator
 
 The `m3e-loading-indicator` component uses animation to grab attention, mitigate perceived latency, and indicate that an activity is in progress. Use the `variant` attribute to switch between `uncontained` (default) and `contained` appearances for contrast and context.
 
 ```ts
-import "@m3e/web/loading-indicator";
+import "@wanjie/m3e-web/loading-indicator";
 ```
 
 ## 🗂️ Elements

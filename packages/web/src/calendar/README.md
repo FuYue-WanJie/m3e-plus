@@ -1,9 +1,9 @@
-# @m3e/web/calendar
+# @wanjie/m3e-web/calendar
 
 The `m3e-calendar` component provides structured navigation and selection across month, year, and multi-year views. It supports single-date and range selection, applies disabled rules including minimum, maximum, and blackout constraints, and provides styling hooks for special date states.
 
 ```ts
-import "@m3e/web/calendar";
+import "@wanjie/m3e-web/calendar";
 ```
 
 ## 🗂️ Elements

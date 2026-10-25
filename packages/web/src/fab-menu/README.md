@@ -1,9 +1,9 @@
-# @m3e/web/fab-menu
+# @wanjie/m3e-web/fab-menu
 
 The `m3e-fab-menu` component presents a dynamic menu of related actions, elegantly revealed from a floating action button (FAB). Designed using expressive, adaptive surfaces, it enables seamless access to contextual actions in modern, visually rich interfaces.
 
 ```ts
-import "@m3e/web/fab-menu";
+import "@wanjie/m3e-web/fab-menu";
 ```
 
 ## 🗂️ Elements

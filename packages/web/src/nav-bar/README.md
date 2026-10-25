@@ -1,9 +1,9 @@
-# @m3e/web/nav-bar
+# @wanjie/m3e-web/nav-bar
 
 The `m3e-nav-bar` and `m3e-nav-item` components provide a navigation bar and interactive items for switching between primary destinations in your application. Designed for smaller devices, they support 3-5 interactive items, orientation, selection, and extensive theming via CSS custom properties.
 
 ```ts
-import "@m3e/web/nav-bar";
+import "@wanjie/m3e-web/nav-bar";
 ```
 
 ## 🗂️ Elements

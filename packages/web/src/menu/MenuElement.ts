@@ -15,11 +15,11 @@ import {
   registerStyleSheet,
   ClickOutsideController,
   setCustomEnumState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { RovingTabIndexManager } from "@m3e/web/core/a11y";
-import { positionAnchor } from "@m3e/web/core/anchoring";
-import { Direction, M3eDirectionality } from "@m3e/web/core/bidi";
+import { RovingTabIndexManager } from "@wanjie/m3e-web/core/a11y";
+import { positionAnchor } from "@wanjie/m3e-web/core/anchoring";
+import { Direction, M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import { M3eMenuItemElement } from "./MenuItemElement";
 import { isMenuPositionX, MenuPositionX, MenuPositionY } from "./MenuPosition";

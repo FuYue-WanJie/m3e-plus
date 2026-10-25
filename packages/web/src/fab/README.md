@@ -1,4 +1,4 @@
-# @m3e/web/fab
+# @wanjie/m3e-web/fab
 
 The `m3e-fab` component is a prominent, expressive UI component that represents the primary action on a screen. Designed according to Material Design 3 guidelines, it supports seven visual variants, specified using the `variant` attribute—`primary`, `primary-container`, `secondary`, `secondary-container`, `tertiary`, `tertiary-container` and `surface`—each with dynamic elevation and adaptive color theming.
 
@@ -7,7 +7,7 @@ The component is accessible by default, with ARIA roles, contrast-safe color tok
 Native disabled `<button>` elements cannot receive focus. This can be problematic in some cases because it can prevent you from telling the user why the button is disabled. You can use the `disabled-interactive` attribute to style a `m3e-fab` as disabled but allow for it to receive focus. The button will have `aria-disabled="true"` for assistive technology.
 
 ```ts
-import "@m3e/web/fab";
+import "@wanjie/m3e-web/fab";
 ```
 
 ## 🗂️ Elements

@@ -1,9 +1,9 @@
-# @m3e/web/gestures/scale
+# @wanjie/m3e-web/gestures/scale
 
 Recognizes pinch and spread movement made by multiple pointers.
 
 ```ts
-import { scale } from "@m3e/web/gestures/scale";
+import { scale } from "@wanjie/m3e-web/gestures/scale";
 
 const recognizer = scale({ pointers: 2 });
 recognizer.addListener((detail) => console.log(detail.scale));
@@ -12,7 +12,7 @@ recognizer.addListener((detail) => console.log(detail.scale));
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/scale";
+import "@wanjie/m3e-web/gestures/scale";
 ```
 
 ```html

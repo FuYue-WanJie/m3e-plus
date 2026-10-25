@@ -1,6 +1,6 @@
 import { css, CSSResultGroup, unsafeCSS } from "lit";
 
-import { DesignToken } from "@m3e/web/core";
+import { DesignToken } from "@wanjie/m3e-web/core";
 
 /**
  * Baseline styles for `M3eButtonElement`.
@@ -24,9 +24,20 @@ export const ButtonStyle: CSSResultGroup = css`
     justify-content: center;
     position: relative;
     width: 100%;
+    /* Shape-morph is driven by the SpringSimulation engine (see M3eButtonElement#animatePress):
+       each frame writes --_button-shape, which the size styles consume as border-radius. No CSS
+       transition on border-radius here — the radius follows the JS spring frame-by-frame. */
     transition: ${unsafeCSS(
       `background-color ${DesignToken.motion.duration.short4} ${DesignToken.motion.easing.standard}`,
     )};
+  }
+  .wrapper {
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .touch {
     position: absolute;
@@ -36,16 +47,9 @@ export const ButtonStyle: CSSResultGroup = css`
   }
   :host(:is(:state(--pressed), :--pressed)) .base,
   :host(:is(:state(--resting), :--resting)) .base {
-    transition: ${unsafeCSS(`background-color ${DesignToken.motion.duration.short4} ${DesignToken.motion.easing.standard},
-          border-radius ${DesignToken.motion.spring.fastEffects}`)};
-  }
-  .wrapper {
-    box-sizing: border-box;
-    width: 100%;
-    overflow: hidden;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    /* Shape morph follows the JS physics engine via --_button-shape; only the background color
+       keeps a CSS transition for the variant color change. */
+    transition: ${unsafeCSS(`background-color ${DesignToken.motion.duration.short4} ${DesignToken.motion.easing.standard}`)};
   }
   .label {
     white-space: nowrap;
@@ -142,7 +146,7 @@ export const ButtonStyle: CSSResultGroup = css`
     }
     :host(:is(:state(--pressed), :--pressed)) .base,
     :host(:is(:state(--resting), :--resting)) .base {
-      transition: ${unsafeCSS(`border-radius ${DesignToken.motion.spring.fastEffects}`)};
+      transition: none;
     }
     :host(:not(:disabled):not([disabled-interactive]):not([toggle])) .base {
       background-color: ButtonFace !important;

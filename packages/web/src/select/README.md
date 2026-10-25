@@ -1,9 +1,9 @@
-# @m3e/web/select
+# @wanjie/m3e-web/select
 
 The `m3e-select` component provides a form control for selecting a value from a set of predefined options. Following Material Design 3 principles, it supports both single and multiple selection modes, customizable validation states, accessible keyboard navigation, and extensive theming via CSS custom properties.
 
 ```ts
-import "@m3e/web/select";
+import "@wanjie/m3e-web/select";
 ```
 
 ## 🗂️ Elements

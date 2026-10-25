@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eStepperResetElement } from "@m3e/web/stepper";
-export type { M3eStepperResetElement } from "@m3e/web/stepper";
+import { M3eStepperResetElement } from "@wanjie/m3e-web/stepper";
+export type { M3eStepperResetElement } from "@wanjie/m3e-web/stepper";
 
 /**
- * React binding for the `m3e-stepper-reset` Web Component from `@m3e/web/stepper`.
+ * React binding for the `m3e-stepper-reset` Web Component from `@wanjie/m3e-web/stepper`.
  *
  * This component renders the underlying `<m3e-stepper-reset>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

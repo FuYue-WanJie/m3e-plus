@@ -1,4 +1,4 @@
-# @m3e/web/icon
+# @wanjie/m3e-web/icon
 
 The `m3e-icon` component makes it easy to use Material Symbols in your application. It supports outlined, rounded, and sharp variants, as well as variable font features like fill, weight, grade, and optical size. For more information, see the [Material Symbol Guide](https://developers.google.com/fonts/docs/material_symbols) and [Material Symbol Library](https://fonts.google.com/icons).
 
@@ -6,7 +6,7 @@ The Material Symbols font is the easiest way to incorporate Material Symbols int
 usage within your application. See [Can I Use's Variable Fonts](https://caniuse.com/variable-fonts) to determine whether your user's browser support variable fonts.
 
 ```ts
-import "@m3e/web/icon";
+import "@wanjie/m3e-web/icon";
 ```
 
 ## 🗂️ Elements

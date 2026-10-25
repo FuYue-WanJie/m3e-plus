@@ -1,9 +1,9 @@
-# @m3e/web/gestures/long-press
+# @wanjie/m3e-web/gestures/long-press
 
 Recognizes a pointer held in place for a minimum duration.
 
 ```ts
-import { longPress } from "@m3e/web/gestures/long-press";
+import { longPress } from "@wanjie/m3e-web/gestures/long-press";
 
 const recognizer = longPress({ minDuration: 500 });
 recognizer.addListener((detail) => console.log(detail.duration));
@@ -12,7 +12,7 @@ recognizer.addListener((detail) => console.log(detail.duration));
 ## Declarative usage
 
 ```ts
-import "@m3e/web/gestures/long-press";
+import "@wanjie/m3e-web/gestures/long-press";
 ```
 
 ```html

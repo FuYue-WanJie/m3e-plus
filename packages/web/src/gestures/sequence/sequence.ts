@@ -1,4 +1,4 @@
-import { GestureListener, GestureRecognizer, isGestureRecognizer } from "@m3e/web/gestures";
+import { GestureListener, GestureRecognizer, isGestureRecognizer } from "@wanjie/m3e-web/gestures";
 
 import { SequenceGestureRecognizer } from "./SequenceGestureRecognizer";
 import { SequenceGestureDetail } from "./SequenceGestureDetail";

@@ -1,9 +1,9 @@
 import { CSSResultGroup, html, LitElement, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
-import { AttachInternals, customElement, Role, setCustomEnumState, Vertical } from "@m3e/web/core";
-import { RovingTabIndexManager, M3eInteractivityChecker } from "@m3e/web/core/a11y";
-import { M3eDirectionality } from "@m3e/web/core/bidi";
+import { AttachInternals, customElement, Role, setCustomEnumState, Vertical } from "@wanjie/m3e-web/core";
+import { RovingTabIndexManager, M3eInteractivityChecker } from "@wanjie/m3e-web/core/a11y";
+import { M3eDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import { isToolbarVariant, ToolbarVariant } from "./ToolbarVariant";
 import { isToolbarShape, ToolbarShape } from "./ToolbarShape";

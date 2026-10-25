@@ -1,9 +1,9 @@
-# @m3e/web/app-bar
+# @wanjie/m3e-web/app-bar
 
 The `m3e-app-bar` component is a prominent user interface component that provides consistent access to key actions, navigation, and contextual information at the top of an application screen. Designed according to Material 3 principles, it organizes content with clear hierarchy, supports dynamic color, elevation, alignment, and adapts to scrolling behavior.
 
 ```ts
-import "@m3e/web/app-bar";
+import "@wanjie/m3e-web/app-bar";
 ```
 
 ## 🗂️ Elements
@@ -14,7 +14,7 @@ import "@m3e/web/app-bar";
 
 The following example illustrates a medium size `m3e-app-bar` consisting of a leading button, title, subtitle, and trailing button.
 
-> This example uses the `@m3e/icon` package to present Material Design symbols, but any icon package can be substituted depending on your design system or preferences
+> This example uses the `@wanjie/m3e-icon` package to present Material Design symbols, but any icon package can be substituted depending on your design system or preferences
 
 ```html
 <m3e-app-bar size="medium">

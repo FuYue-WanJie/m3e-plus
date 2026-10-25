@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eListActionElement } from "@m3e/web/list";
-export type { M3eListActionElement } from "@m3e/web/list";
+import { M3eListActionElement } from "@wanjie/m3e-web/list";
+export type { M3eListActionElement } from "@wanjie/m3e-web/list";
 
 /**
- * React binding for the `m3e-list-action` Web Component from `@m3e/web/list`.
+ * React binding for the `m3e-list-action` Web Component from `@wanjie/m3e-web/list`.
  *
  * This component renders the underlying `<m3e-list-action>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

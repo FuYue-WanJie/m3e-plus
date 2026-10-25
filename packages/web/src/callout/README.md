@@ -1,9 +1,9 @@
-# @m3e/web/callout
+# @wanjie/m3e-web/callout
 
 The `m3e-callout` component provides a visually distinct supporting container for contextual or supplemental information. It can include an icon and label, and supports multiple appearance variants and shapes.
 
 ```ts
-import "@m3e/web/callout";
+import "@wanjie/m3e-web/callout";
 ```
 
 ## 🗂️ Elements

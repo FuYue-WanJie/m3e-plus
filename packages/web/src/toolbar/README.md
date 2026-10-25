@@ -1,9 +1,9 @@
-# @m3e/web/toolbar
+# @wanjie/m3e-web/toolbar
 
 The `m3e-toolbar` component presents contextual actions, navigation, and controls. Designed according to Material 3 principles, it supports vertical and horizontal orientation, shape and variant customization, and adaptive layout via CSS custom properties.
 
 ```ts
-import "@m3e/web/toolbar";
+import "@wanjie/m3e-web/toolbar";
 ```
 
 ## 🗂️ Elements

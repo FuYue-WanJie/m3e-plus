@@ -1,9 +1,9 @@
-# @m3e/web/option
+# @wanjie/m3e-web/option
 
 The `m3e-option`, `m3e-option-panel`, and `m3e-optgroup` components provide a complete solution for displaying selectable options in menus and lists. They follow Material Design 3 principles with comprehensive support for single and multiple selection, dynamic positioning, keyboard navigation, and extensive theming via CSS custom properties.
 
 ```ts
-import "@m3e/web/option";
+import "@wanjie/m3e-web/option";
 ```
 
 ## 🗂️ Elements

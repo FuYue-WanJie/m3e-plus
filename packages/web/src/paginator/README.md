@@ -1,9 +1,9 @@
-# @m3e/web/paginator
+# @wanjie/m3e-web/paginator
 
 The `m3e-paginator` component is a compact, accessible paginator control for navigating paged data sets. It provides semantic first/previous/next/last navigation controls and an optional page-size selector.
 
 ```ts
-import "@m3e/web/paginator";
+import "@wanjie/m3e-web/paginator";
 ```
 
 ## 🗂️ Elements

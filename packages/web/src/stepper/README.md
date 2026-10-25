@@ -1,9 +1,9 @@
-# @m3e/web/stepper
+# @wanjie/m3e-web/stepper
 
 The `m3e-stepper` component orchestrates a structured, wizard-like workflow by dividing content into discrete, navigable steps. It supports horizontal and vertical orientations, linear progression, and configurable label and header positioning.
 
 ```ts
-import "@m3e/web/stepper";
+import "@wanjie/m3e-web/stepper";
 ```
 
 ## 🗂️ Elements

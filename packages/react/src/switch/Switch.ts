@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eSwitchElement } from "@m3e/web/switch";
-export type { M3eSwitchElement, SwitchIcons } from "@m3e/web/switch";
+import { M3eSwitchElement } from "@wanjie/m3e-web/switch";
+export type { M3eSwitchElement, SwitchIcons } from "@wanjie/m3e-web/switch";
 
 /**
- * React binding for the `m3e-switch` Web Component from `@m3e/web/switch`.
+ * React binding for the `m3e-switch` Web Component from `@wanjie/m3e-web/switch`.
  *
  * This component renders the underlying `<m3e-switch>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

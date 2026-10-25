@@ -15,7 +15,7 @@ export const test = base.extend<{
 }>({
   render: async ({ page }, use) => {
     if (!existsSync(bundle)) {
-      throw new Error("The bundle is missing. Run `npm run build -w @m3e/web` before testing.");
+      throw new Error("The bundle is missing. Run `npm run build -w @wanjie/m3e-web` before testing.");
     }
     await use(async (html) => {
       await page.setContent(`<!doctype html><html><body>${html}</body></html>`);

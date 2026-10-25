@@ -1,9 +1,9 @@
-# @m3e/web/form-field
+# @wanjie/m3e-web/form-field
 
 The `m3e-form-field` component is a semantic, expressive container for form controls that anchors label behavior, subscript messaging, and variant-specific layout. Designed according to Material Design 3 guidelines, it supports two visual variants—`outlined` and `filled`—each with dynamic elevation, shape transitions, and adaptive color theming. The component responds to control state changes (focus, hover, press, disabled, invalid) with smooth motion and semantic clarity, ensuring visual hierarchy and emotional resonance.
 
 ```ts
-import "@m3e/web/form-field";
+import "@wanjie/m3e-web/form-field";
 ```
 
 ## 🗂️ Elements

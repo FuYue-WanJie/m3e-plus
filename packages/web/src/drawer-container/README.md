@@ -1,9 +1,9 @@
-# @m3e/web/drawer-container
+# @wanjie/m3e-web/drawer-container
 
 The `m3e-drawer-container` component provides a responsive layout container for managing one or two sliding drawers alongside main content. It supports multiple drawer modes (`over`, `push`, `side`, and `auto`), adapts to breakpoint size, and encodes spatial hierarchy, motion transitions, and accessibility semantics for modal, dismissible, and permanent navigation.
 
 ```ts
-import "@m3e/web/drawer-container";
+import "@wanjie/m3e-web/drawer-container";
 ```
 
 ## 🗂️ Elements

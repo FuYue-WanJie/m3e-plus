@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>m3e Slider — refactor test</title>
+    <style>
+      body { font-family: Roboto, system-ui, sans-serif; margin: 0; padding: 32px; background: #f5f2f8; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 48px; max-width: 900px; margin: 0 auto; }
+      section { display: flex; flex-direction: column; gap: 10px; }
+      h3 { margin: 0; font-size: 14px; color: #49454f; font-weight: 600; }
+      m3e-slider { width: 100%; }
+      .out { font-size: 13px; color: #1d1b20; font-variant-numeric: tabular-nums; }
+      .vrow { display: flex; gap: 48px; align-items: flex-end; height: 260px; padding-top: 8px; }
+      m3e-slider[orientation="vertical"] { height: 240px; width: auto; }
+    </style>
+    <script type="module" src="../packages/web/dist/all.min.js?v=slider1"></script>
+  </head>
+  <body>
+    <m3e-theme strong-focus></m3e-theme>
+    <div class="grid">
+      <section>
+        <h3>steps=4 (0..100) — snaps 0,20,40,60,80,100</h3>
+        <m3e-slider id="s1" steps="4"><m3e-slider-thumb value="40"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o1"></div>
+      </section>
+
+      <section>
+        <h3>discrete steps=4 (ticks)</h3>
+        <m3e-slider id="s2" steps="4" discrete><m3e-slider-thumb value="50"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o2"></div>
+      </section>
+
+      <section>
+        <h3>centered (-50..50), starts at 0</h3>
+        <m3e-slider id="s3" min="-50" max="50" centered><m3e-slider-thumb value="0"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o3"></div>
+      </section>
+
+      <section>
+        <h3>centered discrete (-50..50, step 10)</h3>
+        <m3e-slider id="s4" min="-50" max="50" step="10" centered discrete><m3e-slider-thumb value="-20"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o4"></div>
+      </section>
+
+      <section>
+        <h3>range steps=9</h3>
+        <m3e-slider id="s5" steps="9"><m3e-slider-thumb value="20"></m3e-slider-thumb><m3e-slider-thumb value="80"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o5"></div>
+      </section>
+
+      <section>
+        <h3>labelled displayWith</h3>
+        <m3e-slider id="s6" labelled discrete steps="4"><m3e-slider-thumb value="60"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o6"></div>
+      </section>
+    </div>
+
+    <div class="vrow">
+      <section>
+        <h3>vertical centered</h3>
+        <m3e-slider id="s7" orientation="vertical" min="-50" max="50" centered discrete step="10"><m3e-slider-thumb value="20"></m3e-slider-thumb></m3e-slider>
+        <div class="out" id="o7"></div>
+      </section>
+    </div>
+
+    <script type="module">
+      // Wait for the custom elements to be defined before reading `.thumbs`.
+      await customElements.whenDefined("m3e-slider");
+      const ids = ["s1","s2","s3","s4","s5","s6","s7"];
+      for (const id of ids) {
+        const sl = document.getElementById(id);
+        const out = document.getElementById("o" + id.slice(1));
+        const render = () => {
+          const vals = (sl.thumbs ?? []).map(t => t.value);
+          out.textContent = "value" + (vals.length > 1 ? "s" : "") + ": " + vals.join(" – ");
+        };
+        sl.addEventListener("input", render);
+        sl.addEventListener("change", render);
+        render();
+      }
+      // custom label format for s6
+      const s6 = document.getElementById("s6");
+      s6.displayWith = (v) => v == null ? "" : v.toFixed(0) + "%";
+    </script>
+  </body>
+</html>

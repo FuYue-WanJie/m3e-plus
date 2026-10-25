@@ -1,4 +1,4 @@
-# @m3e/web/theme
+# @wanjie/m3e-web/theme
 
 The `m3e-theme` component is a non-visual element used to apply dynamic color, expressive motion, density, and strong focus indicators to nested, theme-aware elements.
 
@@ -7,7 +7,7 @@ When `m3e-theme` is nested directly beneath the `<body>` of a document, the `<bo
 The `motion` attribute selects the springs behind the `--md-sys-motion-spring-*` tokens. Where the CSS `linear()` easing function is supported, each token is sampled from its spring's damping ratio and stiffness; otherwise, a `cubic-bezier()` approximation is used.
 
 ```ts
-import "@m3e/web/theme";
+import "@wanjie/m3e-web/theme";
 ```
 
 ## 🗂️ Elements

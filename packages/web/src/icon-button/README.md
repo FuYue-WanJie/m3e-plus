@@ -1,4 +1,4 @@
-# @m3e/web/icon-button
+# @wanjie/m3e-web/icon-button
 
 The `m3e-icon-button` component is a semantic, expressive UI primitive for triggering actions with a single icon. Designed according to Material Design 3 guidelines, it supports four visual variants, specified using the `variant` attribute—`filled`, `tonal`, `outlined`, and `standard`—each with dynamic elevation, shape morphing, and adaptive color theming. The component responds to interaction states (hover, focus, press, disabled) with smooth motion transitions, ensuring emotional clarity and visual hierarchy.
 
@@ -7,7 +7,7 @@ The component is accessible by default, with ARIA roles, contrast-safe color tok
 Native disabled `<button>` elements cannot receive focus. This can be problematic in some cases because it can prevent you from telling the user why the button is disabled. You can use the `disabled-interactive` attribute to style a `m3e-icon-button` as disabled but allow for it to receive focus. The button will have `aria-disabled="true"` for assistive technology.
 
 ```ts
-import "@m3e/web/icon-button";
+import "@wanjie/m3e-web/icon-button";
 ```
 
 ## 🗂️ Elements

@@ -1,9 +1,9 @@
-# @m3e/web/breadcrumb
+# @wanjie/m3e-web/breadcrumb
 
 The `m3e-breadcrumb` and `m3e-breadcrumb-item` components work together to display a hierarchical navigation trail. Use `m3e-breadcrumb` as a wrapper and place one or more `m3e-breadcrumb-item` elements inside to represent the navigation path.
 
 ```ts
-import "@m3e/web/breadcrumb";
+import "@wanjie/m3e-web/breadcrumb";
 ```
 
 ## 🗂️ Elements

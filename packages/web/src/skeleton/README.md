@@ -1,9 +1,9 @@
-# @m3e/web/skeleton
+# @wanjie/m3e-web/skeleton
 
 The `m3e-skeleton` component provides a loading placeholder surface with flexible shape variants and motion-based animations that communicate loading state while preserving layout stability. It mimics the layout of content while it's still loading, ensuring a smooth user experience during data fetching or rendering delays. The component supports different animation effects (`pulse`, `wave`, `none`) and shape variants (`circular`, `rounded`, `square`, `auto`) to adapt to various content types. When the content is loaded, the skeleton fades out with a smooth transition.
 
 ```ts
-import "@m3e/web/skeleton";
+import "@wanjie/m3e-web/skeleton";
 ```
 
 ## 🗂️ Elements

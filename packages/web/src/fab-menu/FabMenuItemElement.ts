@@ -14,7 +14,7 @@ import {
   M3eStateLayerElement,
   renderPseudoLink,
   Role,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
 import type { M3eFabMenuElement } from "./FabMenuElement";
 

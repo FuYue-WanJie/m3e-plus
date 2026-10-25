@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eMenuItemCheckboxElement } from "@m3e/web/menu";
-export type { M3eMenuItemCheckboxElement } from "@m3e/web/menu";
+import { M3eMenuItemCheckboxElement } from "@wanjie/m3e-web/menu";
+export type { M3eMenuItemCheckboxElement } from "@wanjie/m3e-web/menu";
 
 /**
- * React binding for the `m3e-menu-item-checkbox` Web Component from `@m3e/web/menu`.
+ * React binding for the `m3e-menu-item-checkbox` Web Component from `@wanjie/m3e-web/menu`.
  *
  * This component renders the underlying `<m3e-menu-item-checkbox>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

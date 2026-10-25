@@ -1,11 +1,11 @@
 import React from "react";
 import { createComponent } from "@lit/react";
 
-import { M3eSliderElement } from "@m3e/web/slider";
-export type { M3eSliderElement, SliderSize, SliderOrientation } from "@m3e/web/slider";
+import { M3eSliderElement } from "@wanjie/m3e-web/slider";
+export type { M3eSliderElement, SliderSize, SliderOrientation } from "@wanjie/m3e-web/slider";
 
 /**
- * React binding for the `m3e-slider` Web Component from `@m3e/web/slider`.
+ * React binding for the `m3e-slider` Web Component from `@wanjie/m3e-web/slider`.
  *
  * This component renders the underlying `<m3e-slider>` element and exposes its
  * properties, attributes, and events through an idiomatic React interface.

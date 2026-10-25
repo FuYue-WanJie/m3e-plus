@@ -1,9 +1,9 @@
-# @m3e/web/checkbox
+# @wanjie/m3e-web/checkbox
 
 The `m3e-checkbox` component enables users to select one or more options from a set. It supports selected, unselected, and indeterminate states, and communicates selection through visual cues and accessible semantics. This component reflects user intent, form participation, and validation feedback, adapting to disabled and required contexts. It emits `input` and `change` events to signal state transitions and integrates with form submission via `name` and `value`.
 
 ```ts
-import "@m3e/web/checkbox";
+import "@wanjie/m3e-web/checkbox";
 ```
 
 ## 🗂️ Elements

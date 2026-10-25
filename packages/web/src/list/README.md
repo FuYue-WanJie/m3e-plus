@@ -1,9 +1,9 @@
-# @m3e/web/list
+# @wanjie/m3e-web/list
 
-The `@m3e/list` package provides expressive, accessible components for organizing and displaying lists of items. It includes list containers (`m3e-list`, `m3e-action-list`, `m3e-selection-list`), basic list items (`m3e-list-item`), interactive items (`m3e-list-action`, `m3e-list-option`), and hierarchical items (`m3e-expandable-list-item`). All components support rich content, flexible layout, and extensive theming via CSS custom properties following Material 3 design principles.
+The `@wanjie/m3e-list` package provides expressive, accessible components for organizing and displaying lists of items. It includes list containers (`m3e-list`, `m3e-action-list`, `m3e-selection-list`), basic list items (`m3e-list-item`), interactive items (`m3e-list-action`, `m3e-list-option`), and hierarchical items (`m3e-expandable-list-item`). All components support rich content, flexible layout, and extensive theming via CSS custom properties following Material 3 design principles.
 
 ```ts
-import "@m3e/web/list";
+import "@wanjie/m3e-web/list";
 ```
 
 ## 🗂️ Elements
@@ -20,7 +20,7 @@ import "@m3e/web/list";
 
 The following example illustrates a list with a single item using all supported slots.
 
-> Note: This example uses the `@m3e/icon` package to present Material Design symbols, but any icon package can be substituted depending on your design system or preferences
+> Note: This example uses the `@wanjie/m3e-icon` package to present Material Design symbols, but any icon package can be substituted depending on your design system or preferences
 
 ```html
 <m3e-list>

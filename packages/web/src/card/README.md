@@ -1,4 +1,4 @@
-# @m3e/web/card
+# @wanjie/m3e-web/card
 
 The `m3e-card` component is a flexible, expressive container for presenting a unified subject—text, media, and actions—on a visually distinct surface. It supports multiple appearance variants via the `variant` attribute: `filled` (default, for solid emphasis), `outlined` (for subtle framing with a border), and `elevated` (for depth and motion with shadow elevation).
 
@@ -9,7 +9,7 @@ It supports both vertical and horizontal layouts through the `orientation` attri
 The component provides dynamic elevation, adaptive shape, and expressive color theming, and responds to interaction states (hover, focus, press, disabled) with smooth motion and visual feedback, ensuring clarity, accessibility, and a cohesive user experience in accordance with Material Design 3 guidelines.
 
 ```ts
-import "@m3e/web/card";
+import "@wanjie/m3e-web/card";
 ```
 
 ## 🗂️ Elements

@@ -12,11 +12,11 @@ import {
   ReconnectedCallback,
   registerStyleSheet,
   setCustomState,
-} from "@m3e/web/core";
+} from "@wanjie/m3e-web/core";
 
-import { SelectionManager, selectionManager } from "@m3e/web/core/a11y";
-import { Breakpoint, M3eBreakpointObserver } from "@m3e/web/core/layout";
-import { M3eDirectionality, SupportsDirectionality } from "@m3e/web/core/bidi";
+import { SelectionManager, selectionManager } from "@wanjie/m3e-web/core/a11y";
+import { Breakpoint, M3eBreakpointObserver } from "@wanjie/m3e-web/core/layout";
+import { M3eDirectionality, SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
 
 import { M3eStepElement } from "./StepElement";
 import { isStepLabelPosition, StepLabelPosition } from "./StepLabelPosition";
