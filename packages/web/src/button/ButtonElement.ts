@@ -38,6 +38,27 @@ import { ButtonVariant, isButtonVariant } from "./ButtonVariant";
 
 import { ButtonSizeStyle, ButtonStyle, ButtonVariantStyle } from "./styles";
 
+/** Corner radii in px, logical order: start-start, start-end, end-start, end-end. @private */
+type Corners = [number, number, number, number];
+
+/** @private */
+const CORNER_PROPS = [
+  "border-start-start-radius",
+  "border-start-end-radius",
+  "border-end-start-radius",
+  "border-end-end-radius",
+] as const;
+
+/** @private */
+function lerpCorners(from: Corners, to: Corners, p: number): Corners {
+  return from.map((f, i) => f + (to[i] - f) * p) as unknown as Corners;
+}
+
+/** @private */
+function sameCorners(a: Corners, b: Corners): boolean {
+  return a.every((v, i) => Math.abs(v - b[i]) < 0.01);
+}
+
 /**
  * A button users interact with to perform an action.
  *
@@ -511,14 +532,17 @@ export class M3eButtonElement extends KeyboardClick(
   readonly #effectsSpring = new SpringSimulation({ stiffness: 1600, dampingRatio: 1.0 });
   /** @private */ readonly #spatialSpring = new SpringSimulation({ stiffness: 800, dampingRatio: 0.6 });
 
-  /** Corner radius (px) the current morph starts from. @private */
-  #morphFromPx = 0;
+  /** Corners `[start-start, start-end, end-start, end-end]` (px) the current morph starts from. @private */
+  #morphFrom: Corners = [0, 0, 0, 0];
 
-  /** Corner radius (px) the current morph runs to. @private */
-  #morphToPx = 0;
+  /** Corners (px) the current morph runs to. @private */
+  #morphTo: Corners = [0, 0, 0, 0];
 
-  /** Whether `--_button-shape` is currently owned by the morph. @private */
+  /** Whether the morph currently owns the inline corner radii on `.base`. @private */
   #morphActive = false;
+
+  /** Pending rAF for a coalesced shape sync (release + selected change land as one retarget). @private */
+  #shapeSyncRaf = 0;
 
   /** @private */
   get #morphSpring(): SpringSimulation {
@@ -526,10 +550,7 @@ export class M3eButtonElement extends KeyboardClick(
   }
 
   /** @private */ readonly #applyMorphFrame = (frame: { value: number }) => {
-    const radius = this.#morphFromPx + (this.#morphToPx - this.#morphFromPx) * frame.value;
-    // Like a RoundedCornerShape, a corner can neither go negative nor exceed half the height.
-    const half = (this.clientHeight || 0) / 2;
-    this._base?.style.setProperty("--_button-shape", `${Math.min(half, Math.max(0, radius))}px`);
+    this.#paintCorners(lerpCorners(this.#morphFrom, this.#morphTo, frame.value));
   };
 
   constructor() {
@@ -537,11 +558,7 @@ export class M3eButtonElement extends KeyboardClick(
 
     new ResizeController(this, { callback: () => this._handleResize() });
     new FocusController(this, {
-      callback: (focused) => {
-        if (!this.disabledInteractive && !focused && !this.grouped && !this.#morphActive) {
-          this._base?.style.removeProperty("--_button-shape");
-        }
-      },
+      callback: () => {},
     });
 
     new PressedController(this, {
@@ -549,15 +566,17 @@ export class M3eButtonElement extends KeyboardClick(
       minPressedDuration: 225,
       callback: (pressed) => {
         if (!this.disabled && !this.disabledInteractive) {
+          // Pin what is on screen *before* the pressed custom-state flips the CSS corners, so no
+          // frame ever shows the raw CSS target.
+          this.#pinCorners();
+          this.#handlePressedChange(pressed);
           if (pressed) {
-            // Seed the morph from the resting corner *before* the pressed custom-state flips the
-            // composed CSS border-radius, so the pressed rule never snaps for a frame.
-            this.#morphTo(this.#pressedRadiusPx());
-            this.#updateButtonShape();
-            this.#handlePressedChange(true);
+            this.#syncShape();
           } else {
-            this.#handlePressedChange(false);
-            this.#morphTo(this.#restRadiusPx());
+            // A release is usually followed by a click that flips `selected`. Coalesce both into one
+            // retarget (pressed → checked), as AndroidX shapeByInteraction resolves them in a single
+            // pass; two retargets would zero the velocity and stretch the timeline.
+            this.#scheduleShapeSync();
           }
         }
       },
@@ -642,10 +661,12 @@ export class M3eButtonElement extends KeyboardClick(
 
     this.#effectsSpring.stop();
     this.#spatialSpring.stop();
+    cancelAnimationFrame(this.#shapeSyncRaf);
+    this.#shapeSyncRaf = 0;
     this.#morphActive = false;
+    this.#clearCorners();
 
     ["--pressed", "--resting", "--grouped", "--connected"].forEach((x) => deleteCustomState(this, x));
-    this._base?.style.removeProperty("--_button-shape");
     this.style.removeProperty("--_button-width");
     this.style.removeProperty("--_adjacent-shrink");
     this.style.removeProperty("--_pressed-growth");
@@ -658,22 +679,10 @@ export class M3eButtonElement extends KeyboardClick(
   protected override willUpdate(_changedProperties: PropertyValues<this>): void {
     super.willUpdate(_changedProperties);
 
-    if (
-      _changedProperties.has("selected") &&
-      _changedProperties.get("selected") !== undefined &&
-      this.toggle &&
-      !this.#morphActive &&
-      !hasCustomState(this, "--pressed")
-    ) {
-      // The [selected] attribute still reflects the old value here: pin the old corner so the
-      // checked morph in updated() starts from what is on screen instead of snapping.
-      const current = this.#restRadiusPx();
-      this.#morphFromPx = current;
-      this.#morphToPx = current;
-      this.#morphSpring.stop();
-      this.#morphSpring.setValue(1).setVelocity(0);
-      this.#morphActive = true;
-      this._base?.style.setProperty("--_button-shape", `${current}px`);
+    if (_changedProperties.has("selected") && _changedProperties.get("selected") !== undefined && this.toggle) {
+      // The [selected] attribute still reflects the old value here: pin the visible corners so the
+      // checked morph starts from what is on screen instead of snapping.
+      this.#pinCorners();
     }
 
     if (_changedProperties.has("variant")) {
@@ -707,14 +716,10 @@ export class M3eButtonElement extends KeyboardClick(
       deleteCustomState(this, "--resting");
     }
 
-    if (
-      _changedProperties.has("selected") &&
-      _changedProperties.get("selected") !== undefined &&
-      this.toggle &&
-      !hasCustomState(this, "--pressed")
-    ) {
-      // Checked ↔ unchecked morph (AndroidX ToggleButton shapeByInteraction).
-      this.#morphTo(this.#restRadiusPx());
+    if (_changedProperties.has("selected") && _changedProperties.get("selected") !== undefined && this.toggle) {
+      // Checked ↔ unchecked morph (AndroidX ToggleButton shapeByInteraction). While pressed the
+      // pressed shape wins, so the sync is a no-op until release.
+      this.#scheduleShapeSync();
     }
 
     if (_changedProperties.has("toggle") || _changedProperties.has("selected")) {
@@ -780,7 +785,6 @@ export class M3eButtonElement extends KeyboardClick(
       const width = this.getBoundingClientRect().width;
       if (width > 0) {
         this.style.setProperty("--_button-width", `${width}px`);
-        this.#updateButtonShape(true);
       } else {
         // Hidden (display:none): drop the lock so natural size restores on re-show.
         this.style.removeProperty("--_button-width");
@@ -788,103 +792,116 @@ export class M3eButtonElement extends KeyboardClick(
     }
   }
 
-  /** @private */
-  #updateButtonShape(force = false): void {
-    if (!this._base) return;
-    const shape = parseFloat(getComputedStyle(this._base).borderRadius);
-    if (!isNaN(shape) || force) {
-      const adjustedShape = this.clientHeight / 2;
-      if (adjustedShape < shape || force) {
-        this._base?.style.setProperty("--_button-shape", `${adjustedShape}px`);
-      }
-    }
-  }
-
   /**
-   * The resting corner (px) for the current shape, size and selection, as the CSS tokens compose it
-   * without the morph override. Must be called while the `--pressed` state is off. `corner.full`
-   * computes to 9999px, so it is clamped to the half-height (the visual pill radius).
+   * The corners the CSS currently resolves for this button's state (size, shape, selected, pressed,
+   * connected position), with the morph's inline override lifted. Each is clamped to half the height,
+   * the visual limit of a `RoundedCornerShape` (`corner.full` computes to 9999px).
    * @private
    */
-  #restRadiusPx(): number {
-    const half = (this.clientHeight || 0) / 2;
+  #cssCorners(): Corners {
     const base = this._base;
-    if (!base) return half;
-    const prev = base.style.getPropertyValue("--_button-shape");
-    base.style.removeProperty("--_button-shape");
-    const css = parseFloat(getComputedStyle(base).borderTopLeftRadius);
-    if (prev) base.style.setProperty("--_button-shape", prev);
-    return Number.isFinite(css) ? Math.min(css, half) : half;
-  }
-
-  /**
-   * The pressed corner (px): the size table (extra-small/small 8dp, medium 12dp, large/extra-large
-   * 16dp, from `Button*Tokens.PressedContainerShape`), clamped to half the height.
-   * `--m3e-button-shape-pressed-morph` can override it.
-   * @private
-   */
-  #pressedRadiusPx(): number {
     const half = (this.clientHeight || 0) / 2;
-    const sizePress: Readonly<Record<string, number>> = {
-      "extra-small": 8,
-      small: 8,
-      medium: 12,
-      large: 16,
-      "extra-large": 16,
-    };
-    const override = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-button-shape-pressed-morph"));
-    const pressedTarget = Number.isFinite(override) ? override : sizePress[this.size] ?? 8;
-    return Math.min(Math.max(0, pressedTarget), half);
+    if (!base) return [half, half, half, half];
+    const saved = CORNER_PROPS.map((p) => base.style.getPropertyValue(p));
+    CORNER_PROPS.forEach((p) => base.style.removeProperty(p));
+    const cs = getComputedStyle(base);
+    const corners = CORNER_PROPS.map((p) => {
+      const v = parseFloat(cs.getPropertyValue(p));
+      return Number.isFinite(v) ? Math.min(Math.max(0, v), half) : half;
+    }) as unknown as Corners;
+    CORNER_PROPS.forEach((p, i) => {
+      if (saved[i]) base.style.setProperty(p, saved[i]);
+    });
+    return corners;
+  }
+
+  /** @private */
+  #paintCorners(corners: Corners): void {
+    const base = this._base;
+    if (!base) return;
+    const half = (this.clientHeight || 0) / 2;
+    CORNER_PROPS.forEach((p, i) => base.style.setProperty(p, `${Math.min(half, Math.max(0, corners[i]))}px`));
+  }
+
+  /** @private */
+  #clearCorners(): void {
+    const base = this._base;
+    if (base) CORNER_PROPS.forEach((p) => base.style.removeProperty(p));
   }
 
   /**
-   * Morphs the corner to `targetPx` (AndroidX `AnimatedShapeState.animateToShape`). The radius is
-   * written to `--_button-shape` on `.base` every frame, synchronously on the first one so a state
-   * flip never shows the raw CSS token for a frame. Once settled at rest (not pressed) the override
-   * is dropped so the CSS token (e.g. a responsive corner) takes over again.
-   * @param {number} targetPx The corner radius to morph to.
+   * Freezes the corners on screen as inline radii, so a state flip (pressed, selected) cannot snap
+   * the CSS corners before the morph retargets. A no-op while a morph already owns the corners.
    * @private
    */
-  #morphTo(targetPx: number): void {
-    if (!this._base) return;
+  #pinCorners(): void {
+    if (this.#morphActive || !this._base) return;
+    const current = this.#cssCorners();
+    this.#morphFrom = current;
+    this.#morphTo = current;
     const spring = this.#morphSpring;
+    spring.stop();
+    spring.setValue(1).setVelocity(0);
+    this.#morphActive = true;
+    this.#paintCorners(current);
+  }
+
+  /** @private */
+  #scheduleShapeSync(): void {
+    if (this.#shapeSyncRaf) return;
+    this.#shapeSyncRaf = requestAnimationFrame(() => {
+      this.#shapeSyncRaf = 0;
+      this.#syncShape();
+    });
+  }
+
+  /**
+   * Morphs all four corners toward the shape the CSS resolves for the current state
+   * (AndroidX `AnimatedShapeState.animateToShape`, per corner, one shared progress):
+   * - same target: keep running;
+   * - back to the start: flip progress and velocity, so momentum is kept;
+   * - anything else: freeze the visible corners as the new start.
+   * Once settled the inline radii are dropped, as they equal what the CSS resolves anyway.
+   * @private
+   */
+  #syncShape(): void {
+    if (!this._base || !this.#morphActive) return;
+    cancelAnimationFrame(this.#shapeSyncRaf);
+    this.#shapeSyncRaf = 0;
+
+    const spring = this.#morphSpring;
+    const target = this.#cssCorners();
     const done = (): void => {
-      if (hasCustomState(this, "--pressed")) return; // hold the pressed corner
+      // The state may have moved on while this morph was settling (e.g. released and selected in
+      // the same frame, before the coalesced sync ran): keep the corners and chase the new target.
+      if (this.#shapeSyncRaf || !sameCorners(this.#cssCorners(), this.#morphTo)) {
+        if (!this.#shapeSyncRaf) this.#syncShape();
+        return;
+      }
       this.#morphActive = false;
-      this._base?.style.removeProperty("--_button-shape");
+      this.#morphFrom = this.#morphTo;
+      this.#clearCorners();
     };
 
-    if (!this.#morphActive) {
-      // Start from the settled CSS corner.
-      this.#morphFromPx = this.#restRadiusPx();
-      this.#morphToPx = targetPx;
-      spring.stop();
-      spring.setValue(0).setVelocity(0);
-    } else if (Math.abs(targetPx - this.#morphToPx) < 0.01) {
-      if (spring.isRunning || hasCustomState(this, "--pressed")) return;
-      // Settled at this target already but still owning the variable: finish.
-      this.#applyMorphFrame({ value: 1 });
+    if (sameCorners(target, this.#morphTo)) {
+      if (spring.isRunning) return;
       done();
       return;
-    } else if (Math.abs(targetPx - this.#morphFromPx) < 0.01) {
-      // Reversed before finishing: flip progress and velocity to keep momentum.
-      [this.#morphFromPx, this.#morphToPx] = [this.#morphToPx, this.#morphFromPx];
+    }
+    if (sameCorners(target, this.#morphFrom) && spring.value < 1) {
+      [this.#morphFrom, this.#morphTo] = [this.#morphTo, this.#morphFrom];
       spring.stop();
       spring.setValue(1 - spring.value).setVelocity(-spring.velocity);
     } else {
-      // New target: freeze the visible corner as the new start.
-      const current = this.#morphFromPx + (this.#morphToPx - this.#morphFromPx) * spring.value;
-      this.#morphFromPx = current;
-      this.#morphToPx = targetPx;
+      this.#morphFrom = lerpCorners(this.#morphFrom, this.#morphTo, spring.value);
+      this.#morphTo = target;
       spring.stop();
       spring.setValue(0).setVelocity(0);
     }
-    this.#morphActive = true;
 
     if (prefersReducedMotion()) {
       spring.stop();
       spring.setValue(1).setVelocity(0);
-      this.#applyMorphFrame({ value: 1 });
       done();
       return;
     }

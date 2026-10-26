@@ -62,7 +62,11 @@ function buttonStyle(size: ButtonSize): CSSResult {
     :host(:not(:is(:state(--connected), :--connected))${selector}:is(:state(--pressed), :--pressed)) .base {
       border-radius: var(--_button-shape, ${ButtonSizeToken[size].shapePressedMorph});
     }
-    :host(:is(:state(--connected), :--connected)${selector}:is(:state(--rounded), :--rounded):not([toggle][selected]))
+    :host(
+        :is(:state(--connected), :--connected)${selector}:is(:state(--rounded), :--rounded):not([toggle][selected]):not(
+            :is(:state(--pressed), :--pressed)
+          )
+      )
       .base {
       border-start-start-radius: var(
         --_button-rounded-start-shape,
@@ -81,7 +85,8 @@ function buttonStyle(size: ButtonSize): CSSResult {
         var(--_button-shape, ${ButtonSizeToken[size].shapeRound})
       );
     }
-    :host(:is(:state(--connected), :--connected)${selector}:is(:state(--square), :--square)) .base {
+    :host(:is(:state(--connected), :--connected)${selector}:is(:state(--square), :--square):not(:is(:state(--pressed), :--pressed)))
+      .base {
       border-start-start-radius: var(--_button-square-start-shape, ${ButtonSizeToken[size].shapeSquare});
       border-end-start-radius: var(--_button-square-start-shape, ${ButtonSizeToken[size].shapeSquare});
       border-start-end-radius: var(--_button-square-end-shape, ${ButtonSizeToken[size].shapeSquare});
@@ -95,11 +100,22 @@ function buttonStyle(size: ButtonSize): CSSResult {
       .base {
       border-radius: var(--_button-shape, ${ButtonSizeToken[size].selectedShapeSquare});
     }
-    :host(:is(:state(--connected), :--connected)${selector}:is(:state(--pressed), :--pressed)) .base {
-      border-start-start-radius: var(--_button-start-shape-pressed-morph, ${ButtonSizeToken[size].shapePressedMorph});
-      border-end-start-radius: var(--_button-start-shape-pressed-morph, ${ButtonSizeToken[size].shapePressedMorph});
-      border-start-end-radius: var(--_button-end-shape-pressed-morph, ${ButtonSizeToken[size].shapePressedMorph});
-      border-end-end-radius: var(--_button-end-shape-pressed-morph, ${ButtonSizeToken[size].shapePressedMorph});
+    /* Connected + pressed (AndroidX connected*ButtonPressShape): only the inner corners morph to the
+       pressed inner corner; outer corners keep their resting shape. The group sets the
+       --_button-*-shape-pressed-morph variables on inner sides only. */
+    :host(:is(:state(--connected), :--connected)${selector}:is(:state(--rounded), :--rounded):is(:state(--pressed), :--pressed))
+      .base {
+      border-start-start-radius: var(--_button-start-shape-pressed-morph, ${ButtonSizeToken[size].shapeRound});
+      border-end-start-radius: var(--_button-start-shape-pressed-morph, ${ButtonSizeToken[size].shapeRound});
+      border-start-end-radius: var(--_button-end-shape-pressed-morph, ${ButtonSizeToken[size].shapeRound});
+      border-end-end-radius: var(--_button-end-shape-pressed-morph, ${ButtonSizeToken[size].shapeRound});
+    }
+    :host(:is(:state(--connected), :--connected)${selector}:is(:state(--square), :--square):is(:state(--pressed), :--pressed))
+      .base {
+      border-start-start-radius: var(--_button-start-shape-pressed-morph, ${ButtonSizeToken[size].shapeSquare});
+      border-end-start-radius: var(--_button-start-shape-pressed-morph, ${ButtonSizeToken[size].shapeSquare});
+      border-start-end-radius: var(--_button-end-shape-pressed-morph, ${ButtonSizeToken[size].shapeSquare});
+      border-end-end-radius: var(--_button-end-shape-pressed-morph, ${ButtonSizeToken[size].shapeSquare});
     }
   `;
 }

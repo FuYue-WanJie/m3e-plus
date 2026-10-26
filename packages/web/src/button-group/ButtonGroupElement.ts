@@ -139,7 +139,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-extra-small-inner-shape,
         ${DesignToken.shape.corner.small}
       );
-      --_button-square-end-pressed-shape: var(
+      --_button-end-shape-pressed-morph: var(
         --m3e-connected-button-group-extra-small-inner-pressed-shape,
         ${DesignToken.shape.corner.extraSmall}
       );
@@ -158,7 +158,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-extra-small-inner-shape,
         ${DesignToken.shape.corner.small}
       );
-      --_button-square-start-pressed-shape: var(
+      --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-extra-small-inner-pressed-shape,
         ${DesignToken.shape.corner.extraSmall}
       );
@@ -211,7 +211,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-medium-inner-shape,
         ${DesignToken.shape.corner.small}
       );
-      --_button-square-end-pressed-shape: var(
+      --_button-end-shape-pressed-morph: var(
         --m3e-connected-button-group-medium-inner-pressed-shape,
         ${DesignToken.shape.corner.extraSmall}
       );
@@ -230,7 +230,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-medium-inner-shape,
         ${DesignToken.shape.corner.small}
       );
-      --_button-square-start-pressed-shape: var(
+      --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-medium-inner-pressed-shape,
         ${DesignToken.shape.corner.extraSmall}
       );
@@ -247,7 +247,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-large-inner-shape,
         ${DesignToken.shape.corner.large}
       );
-      --_button-square-end-pressed-shape: var(
+      --_button-end-shape-pressed-morph: var(
         --m3e-connected-button-group-large-inner-pressed-shape,
         ${DesignToken.shape.corner.medium}
       );
@@ -264,7 +264,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-large-inner-shape,
         ${DesignToken.shape.corner.large}
       );
-      --_button-square-start-pressed-shape: var(
+      --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-large-inner-pressed-shape,
         ${DesignToken.shape.corner.medium}
       );
@@ -283,7 +283,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-extra-large-inner-shape,
         ${DesignToken.shape.corner.largeIncreased}
       );
-      --_button-square-end-pressed-shape: var(
+      --_button-end-shape-pressed-morph: var(
         --m3e-connected-button-group-extra-large-inner-pressed-shape,
         ${DesignToken.shape.corner.large}
       );
@@ -302,7 +302,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         --m3e-connected-button-group-extra-large-inner-shape,
         ${DesignToken.shape.corner.largeIncreased}
       );
-      --_button-square-start-pressed-shape: var(
+      --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-extra-large-inner-pressed-shape,
         ${DesignToken.shape.corner.large}
       );

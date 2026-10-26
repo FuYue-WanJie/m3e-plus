@@ -24,9 +24,8 @@ export const ButtonStyle: CSSResultGroup = css`
     justify-content: center;
     position: relative;
     width: 100%;
-    /* Shape-morph is driven by the SpringSimulation engine (see M3eButtonElement#animatePress):
-       each frame writes --_button-shape, which the size styles consume as border-radius. No CSS
-       transition on border-radius here — the radius follows the JS spring frame-by-frame. */
+    /* Shape morph is driven by the SpringSimulation engine (M3eButtonElement#syncShape): each frame
+       writes the four logical corner radii inline on .base. No CSS transition on border-radius here. */
     transition: ${unsafeCSS(
       `background-color ${DesignToken.motion.duration.short4} ${DesignToken.motion.easing.standard}`,
     )};
@@ -47,8 +46,8 @@ export const ButtonStyle: CSSResultGroup = css`
   }
   :host(:is(:state(--pressed), :--pressed)) .base,
   :host(:is(:state(--resting), :--resting)) .base {
-    /* Shape morph follows the JS physics engine via --_button-shape; only the background color
-       keeps a CSS transition for the variant color change. */
+    /* Shape morph follows the JS physics engine (inline per-corner radii); only the background
+       color keeps a CSS transition for the variant color change. */
     transition: ${unsafeCSS(`background-color ${DesignToken.motion.duration.short4} ${DesignToken.motion.easing.standard}`)};
   }
   .label {
