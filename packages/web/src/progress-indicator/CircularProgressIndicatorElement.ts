@@ -1,19 +1,24 @@
 import { css, CSSResultGroup, html, nothing, PropertyValues, svg } from "lit";
 import { property } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { ifDefined } from "lit/directives/if-defined.js";
 
 import {
   AnimationLoopController,
   customElement,
   DesignToken,
   ResizeController,
-  resolveFragmentUrl,
 } from "@wanjie/m3e-web/core";
+import {
+  circularVertexCount,
+  determinateAmplitude,
+  easeStandard,
+  easeEmphasizedAccelerate,
+  generateCircularWavyPath,
+  indeterminateState,
+  roundedStarSamples,
+  type CircularWavyOptions,
+} from "@wanjie/m3e-web/geometry";
 
 import { ProgressElementIndicatorBase } from "./ProgressElementIndicatorBase";
-
-const WAVY_INDETERMINATE_DURATION = 1.575;
 
 /**
  * A circular indicator of progress and activity.
@@ -79,6 +84,17 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
       .active-track {
         transition: stroke-dashoffset 500ms cubic-bezier(0, 0, 0.2, 1);
       }
+      .wavy-svg {
+        overflow: visible;
+        inset: 0;
+      }
+      .wavy-svg .track {
+        color: var(--m3e-progress-indicator-track-color, ${DesignToken.color.secondaryContainer});
+      }
+      .wavy-svg .active-track {
+        color: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
+        transition: none;
+      }
       :host(:is(:state(--flat), :--flat)) .progress {
         flex: 1;
         align-self: stretch;
@@ -128,10 +144,6 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
         animation-duration: var(--_cycle-duration);
         animation-timing-function: var(--_indeterminate-easing);
       }
-      :host(:is(:state(--wavy), :--wavy)[indeterminate]) .spinner {
-        transform-origin: 50% 50%;
-        animation: wavy-spin ${WAVY_INDETERMINATE_DURATION}s linear infinite;
-      }
       .left {
         clip-path: inset(0);
         inset: 0 50% 0 0;
@@ -161,10 +173,6 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
       }
       .active-track {
         color: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
-      }
-      .wave {
-        animation: spin-reverse 8s linear infinite;
-        transform-origin: 50% 50%;
       }
       @keyframes expand-arc {
         0% {
@@ -208,33 +216,6 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
           transform: rotate(360deg);
         }
       }
-      @keyframes spin-reverse {
-        from {
-          transform: rotate(360deg);
-        }
-        to {
-          transform: rotate(0deg);
-        }
-      }
-      @keyframes spin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      @keyframes wavy-spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        10% {
-          transform: rotate(90deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
       @media (forced-colors: active) {
         :host(:is(:state(--flat), :--flat)) circle {
           fill: Canvas;
@@ -247,16 +228,27 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     `,
   ];
 
-  /** @private */ private static __nextMaskId = 0;
-  /** @private */ #maskId = `m3e-circular-progress-mask-${M3eCircularProgressIndicatorElement.__nextMaskId++}`;
-
   /** @private */ #diameter = 0;
   /** @private */ #strokeWidth = 0;
   /** @private */ #amplitude = 0;
   /** @private */ #wavelength = 0;
 
-  /** @private */ #spinnerActiveTrack?: SVGPathElement | null;
-  /** @private */ #spinnerTrack?: SVGPathElement | null;
+  /** @private */ #activePath?: SVGPathElement | null;
+  /** @private */ #trackPath?: SVGPathElement | null;
+
+  /** @private Seconds since the wavy engine started animating (for wave phase / indeterminate). */
+  #clock = 0;
+  /** @private Current morph amplitude (0 = circle, 1 = star), eased. */
+  #ampCurrent: number | null = null;
+  /** @private In-flight amplitude tween. */
+  #ampAnim: { from: number; to: number; elapsed: number; ease: (x: number) => number } | null = null;
+  /** @private Wave phase 0..1. */
+  #waveOffset = 0;
+  /** @private Last frame delta in ms (for amplitude tween); falls back to ~16.7. */
+  #lastDtMs = 16.7;
+
+  /** @private The shared rounded-star sample cache (keyed by vertex count). */
+  readonly #starCache = new Map<number, ReturnType<typeof roundedStarSamples>>();
 
   /** @private */ readonly #resizeController = new ResizeController(this, {
     skipInitial: true,
@@ -268,9 +260,11 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     },
   });
 
-  /** @private */ readonly #indeterminateWavyAnimationLoop = new AnimationLoopController(this, (_, t) =>
-    this.#updateWavyIndeterminateSpinner(t),
-  );
+  /** @private The rAF loop driving both determinate (travelling wave) and indeterminate wavy. */
+  readonly #wavyLoop = new AnimationLoopController(this, (dt) => this.#tickWavy(dt));
+
+  /** @private */ readonly #reducedMotion =
+    typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
   /**
    * Whether to show something is happening without conveying progress.
@@ -309,9 +303,17 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
 
     const amplitudeAndWavelength = this.shadowRoot?.querySelector<HTMLElement>(".amplitude-and-wavelength");
     if (amplitudeAndWavelength) {
-      this.#updateDiameterAndStroke();
+      this.#updateAmplitudeAndWavelength();
       this.#resizeController.observe(amplitudeAndWavelength);
     }
+
+    if (this.variant === "wavy") this.#syncWavyAnimation();
+  }
+
+  /** @inheritdoc */
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.#wavyLoop.stop();
   }
 
   /** @inheritdoc */
@@ -319,14 +321,17 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     super.updated(_changedProperties);
 
     if (_changedProperties.has("indeterminate")) {
-      this.#spinnerActiveTrack = this.shadowRoot?.querySelector<SVGPathElement>(".spinner.active-track");
-      this.#spinnerTrack = this.shadowRoot?.querySelector<SVGPathElement>(".spinner.track");
+      // Reset the amplitude tween so a mode switch starts cleanly.
+      this.#ampCurrent = null;
+      this.#ampAnim = null;
+    }
 
-      if (this.indeterminate) {
-        this.#indeterminateWavyAnimationLoop.start();
-      } else {
-        this.#indeterminateWavyAnimationLoop.stop();
-      }
+    if (this.variant === "wavy") {
+      this.#activePath = this.shadowRoot?.querySelector<SVGPathElement>(".active-track");
+      this.#trackPath = this.shadowRoot?.querySelector<SVGPathElement>(".track");
+      this.#syncWavyAnimation();
+    } else {
+      this.#wavyLoop.stop();
     }
   }
 
@@ -410,85 +415,33 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
 
   /** @private */
   #renderWavyIndicator(): unknown {
-    if (this.indeterminate) {
-      return html`<div class="progress" aria-hidden="true">
-          <svg
-            width="${this.#diameter}"
-            height="${this.#diameter}"
-            viewBox="${this.#drawWavyArc({ endAngle: 20 }).viewBox}"
-          >
-            <path
-              class="spinner active-track"
-              stroke="currentColor"
-              stroke-width=${this.#strokeWidth}
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-            />
-            <path
-              class="spinner track"
-              stroke="currentColor"
-              stroke-width=${this.#strokeWidth}
-              fill="none"
-              stroke-linecap="round"
-            />
-          </svg>
-        </div>
-        ${this.#renderResizeObservedElements()}`;
-    }
-
-    const minDegrees = this.#sizeToDegrees(this.#strokeWidth * 2, this.#diameter);
-    let degrees = (this.value / this.max) * 360;
-    if (degrees > 0) {
-      degrees = Math.max(0, minDegrees, degrees);
-    }
-
-    const amplitude = degrees <= minDegrees + minDegrees / 2 || degrees == 360 ? 0 : this.#amplitude;
-    const activeArc = this.#drawArc({ gap: degrees < 360 ? this.#strokeWidth : 0, endAngle: degrees });
-    const active = amplitude == 0 ? activeArc : this.#drawWavyArc({ endAngle: 360, amplitude });
-    const inactive = this.#drawArc({ gap: degrees > 0 ? this.#strokeWidth : 0, startAngle: degrees, endAngle: 360 });
-    const padding = amplitude > 0 ? amplitude + this.#strokeWidth / 2 : this.#strokeWidth;
-
+    // The engine draws into a `size`-square coordinate space; pad the viewBox by stroke + amplitude
+    // so the wave and rounded caps never clip at the outer edge.
+    const size = this.#diameter || 48;
+    const pad = (this.#strokeWidth || 4) + (this.#amplitude || 0);
     return html`
-      <svg class="progress" viewBox="${inactive.viewBox}" aria-hidden="true">
-        ${degrees > 0
-          ? svg`${
-              amplitude > 0
-                ? svg`<defs>
-          <mask id="${this.#maskId}">
-            <path
-              d="${activeArc.path}"
-              stroke="white"
-              stroke-width="${this.#strokeWidth + padding}"
-              fill="none"
-              stroke-linecap="round"
-            />
-          </mask>
-        </defs>`
-                : nothing
-            }
-        <g class="active-track" mask="${ifDefined(amplitude > 0 ? resolveFragmentUrl(this.#maskId) : undefined)}">
-          <path
-            class="${classMap({ wave: amplitude > 0 })}"
-            d="${active.path}"
-            stroke="currentColor"
-            stroke-width=${this.#strokeWidth}
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            fill="none"
-          />
-        </g>`
-          : nothing}
-        ${360 - degrees >= minDegrees
-          ? svg`<path
-                class="track"
-                d="${inactive.path}"
-                stroke="currentColor"
-                stroke-width=${this.#strokeWidth}
-                fill="none"
-                stroke-linecap="round"
-              />`
-          : nothing}
+      <svg
+        class="progress wavy-svg"
+        width="${size}"
+        height="${size}"
+        viewBox="${-pad} ${-pad} ${size + pad * 2} ${size + pad * 2}"
+        aria-hidden="true"
+      >
+        <path
+          class="track"
+          stroke="currentColor"
+          stroke-width=${this.#strokeWidth}
+          fill="none"
+          stroke-linecap="round"
+        />
+        <path
+          class="active-track"
+          stroke="currentColor"
+          stroke-width=${this.#strokeWidth}
+          fill="none"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
       ${this.#renderResizeObservedElements()}${this.#renderContent()}
     `;
@@ -523,51 +476,107 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     }
   }
 
-  /** @private */
-  #updateWavyIndeterminateSpinner(t: number): void {
-    if (this.#amplitude === 0 || this.#wavelength === 0) return;
-
-    const sweep = this.#computeWavyIndeterminateSweep(t);
-    this.#spinnerActiveTrack?.setAttribute("d", this.#drawWavyArc({ endAngle: sweep }).path);
-    this.#spinnerTrack?.setAttribute(
-      "d",
-      this.#drawArc({
-        gap: this.#sizeToDegrees(this.#strokeWidth, this.#diameter),
-        startAngle: sweep,
-      }).path,
-    );
+  /** @private Options for the circular wavy engine, derived from the measured geometry. */
+  #wavyOptions(): CircularWavyOptions {
+    return {
+      size: this.#diameter || 48,
+      stroke: this.#strokeWidth || 4,
+      trackStroke: this.#strokeWidth || 4,
+      gap: this.#strokeWidth || 4,
+      wavelength: this.#wavelength || 15,
+    };
   }
 
-  /** @private */
-  #computeWavyIndeterminateSweep(t: number): number {
-    const sweepPadding = this.#sizeToDegrees(this.#strokeWidth) * 2;
-    const minSweep = 18 + sweepPadding;
-    const maxSweep = 280 - sweepPadding;
+  /** @private Vertex count for the current geometry (for the wave-speed period). */
+  #wavyVertexCount(): number {
+    const o = this.#wavyOptions();
+    return circularVertexCount(o.size, o.stroke, o.wavelength);
+  }
 
-    const duration = WAVY_INDETERMINATE_DURATION;
-    const holdMin = duration;
-    const growTime = duration;
-    const holdMax = duration;
-    const shrinkTime = duration;
+  /** @private Start the rAF loop when the wavy variant should animate. */
+  #syncWavyAnimation(): void {
+    if (this.variant !== "wavy") {
+      this.#wavyLoop.stop();
+      return;
+    }
+    if (this.#reducedMotion?.matches) {
+      // Reduced motion: render a single static frame, no travelling wave.
+      this.#waveOffset = 0;
+      this.#renderWavy();
+      this.#wavyLoop.stop();
+      return;
+    }
+    this.#wavyLoop.start();
+  }
 
-    const cycle = holdMin + growTime + holdMax + shrinkTime;
-    const u = t % cycle;
+  /** @private Advance the wavy animation one frame and repaint. */
+  #tickWavy(dt: number): void {
+    if (this.variant !== "wavy") return;
+    this.#lastDtMs = dt * 1000;
+    this.#clock += dt;
+    // Wave phase: one wavelength per second per vertex (AndroidX waveSpeed == wavelength).
+    const n = Math.max(1, this.#wavyVertexCount());
+    this.#waveOffset = (this.#waveOffset + dt / n) % 1;
+    this.#renderWavy();
+  }
 
-    if (u < holdMin) {
-      return minSweep;
+  /** @private Paint one frame of the wavy indicator into the two SVG paths. */
+  #renderWavy(): void {
+    if (!this.#activePath || !this.#trackPath) return;
+    const opts = this.#wavyOptions();
+    let progress: number;
+    let amplitude: number;
+    let rotationDeg = 0;
+
+    if (this.indeterminate) {
+      const st = indeterminateState(this.#clock * 1000);
+      progress = st.sweep;
+      amplitude = st.amplitude;
+      rotationDeg = st.rotationDeg;
+    } else {
+      progress = this.max > 0 ? Math.min(1, Math.max(0, this.value / this.max)) : 0;
+      amplitude = this.#resolveAmplitude(progress);
     }
 
-    if (u < holdMin + growTime) {
-      const p = (u - holdMin) / growTime;
-      return minSweep + (maxSweep - minSweep) * (p * p * (3 - 2 * p));
-    }
+    const paths = generateCircularWavyPath(
+      progress,
+      amplitude,
+      opts,
+      this.#waveOffset,
+      rotationDeg,
+      this.#starCache,
+    );
+    this.#activePath.setAttribute("d", paths.active);
+    this.#trackPath.setAttribute("d", paths.track);
+  }
 
-    if (u < holdMin + growTime + holdMax) {
-      return maxSweep;
+  /**
+   * @private Resolve the determinate morph amplitude with a 500ms tween toward the target
+   * (rise: Standard, fall: EmphasizedAccelerate), matching AndroidX.
+   */
+  #resolveAmplitude(progress: number): number {
+    const target = determinateAmplitude(progress);
+    if (this.#ampCurrent === null) {
+      this.#ampCurrent = target;
+      return target;
     }
-
-    const p = (u - (holdMin + growTime + holdMax)) / shrinkTime;
-    return maxSweep - (maxSweep - minSweep) * (p * p * (3 - 2 * p));
+    if (this.#ampAnim) {
+      const k = Math.min(1, this.#ampAnim.elapsed / 500);
+      this.#ampCurrent = this.#ampAnim.from + (this.#ampAnim.to - this.#ampAnim.from) * this.#ampAnim.ease(k);
+      this.#ampAnim.elapsed += this.#lastDtMs;
+      if (k >= 1) {
+        this.#ampCurrent = this.#ampAnim.to;
+        this.#ampAnim = null;
+      }
+    } else if (Math.abs(target - this.#ampCurrent) > 1e-6) {
+      this.#ampAnim = {
+        from: this.#ampCurrent,
+        to: target,
+        elapsed: 0,
+        ease: this.#ampCurrent < target ? easeStandard : easeEmphasizedAccelerate,
+      };
+    }
+    return this.#ampCurrent;
   }
 
   /** @private */
@@ -628,68 +637,6 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     return { path, viewBox };
   }
 
-  /** @private */
-  #drawWavyArc({
-    startAngle = 0,
-    endAngle = 360,
-    gap = 0,
-    padding = this.#amplitude,
-    amplitude = this.#amplitude,
-    steps = 200,
-  }: {
-    startAngle?: number;
-    endAngle?: number;
-    gap?: number;
-    padding?: number;
-    amplitude?: number;
-    steps?: number;
-  }) {
-    if (this.#diameter === 0 || this.#strokeWidth === 0) return { path: "", viewBox: "0 0 0 0" };
-
-    const circle = this.#computeCircle(padding);
-
-    if (gap > 0) {
-      startAngle += this.#sizeToDegrees(gap, padding);
-      endAngle -= this.#sizeToDegrees(gap, padding);
-    }
-
-    const startRad = this.#degreesToRadians(startAngle);
-    let endRad = this.#degreesToRadians(endAngle);
-
-    if (startAngle === endAngle) {
-      endRad = startRad;
-    } else if (endRad < startRad) {
-      endRad += Math.PI * 2;
-    }
-
-    const totalAngle = endRad - startRad;
-    const waveCount = (2 * Math.PI * circle.r) / this.#wavelength;
-    const phase = (Math.PI / 2) * (waveCount - 1);
-
-    const points: [number, number][] = [];
-
-    for (let i = 0; i <= steps; i++) {
-      const t = steps === 0 ? 0 : i / steps;
-      const angle = startRad + t * totalAngle;
-      const wave = Math.sin(angle * waveCount + phase);
-      const radius = circle.r - amplitude * wave;
-      const x = radius * Math.cos(angle) + circle.cx;
-      const y = radius * Math.sin(angle) + circle.cy;
-      points.push([x, y]);
-    }
-
-    const path =
-      points.length === 1
-        ? `M ${points[0][0]},${points[0][1]}`
-        : `M ${points[0][0]},${points[0][1]} ` +
-          points
-            .slice(1)
-            .map(([x, y]) => `L ${x},${y}`)
-            .join(" ");
-
-    const viewBox = `0 0 ${this.#diameter + circle.padding * 2} ${this.#diameter + circle.padding * 2}`;
-    return { path, viewBox };
-  }
 }
 
 declare global {

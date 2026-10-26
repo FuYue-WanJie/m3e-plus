@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Circular Wavy Progress — component test</title>
+    <script type="module" src="packages/web/dist/all.min.js"></script>
+    <style>
+      body {
+        margin: 24px;
+        font: 13px system-ui, sans-serif;
+        background: #fef7ff;
+        color: #1d1b20;
+        max-width: 960px;
+      }
+      h3 {
+        font-size: 13px;
+        margin: 8px 0;
+        color: #49454f;
+      }
+      .row {
+        display: flex;
+        gap: 32px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin: 14px 0 28px;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: 16px;
+      }
+      input[type="range"] {
+        width: 240px;
+      }
+      button {
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid #79747e;
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+      }
+      .panel {
+        border: 1px solid #e7e0ec;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 16px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>m3e-circular-progress-indicator · wavy 变体</h2>
+
+    <div class="panel">
+      <h3>确定态 · 不同 value（48px 默认）</h3>
+      <div class="row" id="detRow"></div>
+    </div>
+
+    <div class="panel">
+      <h3>确定态 · 尺寸 ×1 ×2 ×4</h3>
+      <div class="row">
+        <div class="cell"><m3e-circular-progress-indicator variant="wavy" value="50"></m3e-circular-progress-indicator>48px</div>
+        <div class="cell">
+          <m3e-circular-progress-indicator
+            variant="wavy"
+            value="50"
+            style="--m3e-circular-wavy-progress-indicator-diameter:96px; --m3e-circular-progress-indicator-thickness:8px; --m3e-circular-wavy-progress-indicator-wavelength:30px"
+          ></m3e-circular-progress-indicator>×2
+        </div>
+        <div class="cell">
+          <m3e-circular-progress-indicator
+            variant="wavy"
+            value="50"
+            style="--m3e-circular-wavy-progress-indicator-diameter:192px; --m3e-circular-progress-indicator-thickness:16px; --m3e-circular-wavy-progress-indicator-wavelength:60px"
+          ></m3e-circular-progress-indicator>×4
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>确定态 · 拖动 + 模拟加载（观察 10%/95% 收平）</h3>
+      <div class="row">
+        <label>进度 <input id="p" type="range" min="0" max="1" step="0.001" value="0.5" /><span id="pv">0.50</span></label>
+        <button id="sim">模拟加载 0→100%</button>
+      </div>
+      <div class="row">
+        <div class="cell"><m3e-circular-progress-indicator id="live" variant="wavy" value="50"></m3e-circular-progress-indicator>48px</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>不确定态 ×1 ×2 ×4</h3>
+      <div class="row">
+        <div class="cell"><m3e-circular-progress-indicator variant="wavy" indeterminate></m3e-circular-progress-indicator>48px</div>
+        <div class="cell">
+          <m3e-circular-progress-indicator
+            variant="wavy"
+            indeterminate
+            style="--m3e-circular-wavy-progress-indicator-diameter:96px; --m3e-circular-progress-indicator-thickness:8px; --m3e-circular-wavy-progress-indicator-wavelength:30px"
+          ></m3e-circular-progress-indicator>×2
+        </div>
+        <div class="cell">
+          <m3e-circular-progress-indicator
+            variant="wavy"
+            indeterminate
+            style="--m3e-circular-wavy-progress-indicator-diameter:192px; --m3e-circular-progress-indicator-thickness:16px; --m3e-circular-wavy-progress-indicator-wavelength:60px"
+          ></m3e-circular-progress-indicator>×4
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      const detRow = document.getElementById("detRow");
+      for (const v of [0, 10, 30, 50, 70, 90, 100]) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        const el = document.createElement("m3e-circular-progress-indicator");
+        el.setAttribute("variant", "wavy");
+        el.setAttribute("value", String(v));
+        cell.append(el, document.createTextNode(`${v}%`));
+        detRow.append(cell);
+      }
+
+      const live = document.getElementById("live");
+      const range = document.getElementById("p");
+      const pv = document.getElementById("pv");
+      let simOn = false;
+      let simTimer = null;
+      range.addEventListener("input", () => {
+        simOn = false;
+        if (simTimer) clearTimeout(simTimer);
+        live.value = +range.value * 100;
+        pv.textContent = (+range.value).toFixed(2);
+      });
+      document.getElementById("sim").addEventListener("click", () => {
+        simOn = true;
+        let target = 0;
+        let from = 0;
+        const step = () => {
+          if (!simOn || target >= 1) return;
+          from = +range.value;
+          target = Math.min(1, target + 0.05 + Math.random() * 0.12);
+          const t0 = performance.now();
+          const tick = (now) => {
+            if (!simOn) return;
+            const k = Math.min(1, (now - t0) / 500);
+            const val = from + (target - from) * k;
+            range.value = val;
+            pv.textContent = val.toFixed(2);
+            live.value = val * 100;
+            if (k < 1) requestAnimationFrame(tick);
+            else simTimer = setTimeout(step, 700);
+          };
+          requestAnimationFrame(tick);
+        };
+        simTimer = setTimeout(step, 200);
+      });
+    </script>
+  </body>
+</html>
