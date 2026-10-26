@@ -499,31 +499,37 @@ export class M3eButtonElement extends KeyboardClick(
   /** @private */ readonly #clickHandler = (e: Event) => this.#handleClick(e);
 
   /**
-   * Drives the press shape-morph progress (0 = resting, 1 = pressed) with spring physics. Mirrors the
-   * AndroidX/reference model: the shape morph runs on the *effects* spring (`expressiveEffectMedium` /
-   * `standardEffectMedium`: stiffness 1600, dampingRatio 1.0 — critically damped, so the corner eases
-   * to its target without overshoot), NOT the bouncy spatial spring. A single progress spring whose
-   * value + velocity carry across target changes (press / release) preserves momentum on interruption.
-   * Each frame writes the interpolated corner radius to `--_button-shape` on `.base`.
+   * Shape-morph springs. Mirrors AndroidX `AnimatedShapeState`: a progress value runs 0 → 1 from a
+   * start corner to a target corner; reversing to the start flips the progress and velocity (momentum
+   * is kept), any other new target freezes the current corner as the new start.
+   *
+   * - `Button` uses `MotionSchemeKeyTokens.DefaultEffects` (1600 / 1.0, no bounce).
+   * - `ToggleButton` uses `MotionSchemeKeyTokens.FastSpatial` (expressive 800 / 0.6), so the pressed
+   *   and checked morphs overshoot slightly.
    * @private
    */
-  readonly #morphSpring = new SpringSimulation({ stiffness: 1600, dampingRatio: 1.0 });
+  readonly #effectsSpring = new SpringSimulation({ stiffness: 1600, dampingRatio: 1.0 });
+  /** @private */ readonly #spatialSpring = new SpringSimulation({ stiffness: 800, dampingRatio: 0.6 });
 
-  /** Rest corner radius (px) captured when a layout-affecting change settles. @private */
-  #morphRestPx = 0;
+  /** Corner radius (px) the current morph starts from. @private */
+  #morphFromPx = 0;
 
-  /** Pressed corner radius (px) captured when a layout-affecting change settles. @private */
-  #morphPressedPx = 0;
+  /** Corner radius (px) the current morph runs to. @private */
+  #morphToPx = 0;
+
+  /** Whether `--_button-shape` is currently owned by the morph. @private */
+  #morphActive = false;
+
+  /** @private */
+  get #morphSpring(): SpringSimulation {
+    return this.toggle ? this.#spatialSpring : this.#effectsSpring;
+  }
 
   /** @private */ readonly #applyMorphFrame = (frame: { value: number }) => {
-    const radius = this.#morphRestPx + (this.#morphPressedPx - this.#morphRestPx) * frame.value;
-    // Clamp between the two shape endpoints. On press this stops the spring from overshooting sharper
-    // than the held pressed corner (a quick click must not flash a more acute corner than a long
-    // hold). On release, overshoot past the rest corner is already invisible (border-radius beyond the
-    // half-height renders as a pill), so keeping it bounded only removes what the eye never saw.
-    const lo = Math.min(this.#morphRestPx, this.#morphPressedPx);
-    const hi = Math.max(this.#morphRestPx, this.#morphPressedPx);
-    this._base?.style.setProperty("--_button-shape", `${Math.min(hi, Math.max(lo, radius))}px`);
+    const radius = this.#morphFromPx + (this.#morphToPx - this.#morphFromPx) * frame.value;
+    // Like a RoundedCornerShape, a corner can neither go negative nor exceed half the height.
+    const half = (this.clientHeight || 0) / 2;
+    this._base?.style.setProperty("--_button-shape", `${Math.min(half, Math.max(0, radius))}px`);
   };
 
   constructor() {
@@ -532,7 +538,7 @@ export class M3eButtonElement extends KeyboardClick(
     new ResizeController(this, { callback: () => this._handleResize() });
     new FocusController(this, {
       callback: (focused) => {
-        if (!this.disabledInteractive && !focused && !this.grouped) {
+        if (!this.disabledInteractive && !focused && !this.grouped && !this.#morphActive) {
           this._base?.style.removeProperty("--_button-shape");
         }
       },
@@ -544,20 +550,14 @@ export class M3eButtonElement extends KeyboardClick(
       callback: (pressed) => {
         if (!this.disabled && !this.disabledInteractive) {
           if (pressed) {
-            // Capture the resting radius *before* the pressed custom-state flips the composed CSS
-            // border-radius (which, for a square button especially, would otherwise snap the measured
-            // "rest" straight to the pressed token and leave the spring with nothing to animate).
-            this.#captureShapeMorph();
-            // Seed the variable to the resting radius so the pressed rule, which falls back to the
-            // pressed token when `--_button-shape` is unset, does not flash a snap for one frame before
-            // the spring's first tick.
-            this._base?.style.setProperty("--_button-shape", `${this.#morphRestPx}px`);
+            // Seed the morph from the resting corner *before* the pressed custom-state flips the
+            // composed CSS border-radius, so the pressed rule never snaps for a frame.
+            this.#morphTo(this.#pressedRadiusPx());
             this.#updateButtonShape();
             this.#handlePressedChange(true);
-            this.#animatePress(true);
           } else {
             this.#handlePressedChange(false);
-            this.#animatePress(false);
+            this.#morphTo(this.#restRadiusPx());
           }
         }
       },
@@ -640,7 +640,9 @@ export class M3eButtonElement extends KeyboardClick(
   override disconnectedCallback(): void {
     super.disconnectedCallback();
 
-    this.#morphSpring.stop();
+    this.#effectsSpring.stop();
+    this.#spatialSpring.stop();
+    this.#morphActive = false;
 
     ["--pressed", "--resting", "--grouped", "--connected"].forEach((x) => deleteCustomState(this, x));
     this._base?.style.removeProperty("--_button-shape");
@@ -655,6 +657,24 @@ export class M3eButtonElement extends KeyboardClick(
   /** @inheritdoc */
   protected override willUpdate(_changedProperties: PropertyValues<this>): void {
     super.willUpdate(_changedProperties);
+
+    if (
+      _changedProperties.has("selected") &&
+      _changedProperties.get("selected") !== undefined &&
+      this.toggle &&
+      !this.#morphActive &&
+      !hasCustomState(this, "--pressed")
+    ) {
+      // The [selected] attribute still reflects the old value here: pin the old corner so the
+      // checked morph in updated() starts from what is on screen instead of snapping.
+      const current = this.#restRadiusPx();
+      this.#morphFromPx = current;
+      this.#morphToPx = current;
+      this.#morphSpring.stop();
+      this.#morphSpring.setValue(1).setVelocity(0);
+      this.#morphActive = true;
+      this._base?.style.setProperty("--_button-shape", `${current}px`);
+    }
 
     if (_changedProperties.has("variant")) {
       this.#applyVariant();
@@ -685,6 +705,16 @@ export class M3eButtonElement extends KeyboardClick(
     ) {
       deleteCustomState(this, "--pressed");
       deleteCustomState(this, "--resting");
+    }
+
+    if (
+      _changedProperties.has("selected") &&
+      _changedProperties.get("selected") !== undefined &&
+      this.toggle &&
+      !hasCustomState(this, "--pressed")
+    ) {
+      // Checked ↔ unchecked morph (AndroidX ToggleButton shapeByInteraction).
+      this.#morphTo(this.#restRadiusPx());
     }
 
     if (_changedProperties.has("toggle") || _changedProperties.has("selected")) {
@@ -771,22 +801,30 @@ export class M3eButtonElement extends KeyboardClick(
   }
 
   /**
-   * Captures the resting and pressed corner radii (in px) for the current shape/size. Must be called
-   * while the button is at rest (before the pressed custom-state flips the composed CSS border-radius),
-   * otherwise a square button's measured "rest" would already be the pressed token.
-   *
-   * The resting rounded shape is `CornerFull` (a pill clamped to half the height); the resting square
-   * shape is its square token. The pressed target follows the size table (small 8dp, medium 12dp,
-   * large 16dp), clamped to half the height. `--m3e-button-shape-pressed-morph` can override it.
+   * The resting corner (px) for the current shape, size and selection, as the CSS tokens compose it
+   * without the morph override. Must be called while the `--pressed` state is off. `corner.full`
+   * computes to 9999px, so it is clamped to the half-height (the visual pill radius).
    * @private
    */
-  #captureShapeMorph(): void {
+  #restRadiusPx(): number {
     const half = (this.clientHeight || 0) / 2;
     const base = this._base;
-    // At rest the composed radius is the actual resting corner (corner.full is returned as 9999px by
-    // getComputedStyle, so clamp it to the half-height to get the visual pill radius).
-    const restCss = base ? parseFloat(getComputedStyle(base).borderRadius) : NaN;
-    this.#morphRestPx = Number.isFinite(restCss) ? Math.min(restCss, half) : half;
+    if (!base) return half;
+    const prev = base.style.getPropertyValue("--_button-shape");
+    base.style.removeProperty("--_button-shape");
+    const css = parseFloat(getComputedStyle(base).borderTopLeftRadius);
+    if (prev) base.style.setProperty("--_button-shape", prev);
+    return Number.isFinite(css) ? Math.min(css, half) : half;
+  }
+
+  /**
+   * The pressed corner (px): the size table (extra-small/small 8dp, medium 12dp, large/extra-large
+   * 16dp, from `Button*Tokens.PressedContainerShape`), clamped to half the height.
+   * `--m3e-button-shape-pressed-morph` can override it.
+   * @private
+   */
+  #pressedRadiusPx(): number {
+    const half = (this.clientHeight || 0) / 2;
     const sizePress: Readonly<Record<string, number>> = {
       "extra-small": 8,
       small: 8,
@@ -796,42 +834,63 @@ export class M3eButtonElement extends KeyboardClick(
     };
     const override = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-button-shape-pressed-morph"));
     const pressedTarget = Number.isFinite(override) ? override : sizePress[this.size] ?? 8;
-    this.#morphPressedPx = Math.min(Math.max(0, pressedTarget), half);
+    return Math.min(Math.max(0, pressedTarget), half);
   }
 
   /**
-   * Starts the physics-driven shape morph. A single spring runs progress 0 (rest) → 1 (pressed) and
-   * back, writing the interpolated corner radius to `--_button-shape` each frame (consumed by the size
-   * styles as `border-radius`). Rest/pressed radii must have been captured via {@link
-   * #captureShapeMorph} at press start; they are reused on release.
-   * @param {boolean} pressed Whether the button is pressed.
+   * Morphs the corner to `targetPx` (AndroidX `AnimatedShapeState.animateToShape`). The radius is
+   * written to `--_button-shape` on `.base` every frame, synchronously on the first one so a state
+   * flip never shows the raw CSS token for a frame. Once settled at rest (not pressed) the override
+   * is dropped so the CSS token (e.g. a responsive corner) takes over again.
+   * @param {number} targetPx The corner radius to morph to.
    * @private
    */
-  #animatePress(pressed: boolean): void {
+  #morphTo(targetPx: number): void {
     if (!this._base) return;
+    const spring = this.#morphSpring;
+    const done = (): void => {
+      if (hasCustomState(this, "--pressed")) return; // hold the pressed corner
+      this.#morphActive = false;
+      this._base?.style.removeProperty("--_button-shape");
+    };
 
-    // Safety net: if radii were never captured (e.g. programmatic press), capture now.
-    if (this.#morphRestPx === 0 && this.#morphPressedPx === 0) {
-      this.#captureShapeMorph();
+    if (!this.#morphActive) {
+      // Start from the settled CSS corner.
+      this.#morphFromPx = this.#restRadiusPx();
+      this.#morphToPx = targetPx;
+      spring.stop();
+      spring.setValue(0).setVelocity(0);
+    } else if (Math.abs(targetPx - this.#morphToPx) < 0.01) {
+      if (spring.isRunning || hasCustomState(this, "--pressed")) return;
+      // Settled at this target already but still owning the variable: finish.
+      this.#applyMorphFrame({ value: 1 });
+      done();
+      return;
+    } else if (Math.abs(targetPx - this.#morphFromPx) < 0.01) {
+      // Reversed before finishing: flip progress and velocity to keep momentum.
+      [this.#morphFromPx, this.#morphToPx] = [this.#morphToPx, this.#morphFromPx];
+      spring.stop();
+      spring.setValue(1 - spring.value).setVelocity(-spring.velocity);
+    } else {
+      // New target: freeze the visible corner as the new start.
+      const current = this.#morphFromPx + (this.#morphToPx - this.#morphFromPx) * spring.value;
+      this.#morphFromPx = current;
+      this.#morphToPx = targetPx;
+      spring.stop();
+      spring.setValue(0).setVelocity(0);
     }
+    this.#morphActive = true;
 
     if (prefersReducedMotion()) {
-      // Reduced motion: jump straight to the end state, no spring.
-      this.#morphSpring.stop();
-      this._base.style.setProperty("--_button-shape", pressed ? `${this.#morphPressedPx}px` : `${this.#morphRestPx}px`);
+      spring.stop();
+      spring.setValue(1).setVelocity(0);
+      this.#applyMorphFrame({ value: 1 });
+      done();
       return;
     }
 
-    this.#morphSpring.start(
-      pressed ? 1 : 0,
-      this.#applyMorphFrame,
-      () => {
-        // On release the spring settles back at the resting radius; drop the inline override so the
-        // CSS token (e.g. a responsive corner) can take over again.
-        if (!this._base) return;
-        this._base.style.removeProperty("--_button-shape");
-      },
-    );
+    this.#applyMorphFrame({ value: spring.value });
+    spring.start(1, this.#applyMorphFrame, done);
   }
 
   /** @private */

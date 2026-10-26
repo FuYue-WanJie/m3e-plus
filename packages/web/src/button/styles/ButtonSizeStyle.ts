@@ -46,7 +46,7 @@ function buttonStyle(size: ButtonSize): CSSResult {
           )
       )
       .base {
-      border-radius: ${ButtonSizeToken[size].selectedShapeRound};
+      border-radius: var(--_button-shape, ${ButtonSizeToken[size].selectedShapeRound});
     }
     :host(:not(:is(:state(--connected), :--connected))${selector}:is(:state(--square), :--square)) .base {
       border-radius: var(--_button-shape, ${ButtonSizeToken[size].shapeSquare});
