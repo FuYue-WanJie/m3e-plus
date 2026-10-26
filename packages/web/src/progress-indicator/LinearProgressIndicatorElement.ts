@@ -2,14 +2,21 @@ import { css, CSSResultGroup, html, nothing, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
 import {
+  AnimationLoopController,
   customElement,
   DesignToken,
   ResizeController,
   safeStyleMap,
   setCustomEnumState,
 } from "@wanjie/m3e-web/core";
-import { SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
+import { M3eDirectionality, SupportsDirectionality } from "@wanjie/m3e-web/core/bidi";
 
+import {
+  classicLinearDeterminate,
+  classicLinearIndeterminate,
+  spanToLine,
+  type StopBox,
+} from "./classic-progress";
 import { isLinearProgressMode, LinearProgressMode } from "./LinearProgressMode";
 import { ProgressElementIndicatorBase } from "./ProgressElementIndicatorBase";
 import { defaultAmplitudeForProgress, linearIndeterminateFractions, WaveDriver, type WaveFrame } from "./wavy";
@@ -121,6 +128,28 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
       }
       :host(:is(:state(--wavy), :--wavy)) .secondary {
         height: var(--m3e-linear-progress-indicator-thickness, 4px);
+      }
+      .flat-canvas {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+      .flat-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        overflow: visible;
+      }
+      .flat-svg .flat-active {
+        stroke: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
+      }
+      .flat-svg .flat-track {
+        stroke: var(--m3e-progress-indicator-track-color, ${DesignToken.color.secondaryContainer});
+      }
+      .flat-svg .flat-stop {
+        fill: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
       }
       .wavy-canvas {
         position: absolute;
@@ -358,6 +387,16 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
     this.#syncWaveDriver();
   };
 
+  // ── Flat (classic) engine state ──
+  /** @private Flat SVG path handles. */
+  #flatActivePath?: SVGPathElement;
+  /** @private */ #flatTrackPath?: SVGPathElement;
+  /** @private */ #flatStop?: SVGRectElement;
+  /** @private Time base (ms) for the flat indeterminate fraction cycle. */
+  #flatClock = 0;
+  /** @private rAF loop for flat indeterminate/query. */
+  readonly #flatLoop = new AnimationLoopController(this, (dt) => this.#tickFlat(dt));
+
   /** @private */ readonly #resizeController = new ResizeController(this, {
     skipInitial: true,
     target: null,
@@ -394,6 +433,7 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
     super.disconnectedCallback();
     this.#prefersReducedMotion?.removeEventListener("change", this.#onReducedMotionChange);
     this.#waveDriver?.stop();
+    this.#flatLoop.stop();
   }
 
   /** @inheritdoc */
@@ -442,6 +482,12 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
 
     if (this.variant === "wavy") {
       this.#startWave();
+    } else if (this.mode !== "buffer") {
+      this.#flatActivePath = this.shadowRoot?.querySelector<SVGPathElement>(".flat-active") ?? undefined;
+      this.#flatTrackPath = this.shadowRoot?.querySelector<SVGPathElement>(".flat-track") ?? undefined;
+      this.#flatStop = this.shadowRoot?.querySelector<SVGRectElement>(".flat-stop") ?? undefined;
+      this.#renderFlat();
+      if (this.#flatIsIndeterminate()) this.#flatLoop.start();
     }
   }
 
@@ -464,14 +510,85 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
       progress?.style.setProperty("--_buffer-value", `${(this.bufferValue / this.max) * 100}%`);
     }
 
-    if (
-      _changedProperties.has("variant") ||
-      _changedProperties.has("value") ||
-      _changedProperties.has("max") ||
-      _changedProperties.has("bufferValue")
-    ) {
-      if (this.variant === "wavy") this.#startWave();
-      else this.#stopWave();
+    if (this.variant === "wavy") {
+      this.#flatLoop.stop();
+      if (
+        _changedProperties.has("variant") ||
+        _changedProperties.has("value") ||
+        _changedProperties.has("max") ||
+        _changedProperties.has("bufferValue")
+      ) {
+        this.#startWave();
+      }
+    } else {
+      this.#stopWave();
+      if (this.mode === "buffer") {
+        this.#flatLoop.stop();
+        return;
+      }
+      this.#flatActivePath = this.shadowRoot?.querySelector<SVGPathElement>(".flat-active") ?? undefined;
+      this.#flatTrackPath = this.shadowRoot?.querySelector<SVGPathElement>(".flat-track") ?? undefined;
+      this.#flatStop = this.shadowRoot?.querySelector<SVGRectElement>(".flat-stop") ?? undefined;
+      this.#renderFlat();
+      if (this.#flatIsIndeterminate()) this.#flatLoop.start();
+      else this.#flatLoop.stop();
+    }
+  }
+
+  /** @private */ #flatIsIndeterminate(): boolean {
+    return this.mode === "indeterminate" || this.mode === "query";
+  }
+
+  /** @private Advance flat indeterminate one frame. */
+  #tickFlat(dt: number): void {
+    this.#flatClock += dt * 1000;
+    this.#renderFlat();
+  }
+
+  /** @private Paint one frame of the flat (classic) linear indicator. */
+  #renderFlat(): void {
+    const host = this.shadowRoot?.querySelector<HTMLElement>(".progress");
+    if (!host || !this.#flatActivePath || !this.#flatTrackPath) return;
+    const width = host.clientWidth;
+    const height = this.#strokeWidth || 4;
+    const gap = this.#strokeWidth || 4;
+    const stopSize = this.#strokeWidth || 4;
+    const round = true;
+    const rtl = M3eDirectionality.current === "rtl";
+
+    let active: string[] = [];
+    let tracks: string[] = [];
+    let stop: StopBox | null = null;
+
+    if (this.#flatIsIndeterminate()) {
+      const fractions = linearIndeterminateFractions(this.#flatClock);
+      const layout = classicLinearIndeterminate(fractions, width, height, gap, round, rtl);
+      active = layout.active.map((s) => spanToLine(s, height / 2));
+      tracks = layout.tracks.map((s) => spanToLine(s, height / 2));
+    } else {
+      const progress = this.max > 0 ? Math.min(1, Math.max(0, this.value / this.max)) : 0;
+      const layout = classicLinearDeterminate(progress, width, height, gap, stopSize, round, rtl);
+      active = layout.active.map((s) => spanToLine(s, height / 2));
+      tracks = layout.tracks.map((s) => spanToLine(s, height / 2));
+      stop = progress > 0 ? layout.stop : null;
+    }
+
+    this.#flatActivePath.setAttribute("d", active.join(" "));
+    this.#flatTrackPath.setAttribute("d", tracks.join(" "));
+    this.#flatActivePath.setAttribute("stroke-width", `${height}`);
+    this.#flatTrackPath.setAttribute("stroke-width", `${height}`);
+
+    if (this.#flatStop) {
+      if (stop) {
+        this.#flatStop.setAttribute("x", `${stop.x - stop.size / 2}`);
+        this.#flatStop.setAttribute("y", `${stop.y - stop.size / 2}`);
+        this.#flatStop.setAttribute("width", `${stop.size}`);
+        this.#flatStop.setAttribute("height", `${stop.size}`);
+        this.#flatStop.setAttribute("rx", stop.round ? `${stop.size / 2}` : "0");
+        this.#flatStop.style.display = "";
+      } else {
+        this.#flatStop.style.display = "none";
+      }
     }
   }
 
@@ -488,6 +605,23 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
         ${this.#renderResizeObservedElements()}`;
     }
 
+    if (this.mode === "buffer") {
+      return this.#renderFlatBuffer();
+    }
+
+    // Determinate / indeterminate / query: flat SVG driven by the classic engine.
+    return html`<div class="progress flat-canvas" aria-hidden="true">
+        <svg class="flat-svg">
+          <path class="flat-track" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path class="flat-active" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+          <rect class="flat-stop" width="0" height="0"></rect>
+        </svg>
+      </div>
+      ${this.#renderResizeObservedElements()}`;
+  }
+
+  /** @private Legacy buffer-mode rendering (m3e-specific; no AndroidX classic equivalent). */
+  #renderFlatBuffer(): unknown {
     const clampedValue = Math.max(0, Math.min(this.value, this.max));
     const activeWidth = (clampedValue / this.max) * this.clientWidth;
 
@@ -499,17 +633,14 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
         })}"
       >
         <div class="track"></div>
-        ${(this.mode === "determinate" || this.mode === "buffer") && this.value <= 0
+        ${this.value <= 0
           ? nothing
           : html`<div class="primary"></div>
-              ${this.mode === "determinate" || this.mode === "buffer" ? html`<div class="gap"></div>` : nothing}`}
-        ${this.mode !== "buffer" || this.bufferValue > 0 ? html`<div class="secondary"></div>` : nothing}
-        ${this.mode === "buffer" && this.bufferValue > 0 ? html`<div class="gap"></div>` : nothing}
-        ${this.mode === "buffer" ? html`<div class="buffer"></div>` : nothing}
-        ${(this.mode === "determinate" || this.mode === "buffer") && this.value > 0
-          ? html`<div class="gap"></div>
-              <div class="stop"></div>`
-          : nothing}
+              <div class="gap"></div>`}
+        ${this.bufferValue > 0 ? html`<div class="secondary"></div>` : nothing}
+        ${this.bufferValue > 0 ? html`<div class="gap"></div>` : nothing}
+        <div class="buffer"></div>
+        ${this.value > 0 ? html`<div class="gap"></div><div class="stop"></div>` : nothing}
       </div>
       ${this.#renderResizeObservedElements()}`;
   }

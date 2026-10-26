@@ -1,4 +1,4 @@
-import { css, CSSResultGroup, html, nothing, PropertyValues, svg } from "lit";
+import { css, CSSResultGroup, html, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
 import {
@@ -17,6 +17,12 @@ import {
   roundedStarSamples,
   type CircularWavyOptions,
 } from "@wanjie/m3e-web/geometry";
+import {
+  arcToPath,
+  classicCircularDeterminate,
+  classicCircularIndeterminate,
+  type Arc,
+} from "./classic-progress";
 
 import { ProgressElementIndicatorBase } from "./ProgressElementIndicatorBase";
 
@@ -83,6 +89,16 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
       }
       .active-track {
         transition: stroke-dashoffset 500ms cubic-bezier(0, 0, 0.2, 1);
+      }
+      .flat-svg {
+        overflow: visible;
+        inset: 0;
+      }
+      .flat-svg .track {
+        color: var(--m3e-progress-indicator-track-color, ${DesignToken.color.secondaryContainer});
+      }
+      .flat-svg .active-track {
+        color: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
       }
       .wavy-svg {
         overflow: visible;
@@ -263,6 +279,14 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
   /** @private The rAF loop driving both determinate (travelling wave) and indeterminate wavy. */
   readonly #wavyLoop = new AnimationLoopController(this, (dt) => this.#tickWavy(dt));
 
+  // ── Flat (classic) engine state ──
+  /** @private */ #flatActivePath?: SVGPathElement;
+  /** @private */ #flatTrackPath?: SVGPathElement;
+  /** @private Time base (ms) for the flat indeterminate animation. */
+  #flatClock = 0;
+  /** @private rAF loop for the flat indeterminate spinner. */
+  readonly #flatLoop = new AnimationLoopController(this, (dt) => this.#tickFlat(dt));
+
   /** @private */ readonly #reducedMotion =
     typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
@@ -307,13 +331,21 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
       this.#resizeController.observe(amplitudeAndWavelength);
     }
 
-    if (this.variant === "wavy") this.#syncWavyAnimation();
+    if (this.variant === "wavy") {
+      this.#syncWavyAnimation();
+    } else {
+      this.#flatActivePath = this.shadowRoot?.querySelector<SVGPathElement>(".active-track") ?? undefined;
+      this.#flatTrackPath = this.shadowRoot?.querySelector<SVGPathElement>(".track") ?? undefined;
+      this.#renderFlat();
+      if (this.indeterminate) this.#flatLoop.start();
+    }
   }
 
   /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.#wavyLoop.stop();
+    this.#flatLoop.stop();
   }
 
   /** @inheritdoc */
@@ -327,11 +359,17 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     }
 
     if (this.variant === "wavy") {
+      this.#flatLoop.stop();
       this.#activePath = this.shadowRoot?.querySelector<SVGPathElement>(".active-track");
       this.#trackPath = this.shadowRoot?.querySelector<SVGPathElement>(".track");
       this.#syncWavyAnimation();
     } else {
       this.#wavyLoop.stop();
+      this.#flatActivePath = this.shadowRoot?.querySelector<SVGPathElement>(".active-track") ?? undefined;
+      this.#flatTrackPath = this.shadowRoot?.querySelector<SVGPathElement>(".track") ?? undefined;
+      this.#renderFlat();
+      if (this.indeterminate) this.#flatLoop.start();
+      else this.#flatLoop.stop();
     }
   }
 
@@ -342,75 +380,55 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
 
   /** @private */
   #renderFlatIndicator(): unknown {
-    if (this.indeterminate) {
-      const left = this.#drawArc({ startAngle: -45, endAngle: 90 + this.#strokeWidth });
-      const right = this.#drawArc({ startAngle: -this.#strokeWidth, endAngle: 135 });
-
-      return html`<div class="progress" aria-hidden="true">
-          <div class="spinner">
-            <div class="left">
-              <svg width="${this.#diameter}" height="${this.#diameter}" viewBox="${left.viewBox}" class="circle">
-                <path
-                  class="active-track"
-                  d="${left.path}"
-                  stroke="currentColor"
-                  stroke-width=${this.#strokeWidth}
-                  fill="none"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </div>
-            <div class="right">
-              <svg width="${this.#diameter}" height="${this.#diameter}" viewBox="${right.viewBox}" class="circle">
-                <path
-                  class="active-track"
-                  d="${right.path}"
-                  stroke="currentColor"
-                  stroke-width=${this.#strokeWidth}
-                  fill="none"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-        ${this.#renderResizeObservedElements()}`;
-    }
-
-    const minDegrees = this.#sizeToDegrees(this.#strokeWidth * 2, this.#diameter);
-    let degrees = (this.value / this.max) * 360;
-    if (degrees > 0) {
-      degrees = Math.max(0, minDegrees, degrees);
-    }
-
-    const active = this.#drawArc({ gap: degrees < 360 ? this.#strokeWidth : 0, endAngle: degrees });
-    const inactive = this.#drawArc({ gap: degrees > 0 ? this.#strokeWidth : 0, startAngle: degrees, endAngle: 360 });
-
+    const size = this.#diameter || 40;
     return html`<div class="progress" aria-hidden="true">
-        <svg width="${this.#diameter}" height="${this.#diameter}" viewBox="${active.viewBox}">
-          ${degrees > 0
-            ? svg`<path
-            class="active-track"
-            d="${active.path}"
+        <svg class="flat-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+          <path
+            class="track"
             stroke="currentColor"
             stroke-width=${this.#strokeWidth}
             fill="none"
             stroke-linecap="round"
-          />`
-            : nothing}
-          ${360 - degrees >= minDegrees
-            ? svg`<path
-                class="track"
-                d="${inactive.path}"
-                stroke="currentColor"
-                stroke-width=${this.#strokeWidth}
-                fill="none"
-                stroke-linecap="round"
-              />`
-            : nothing}
+          />
+          <path
+            class="active-track"
+            stroke="currentColor"
+            stroke-width=${this.#strokeWidth}
+            fill="none"
+            stroke-linecap="round"
+          />
         </svg>
       </div>
       ${this.#renderResizeObservedElements()}${this.#renderContent()}`;
+  }
+
+  /** @private Advance flat indeterminate one frame. */
+  #tickFlat(dt: number): void {
+    this.#flatClock += dt * 1000;
+    this.#renderFlat();
+  }
+
+  /** @private Paint one frame of the flat (classic) circular indicator. */
+  #renderFlat(): void {
+    if (!this.#flatActivePath || !this.#flatTrackPath) return;
+    const size = this.#diameter || 40;
+    const strokeWidth = this.#strokeWidth || 4;
+    const gap = this.#strokeWidth || 4;
+    let active: Arc;
+    let track: Arc;
+
+    if (this.indeterminate) {
+      const st = indeterminateState(this.#flatClock);
+      ({ active, track } = classicCircularIndeterminate(st.sweep, st.rotationDeg, size, strokeWidth, gap, true));
+    } else {
+      const progress = this.max > 0 ? Math.min(1, Math.max(0, this.value / this.max)) : 0;
+      ({ active, track } = classicCircularDeterminate(progress, size, strokeWidth, gap, true));
+    }
+
+    const cx = size / 2;
+    const cy = size / 2;
+    this.#flatActivePath.setAttribute("d", arcToPath(active, cx, cy));
+    this.#flatTrackPath.setAttribute("d", arcToPath(track, cx, cy));
   }
 
   /** @private */
@@ -578,65 +596,6 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
     }
     return this.#ampCurrent;
   }
-
-  /** @private */
-  #sizeToDegrees(size: number, padding = this.#amplitude): number {
-    return size * (360 / (2 * Math.PI * this.#computeCircle(padding).r));
-  }
-
-  /** @private */
-  #degreesToRadians(degrees: number) {
-    return (degrees - 90) * (Math.PI / 180);
-  }
-
-  /** @private */
-  #polarToCartesian(circle: { cx: number; cy: number; r: number }, degrees: number) {
-    const rad = this.#degreesToRadians(degrees);
-    return {
-      x: circle.cx + circle.r * Math.cos(rad),
-      y: circle.cy + circle.r * Math.sin(rad),
-    };
-  }
-
-  /** @private */
-  #computeCircle(padding: number) {
-    padding = padding + this.#strokeWidth / 2;
-    const r = this.#diameter / 2;
-    const cx = r + padding;
-    const cy = r + padding;
-    return { cx, cy, r, padding };
-  }
-
-  /** @private */
-  #drawArc({
-    startAngle = 0,
-    endAngle = 360,
-    gap = 0,
-    padding = this.#amplitude,
-  }: {
-    startAngle?: number;
-    endAngle?: number;
-    gap?: number;
-    padding?: number;
-  }) {
-    if (this.#diameter === 0 || this.#strokeWidth === 0) return { path: "", viewBox: "0 0 0 0" };
-
-    const circle = this.#computeCircle(padding);
-    if (gap > 0) {
-      startAngle += this.#sizeToDegrees(gap, padding);
-      endAngle -= this.#sizeToDegrees(gap, padding);
-    }
-    if (endAngle - startAngle >= 360) {
-      endAngle = startAngle + 359.999;
-    }
-    const start = this.#polarToCartesian(circle, endAngle);
-    const end = this.#polarToCartesian(circle, startAngle);
-
-    const path = `M ${start.x} ${start.y} A ${circle.r} ${circle.r} 0 ${endAngle - startAngle <= 180 ? "0" : "1"} 0 ${end.x} ${end.y}`;
-    const viewBox = `0 0 ${this.#diameter + circle.padding * 2} ${this.#diameter + circle.padding * 2}`;
-    return { path, viewBox };
-  }
-
 }
 
 declare global {

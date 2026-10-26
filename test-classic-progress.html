@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Classic progress — flat linear & circular</title>
+    <script type="module" src="packages/web/dist/all.min.js"></script>
+    <style>
+      body {
+        margin: 24px;
+        font: 13px system-ui, sans-serif;
+        background: #fef7ff;
+        color: #1d1b20;
+        max-width: 900px;
+      }
+      h3 {
+        font-size: 13px;
+        margin: 6px 0;
+        color: #49454f;
+      }
+      .row {
+        display: flex;
+        gap: 24px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin: 12px 0 24px;
+      }
+      .cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 160px;
+      }
+      .panel {
+        border: 1px solid #e7e0ec;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 16px 0;
+      }
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: 16px;
+      }
+      input[type="range"] {
+        width: 200px;
+      }
+      button {
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid #79747e;
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+      }
+      m3e-linear-progress-indicator {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>经典（flat）线性 / 环形</h2>
+
+    <div class="panel">
+      <h3>线性 · 确定态（不同 value）</h3>
+      <div class="row" id="linDet"></div>
+    </div>
+
+    <div class="panel">
+      <h3>线性 · 不确定态 / 查询态</h3>
+      <div class="row" id="linIndet"></div>
+    </div>
+
+    <div class="panel">
+      <h3>线性 · 拖动 / 模拟加载</h3>
+      <div class="row">
+        <label>进度 <input id="p" type="range" min="0" max="1" step="0.001" value="0.4" /><span id="pv">0.40</span></label>
+        <button id="sim">模拟加载 0→100%</button>
+      </div>
+      <div class="row">
+        <div class="cell" style="width: 360px"><m3e-linear-progress-indicator id="linLive" value="40"></m3e-linear-progress-indicator></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>环形 · 确定态（不同 value）</h3>
+      <div class="row" id="cirDet"></div>
+    </div>
+
+    <div class="panel">
+      <h3>环形 · 不确定态</h3>
+      <div class="row" id="cirIndet"></div>
+    </div>
+
+    <script type="module">
+      // linear determinate
+      const linDet = document.getElementById("linDet");
+      for (const v of [0, 15, 40, 65, 90, 100]) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        const el = document.createElement("m3e-linear-progress-indicator");
+        el.setAttribute("value", String(v));
+        cell.append(el, document.createTextNode(`${v}%`));
+        linDet.append(cell);
+      }
+      // linear indeterminate + query
+      const linIndet = document.getElementById("linIndet");
+      for (const mode of ["indeterminate", "query"]) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        const el = document.createElement("m3e-linear-progress-indicator");
+        el.setAttribute("mode", mode);
+        cell.append(el, document.createTextNode(mode));
+        linIndet.append(cell);
+      }
+      // circular determinate
+      const cirDet = document.getElementById("cirDet");
+      for (const v of [0, 25, 50, 75, 100]) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.style.width = "auto";
+        const el = document.createElement("m3e-circular-progress-indicator");
+        el.setAttribute("value", String(v));
+        cell.append(el, document.createTextNode(`${v}%`));
+        cirDet.append(cell);
+      }
+      // circular indeterminate
+      const cirIndet = document.getElementById("cirIndet");
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = "auto";
+      const el = document.createElement("m3e-circular-progress-indicator");
+      el.setAttribute("indeterminate", "");
+      cell.append(el, document.createTextNode("indeterminate"));
+      cirIndet.append(cell);
+
+      // interactive
+      const live = document.getElementById("linLive");
+      const range = document.getElementById("p");
+      const pv = document.getElementById("pv");
+      let simOn = false, simTimer = null;
+      range.addEventListener("input", () => {
+        simOn = false;
+        if (simTimer) clearTimeout(simTimer);
+        live.value = +range.value * 100;
+        pv.textContent = (+range.value).toFixed(2);
+      });
+      document.getElementById("sim").addEventListener("click", () => {
+        simOn = true;
+        let target = 0, from = 0;
+        const step = () => {
+          if (!simOn || target >= 1) return;
+          from = +range.value;
+          target = Math.min(1, target + 0.05 + Math.random() * 0.12);
+          const t0 = performance.now();
+          const tick = (now) => {
+            if (!simOn) return;
+            const k = Math.min(1, (now - t0) / 500);
+            const val = from + (target - from) * k;
+            range.value = val;
+            pv.textContent = val.toFixed(2);
+            live.value = val * 100;
+            if (k < 1) requestAnimationFrame(tick);
+            else simTimer = setTimeout(step, 700);
+          };
+          requestAnimationFrame(tick);
+        };
+        simTimer = setTimeout(step, 200);
+      });
+    </script>
+  </body>
+</html>
