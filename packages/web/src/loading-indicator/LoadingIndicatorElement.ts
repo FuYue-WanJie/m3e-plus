@@ -12,7 +12,17 @@ import {
 
 import { isLoadingIndicatorVariant, LoadingIndicatorVariant } from "./LoadingIndicatorVariant";
 import { LoadingIndicatorToken } from "./LoadingIndicatorToken";
-import { ShapePolygon } from "./ShapePolygon";
+import { ShapePathData, ShapePolygon } from "./ShapePolygon";
+import { prepareMorphShapes, ShapeMorphSequence } from "@wanjie/m3e-web/geometry";
+
+/** The order the indeterminate indicator morphs through (matches AndroidX LoadingIndicator). */
+const MORPH_ORDER = ["soft-burst", "9-sided-cookie", "pentagon", "pill", "sunny", "4-sided-cookie", "oval"] as const;
+
+/** Milliseconds between consecutive shape morphs (AndroidX `MorphIntervalMillis`). */
+const MORPH_INTERVAL_MS = 650;
+
+/** Degrees the indicator turns on each morph step (AndroidX `QuarterRotation`). */
+const MORPH_STEP_DEGREES = 90;
 
 /**
  * Shows indeterminate progress for a short wait time.
@@ -84,7 +94,6 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
       aspect-ratio: 1 / 1;
       width: calc(${LoadingIndicatorToken.activeIndicatorSize} * 0.842);
       transform-origin: center;
-      transition: clip-path ${DesignToken.motion.spring.slowEffects};
       will-change: transform, clip-path;
 
       --_polygon-soft-burst: polygon(${ShapePolygon["soft-burst"]});
@@ -101,10 +110,6 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
       align-items: center;
       justify-content: center;
     }
-    .container.animate .active-indicator-wrapper {
-      animation: rotate-outer 4666ms linear infinite;
-      will-change: transform;
-    }
     .container.pull .active-indicator-wrapper {
       transform: rotate(var(--_pull-rotation, 0deg));
       transition: transform ${DesignToken.motion.spring.fastEffects};
@@ -112,51 +117,6 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
     }
     .container.pull .active-indicator {
       clip-path: var(--_polygon-soft-burst);
-    }
-    @keyframes rotate-outer {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-    .container.animate .active-indicator {
-      animation: rotate-inner 4666ms cubic-bezier(0.34, 0.88, 0.34, 1) infinite;
-    }
-    @keyframes rotate-inner {
-      0% {
-        clip-path: var(--_polygon-soft-burst);
-        transform: rotate(0deg);
-      }
-      14% {
-        clip-path: var(--_polygon-9-sided-cookie);
-        transform: rotate(154deg) scale(1);
-      }
-      29% {
-        clip-path: var(--_polygon-pentagon);
-        transform: rotate(309deg) scale(1);
-      }
-      43% {
-        clip-path: var(--_polygon-pill);
-        transform: rotate(463deg) scale(1);
-      }
-      57% {
-        clip-path: var(--_polygon-sunny);
-        transform: rotate(617deg) scale(1);
-      }
-      71% {
-        clip-path: var(--_polygon-4-sided-cookie);
-        transform: rotate(771deg) scale(1);
-      }
-      83% {
-        clip-path: var(--_polygon-oval);
-        transform: rotate(926deg) scale(1);
-      }
-      100% {
-        clip-path: var(--_polygon-soft-burst);
-        transform: rotate(1080deg) scale(1);
-      }
     }
     @media (forced-colors: active) {
       .active-indicator {
@@ -167,6 +127,16 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
 
   /** @private */
   @query(".container") private readonly _container?: HTMLElement;
+
+  /** The morphing inner shape. @private */
+  @query(".active-indicator") private readonly _indicator?: HTMLElement;
+
+  /**
+   * Per-frame morph sequence that replaces the old CSS `rotate-inner` keyframes: it interpolates the
+   * actual shape polygons (a true shape morph) and drives the inner rotation.
+   * @private
+   */
+  #morph?: ShapeMorphSequence;
 
   /**
    * The appearance variant of the indicator.
@@ -193,6 +163,7 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
   /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#stopMorph();
     this._container?.classList.toggle("animate", false);
     this._container?.classList.toggle("pull", false);
   }
@@ -252,6 +223,45 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
         `${-360 * (Number.isFinite(pullProgress) ? Math.max(0, pullProgress) : 0)}deg`,
       );
     }
+
+    // The moving (indeterminate) state is driven by the JS shape-morph engine; the pull state keeps a
+    // static shape.
+    if (!pulling) {
+      this.#startMorph();
+    } else {
+      this.#stopMorph();
+    }
+  }
+
+  /** Starts the indeterminate shape-morph cycle (idempotent). @private */
+  #startMorph(): void {
+    if (this.#morph) {
+      if (!this.#morph.isRunning) this.#morph.start();
+      return;
+    }
+    const shapes = prepareMorphShapes(
+      MORPH_ORDER.map((key) => ShapePathData[key]),
+      160,
+    );
+    this.#morph = new ShapeMorphSequence({
+      shapes,
+      durationMs: MORPH_INTERVAL_MS,
+      stepRotation: MORPH_STEP_DEGREES,
+      globalRotationMs: 4666,
+      loop: true,
+      onFrame: (clipPath, rotation) => {
+        const el = this._indicator;
+        if (!el) return;
+        el.style.clipPath = clipPath;
+        el.style.transform = `rotate(${rotation}deg)`;
+      },
+    });
+    this.#morph.start();
+  }
+
+  /** Stops the morph cycle. @private */
+  #stopMorph(): void {
+    this.#morph?.stop();
   }
 }
 

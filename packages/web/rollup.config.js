@@ -2,6 +2,7 @@ import createConfig from "../../rollup.config.js";
 
 const inputs = [
   "physics",
+  "geometry",
   "core",
   "core/a11y",
   "core/anchoring",

@@ -79,6 +79,10 @@
       "types": "./dist/src/physics/index.d.ts",
       "default": "./dist/physics.js"
     },
+    "./geometry": {
+      "types": "./dist/src/geometry/index.d.ts",
+      "default": "./dist/geometry.js"
+    },
     "./core": {
       "types": "./dist/src/core/index.d.ts",
       "default": "./dist/core.js"
