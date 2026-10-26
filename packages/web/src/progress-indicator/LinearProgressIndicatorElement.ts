@@ -556,13 +556,17 @@ export class M3eLinearProgressIndicatorElement extends SupportsDirectionality(Pr
     const round = true;
     const rtl = M3eDirectionality.current === "rtl";
 
-    let active: string[] = [];
-    let tracks: string[] = [];
+    let active: string[];
+    let tracks: string[];
     let stop: StopBox | null = null;
 
     if (this.#flatIsIndeterminate()) {
-      const fractions = linearIndeterminateFractions(this.#flatClock);
-      const layout = classicLinearIndeterminate(fractions, width, height, gap, round, rtl);
+      // linearIndeterminateFractions() emits [firstTail, firstHead, secondTail, secondHead] (wavy
+      // order); the classic engine takes [firstHead, firstTail, secondHead, secondTail].
+      const [firstTail, firstHead, secondTail, secondHead] = linearIndeterminateFractions(this.#flatClock);
+      // Direction for indeterminate/query is handled by the `.progress { transform: scaleX(-1) }` rules
+      // (RTL indeterminate, LTR query), so the engine always lays out LTR to avoid a double flip.
+      const layout = classicLinearIndeterminate([firstHead, firstTail, secondHead, secondTail], width, height, gap, round, false);
       active = layout.active.map((s) => spanToLine(s, height / 2));
       tracks = layout.tracks.map((s) => spanToLine(s, height / 2));
     } else {

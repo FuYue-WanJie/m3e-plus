@@ -62,6 +62,7 @@ import { ProgressElementIndicatorBase } from "./ProgressElementIndicatorBase";
  * @cssprop --m3e-circular-wavy-progress-indicator-wavelength - Wavelength of the `wavy` variant.
  * @cssprop --m3e-circular-progress-indicator-thickness - Thickness of the progress indicator.
  * @cssprop --m3e-progress-indicator-track-color - Track color of the progress indicator (background).
+ * @cssprop --m3e-circular-indeterminate-progress-indicator-track-color - Track color of the flat indeterminate indicator (defaults to transparent, as in AndroidX).
  * @cssprop --m3e-progress-indicator-color - Color of the progress indicator (foreground).
  */
 @customElement("m3e-circular-progress-indicator")
@@ -82,10 +83,6 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
         display: none;
       }
       .progress {
-        --_arc-duration: 1333ms;
-        --_cycle-duration: calc(4 * var(--_arc-duration));
-        --_linear-rotate-duration: calc(var(--_arc-duration) * 360 / 306);
-        --_indeterminate-easing: cubic-bezier(0.4, 0, 0.2, 1);
       }
       .active-track {
         transition: stroke-dashoffset 500ms cubic-bezier(0, 0, 0.2, 1);
@@ -96,6 +93,10 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
       }
       .flat-svg .track {
         color: var(--m3e-progress-indicator-track-color, ${DesignToken.color.secondaryContainer});
+      }
+      :host([indeterminate]) .flat-svg .track {
+        /* AndroidX: ProgressIndicatorDefaults.circularIndeterminateTrackColor = Transparent. */
+        color: var(--m3e-circular-indeterminate-progress-indicator-track-color, transparent);
       }
       .flat-svg .active-track {
         color: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
@@ -117,11 +118,7 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
         pointer-events: none;
       }
       .progress,
-      .spinner,
-      .left,
-      .right,
-      .content,
-      .circle {
+      .content {
         position: absolute;
         inset: 0;
       }
@@ -151,94 +148,15 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
       :host(:is(:state(--wavy), :--wavy)) {
         width: var(--m3e-circular-wavy-progress-indicator-diameter, 48px);
       }
-      :host(:is(:state(--flat), :--flat)[indeterminate]) .progress {
-        animation: linear infinite linear-rotate;
-        animation-duration: var(--_linear-rotate-duration);
-      }
-      :host(:is(:state(--flat), :--flat)[indeterminate]) .spinner {
-        animation: infinite both rotate-arc;
-        animation-duration: var(--_cycle-duration);
-        animation-timing-function: var(--_indeterminate-easing);
-      }
-      .left {
-        clip-path: inset(0);
-        inset: 0 50% 0 0;
-      }
-      .right {
-        clip-path: inset(0);
-        inset: 0 0 0 50%;
-      }
-      .circle {
-        animation: expand-arc;
-        animation-iteration-count: infinite;
-        animation-fill-mode: both;
-        animation-duration: var(--_arc-duration), var(--_cycle-duration);
-        animation-timing-function: var(--_indeterminate-easing);
-      }
-      .left .circle {
-        rotate: 135deg;
-        inset: 0 -100% 0 0;
-      }
-      .right .circle {
-        rotate: 100deg;
-        inset: 0 0 0 -100%;
-        animation-delay: calc(-0.5 * var(--_arc-duration)), 0ms;
-      }
       .track {
         color: var(--m3e-progress-indicator-track-color, ${DesignToken.color.secondaryContainer});
       }
       .active-track {
         color: var(--m3e-progress-indicator-color, ${DesignToken.color.primary});
       }
-      @keyframes expand-arc {
-        0% {
-          transform: rotate(265deg);
-        }
-        50% {
-          transform: rotate(130deg);
-        }
-        100% {
-          transform: rotate(265deg);
-        }
-      }
-      @keyframes rotate-arc {
-        12.5% {
-          transform: rotate(135deg);
-        }
-        25% {
-          transform: rotate(270deg);
-        }
-        37.5% {
-          transform: rotate(405deg);
-        }
-        50% {
-          transform: rotate(540deg);
-        }
-        62.5% {
-          transform: rotate(675deg);
-        }
-        75% {
-          transform: rotate(810deg);
-        }
-        87.5% {
-          transform: rotate(945deg);
-        }
-        100% {
-          transform: rotate(1080deg);
-        }
-      }
-      @keyframes linear-rotate {
-        to {
-          transform: rotate(360deg);
-        }
-      }
       @media (forced-colors: active) {
         :host(:is(:state(--flat), :--flat)) circle {
           fill: Canvas;
-        }
-        :host(:is(:state(--flat), :--flat)) .circle {
-          border-color: var(--m3e-progress-indicator-color, ${DesignToken.color.primary})
-            var(--m3e-progress-indicator-color, ${DesignToken.color.primary}) Canvas Canvas;
         }
       }
     `,
@@ -419,7 +337,7 @@ export class M3eCircularProgressIndicatorElement extends ProgressElementIndicato
 
     if (this.indeterminate) {
       const st = indeterminateState(this.#flatClock);
-      ({ active, track } = classicCircularIndeterminate(st.sweep, st.rotationDeg, size, strokeWidth, gap, true));
+      ({ active, track } = classicCircularIndeterminate(st.sweep, st.rotationDeg - 90, size, strokeWidth, gap, true));
     } else {
       const progress = this.max > 0 ? Math.min(1, Math.max(0, this.value / this.max)) : 0;
       ({ active, track } = classicCircularDeterminate(progress, size, strokeWidth, gap, true));
