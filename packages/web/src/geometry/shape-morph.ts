@@ -265,6 +265,29 @@ export function prepareMorphShapes(paths: readonly string[], samples = 300): Mor
   return base.map((poly) => (poly === reference ? poly : alignPolygon(reference, poly)));
 }
 
+/** A circle in the unit square as `count` points, starting at `startDegrees` (clockwise in screen space). */
+export function circlePolygon(count: number, startDegrees = 0): MorphPolygon {
+  const out: MorphPolygon = [];
+  const a0 = (startDegrees * Math.PI) / 180;
+  for (let i = 0; i < count; i++) {
+    const a = a0 + (i / count) * Math.PI * 2;
+    out.push({ x: 0.5 + 0.5 * Math.cos(a), y: 0.5 + 0.5 * Math.sin(a) });
+  }
+  return out;
+}
+
+/**
+ * For each shape `i`, returns shape `i + 1` (wrapping) re-aligned onto shape `i`, so every adjacent
+ * pair morphs vertex-to-vertex. Aligning everything to the first shape only (as
+ * {@link prepareMorphShapes} does) leaves later pairs badly matched, which makes them twist or pinch.
+ * The re-aligned copy is the same outline as the original, only its starting vertex / winding differ,
+ * so swapping between them at a step boundary is invisible.
+ */
+export function pairwiseTargets(shapes: readonly MorphPolygon[]): MorphPolygon[] {
+  const n = shapes.length;
+  return shapes.map((from, i) => alignPolygon(from, shapes[(i + 1) % n]));
+}
+
 // ── rAF-driven morph sequence ───────────────────────────────────────────────────────────────────
 
 /** Options for {@link ShapeMorphSequence}. */
@@ -304,6 +327,8 @@ const MORPH_SPRING = { dampingRatio: 0.6, stiffness: 200 } as const;
  */
 export class ShapeMorphSequence {
   readonly #shapes: readonly MorphPolygon[];
+  /** `#targets[i]` is shape `i + 1` aligned onto shape `i`. */
+  readonly #targets: readonly MorphPolygon[];
   readonly #interval: number;
   readonly #stepDegrees: number;
   readonly #globalRotationMs: number;
@@ -328,6 +353,7 @@ export class ShapeMorphSequence {
 
   constructor(options: ShapeMorphSequenceOptions) {
     this.#shapes = options.shapes;
+    this.#targets = pairwiseTargets(options.shapes);
     this.#interval = Math.max(1, options.durationMs);
     this.#stepDegrees = options.stepRotation ?? 90;
     this.#globalRotationMs = options.globalRotationMs ?? 4666;
@@ -386,17 +412,19 @@ export class ShapeMorphSequence {
   /** @private */
   readonly #tick = (time: number): void => {
     if (!this.#running || this.#paused) return;
-    const dt = this.#lastTime === 0 ? 16.7 : time - this.#lastTime;
+    // Clamp dt: the first rAF timestamp can precede the last one we saw, and a backgrounded tab can
+    // hand us seconds at once, which would otherwise skip several morphs in one frame.
+    const raw = this.#lastTime === 0 ? 16.7 : time - this.#lastTime;
+    const dt = Math.min(64, Math.max(0, raw));
     this.#lastTime = time;
     this.#elapsed += dt;
     this.#stepElapsed += dt;
 
-    // Advance the morph spring one frame (clamped to the pair's progress 0..1).
-    const frame = this.#spring.step(dt);
-
     // A step lasts `interval` ms; when it elapses, advance the pair and restart progress (snap 0).
+    // The quarter turn the finished step animated in is folded into the base rotation, so the
+    // rendered angle is continuous across the boundary.
     if (this.#stepElapsed >= this.#interval) {
-      this.#stepElapsed -= this.#interval;
+      this.#stepElapsed %= this.#interval;
       this.#index = (this.#index + 1) % this.#shapes.length;
       this.#stepRotation = (this.#stepRotation + this.#stepDegrees) % 360;
       this.#spring = new SpringSimulation({ ...MORPH_SPRING });
@@ -410,7 +438,10 @@ export class ShapeMorphSequence {
       }
     }
 
-    this.#render(Math.min(1, Math.max(0, frame.value)));
+    // Advance the morph spring. Its 0.6 damping overshoots past 1; like AndroidX (which extrapolates
+    // the Morph), keep the overshoot instead of clamping it away, bounded so the outline stays sane.
+    const frame = this.#spring.step(dt);
+    this.#render(Math.min(1.25, Math.max(-0.25, frame.value)));
     this.#raf = requestAnimationFrame(this.#tick);
   };
 
@@ -419,12 +450,15 @@ export class ShapeMorphSequence {
    * @private
    */
   #render(progress: number): void {
-    const n = this.#shapes.length;
     const from = this.#shapes[this.#index];
-    const to = this.#shapes[(this.#index + 1) % n];
-    const clipPath = polygonToClipPath(morphPolygon(from, to, progress));
-    const globalRotation = (this.#elapsed / this.#globalRotationMs) * 360;
-    this.#onFrame(clipPath, globalRotation + this.#stepRotation);
+    const to = this.#targets[this.#index];
+    // AndroidX feeds the Morph a coerced progress (no bouncy outline) and lets only the rotation
+    // carry the spring's overshoot.
+    const clipPath = polygonToClipPath(morphPolygon(from, to, Math.min(1, Math.max(0, progress))));
+    const globalRotation = ((this.#elapsed / this.#globalRotationMs) * 360) % 360;
+    // As in AndroidX, the per-step quarter turn rides the same spring as the morph instead of
+    // jumping 90° when the step ends.
+    this.#onFrame(clipPath, globalRotation + this.#stepRotation + progress * this.#stepDegrees);
   }
 }
 
