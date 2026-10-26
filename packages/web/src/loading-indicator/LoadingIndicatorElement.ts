@@ -4,7 +4,6 @@ import { property, query } from "lit/decorators.js";
 import {
   AttachInternals,
   customElement,
-  DesignToken,
   ReconnectedCallback,
   Role,
   setCustomEnumState,
@@ -13,13 +12,41 @@ import {
 import { isLoadingIndicatorVariant, LoadingIndicatorVariant } from "./LoadingIndicatorVariant";
 import { LoadingIndicatorToken } from "./LoadingIndicatorToken";
 import { ShapePathData, ShapePolygon } from "./ShapePolygon";
-import { prepareMorphShapes, ShapeMorphSequence } from "@wanjie/m3e-web/geometry";
+import {
+  alignPolygon,
+  circlePolygon,
+  MorphPolygon,
+  morphPolygon,
+  normalizePolygon,
+  polygonToClipPath,
+  prepareMorphShapes,
+  sampleSvgPath,
+  ShapeMorphSequence,
+} from "@wanjie/m3e-web/geometry";
 
 /** The order the indeterminate indicator morphs through (matches AndroidX LoadingIndicator). */
 const MORPH_ORDER = ["soft-burst", "9-sided-cookie", "pentagon", "pill", "sunny", "4-sided-cookie", "oval"] as const;
 
 /** Milliseconds between consecutive shape morphs (AndroidX `MorphIntervalMillis`). */
 const MORPH_INTERVAL_MS = 650;
+
+/** Points each shape is resampled to for morphing. */
+const MORPH_SAMPLES = 160;
+
+/**
+ * The determinate (pull) morph: a circle into the soft burst, as AndroidX
+ * `LoadingIndicatorDefaults.DeterminateIndicatorPolygons`. Built lazily and shared.
+ */
+let determinateShapes: [MorphPolygon, MorphPolygon] | undefined;
+function getDeterminateShapes(): [MorphPolygon, MorphPolygon] {
+  if (!determinateShapes) {
+    const burst = normalizePolygon(sampleSvgPath(ShapePathData["soft-burst"], MORPH_SAMPLES));
+    // AndroidX rotates the circle by 360/20 degrees so its vertices line up with the burst.
+    const circle = alignPolygon(burst, circlePolygon(MORPH_SAMPLES, 360 / 20));
+    determinateShapes = [circle, burst];
+  }
+  return determinateShapes;
+}
 
 /** Degrees the indicator turns on each morph step (AndroidX `QuarterRotation`). */
 const MORPH_STEP_DEGREES = 90;
@@ -43,7 +70,8 @@ const MORPH_STEP_DEGREES = 90;
  * @tag m3e-loading-indicator
  *
  * @attr variant - The appearance variant of the indicator.
- * @attr pull-progress - Pull-to-refresh progress in turns; each increment of 1 rotates the indicator one full turn.
+ * @attr pull-progress - Determinate (pull-to-refresh) progress from 0 to 1: morphs a circle into the soft burst while
+ * turning 180° counterclockwise, as AndroidX's determinate `LoadingIndicator`. Values are clamped to 0..1.
  *
  * @cssprop --m3e-loading-indicator-active-indicator-color - Uncontained active indicator color.
  * @cssprop --m3e-loading-indicator-contained-active-indicator-color - Contained active indicator color.
@@ -95,6 +123,8 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
       width: calc(${LoadingIndicatorToken.activeIndicatorSize} * 0.842);
       transform-origin: center;
       will-change: transform, clip-path;
+      /* The resting shape, shown before the first morph frame, while pulling and under reduced motion. */
+      clip-path: var(--_polygon-soft-burst);
 
       --_polygon-soft-burst: polygon(${ShapePolygon["soft-burst"]});
       --_polygon-9-sided-cookie: polygon(${ShapePolygon["9-sided-cookie"]});
@@ -111,12 +141,9 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
       justify-content: center;
     }
     .container.pull .active-indicator-wrapper {
+      /* Tracks the gesture directly, like AndroidX (no easing between progress values). */
       transform: rotate(var(--_pull-rotation, 0deg));
-      transition: transform ${DesignToken.motion.spring.fastEffects};
       will-change: transform;
-    }
-    .container.pull .active-indicator {
-      clip-path: var(--_polygon-soft-burst);
     }
     @media (forced-colors: active) {
       .active-indicator {
@@ -145,8 +172,9 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
   @property({ reflect: true, useDefault: true }) variant: LoadingIndicatorVariant = "uncontained";
 
   /**
-   * Pull-to-refresh progress in turns; each increment of 1 rotates the indicator one full turn. Set to `null` when no
-   * pull gesture is active.
+   * Determinate (pull-to-refresh) progress from 0 to 1 (clamped). Morphs a circle into the soft burst while turning
+   * 180° counterclockwise, matching AndroidX's determinate `LoadingIndicator`. Set to `null` when no pull gesture is
+   * active, which returns to the indeterminate animation.
    * @default null
    */
   @property({ attribute: "pull-progress", type: Number, reflect: true }) pullProgress: number | null = null;
@@ -217,31 +245,34 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
     this._container?.classList.toggle("pull", pulling);
     this._container?.classList.toggle("animate", !pulling);
 
+    // The moving (indeterminate) state is driven by the JS shape-morph engine; the pull state is a
+    // determinate morph driven by the progress value.
     if (pulling) {
-      this._container?.style.setProperty(
-        "--_pull-rotation",
-        `${-360 * (Number.isFinite(pullProgress) ? Math.max(0, pullProgress) : 0)}deg`,
-      );
-    }
-
-    // The moving (indeterminate) state is driven by the JS shape-morph engine; the pull state keeps a
-    // static shape.
-    if (!pulling) {
-      this.#startMorph();
-    } else {
       this.#stopMorph();
+      const progress = Number.isFinite(pullProgress) ? Math.min(1, Math.max(0, pullProgress)) : 0;
+      // AndroidX: rotation = -progress * 180 (counterclockwise).
+      this._container?.style.setProperty("--_pull-rotation", `${-180 * progress}deg`);
+      const [circle, burst] = getDeterminateShapes();
+      this._indicator?.style.setProperty("clip-path", polygonToClipPath(morphPolygon(circle, burst, progress)));
+    } else {
+      this.#startMorph();
     }
   }
 
   /** Starts the indeterminate shape-morph cycle (idempotent). @private */
   #startMorph(): void {
+    // Honour reduced motion: keep the static resting shape instead of morphing and spinning.
+    if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.#stopMorph();
+      return;
+    }
     if (this.#morph) {
       if (!this.#morph.isRunning) this.#morph.start();
       return;
     }
     const shapes = prepareMorphShapes(
       MORPH_ORDER.map((key) => ShapePathData[key]),
-      160,
+      MORPH_SAMPLES,
     );
     this.#morph = new ShapeMorphSequence({
       shapes,
@@ -262,6 +293,10 @@ export class M3eLoadingIndicatorElement extends ReconnectedCallback(Role(AttachI
   /** Stops the morph cycle. @private */
   #stopMorph(): void {
     this.#morph?.stop();
+    // Drop the last frame's inline shape / rotation so the stylesheet's resting shape (and, while
+    // pulling, the wrapper's pull rotation alone) applies again.
+    this._indicator?.style.removeProperty("clip-path");
+    this._indicator?.style.removeProperty("transform");
   }
 }
 
