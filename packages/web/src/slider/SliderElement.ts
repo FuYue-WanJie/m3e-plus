@@ -60,6 +60,7 @@ import { sliderValueFraction } from "./slider-track";
  *
  * @attr disabled - Whether the element is disabled.
  * @attr discrete - Whether to show tick marks.
+ * @attr track-inset - Thumb travel / stop indicator inset: `corner` (native, default) or `fixed` (m3e/web, MICL).
  * @attr centered - Whether the active track fills from the centre of the range outwards.
  * @attr labelled - Whether to show value labels when activated.
  * @attr max - The maximum allowable value.
@@ -96,6 +97,7 @@ import { sliderValueFraction } from "./slider-track";
  * @cssprop --m3e-slider-large-track-height - Height of the track for large sliders.
  * @cssprop --m3e-slider-extra-large-track-height - Height of the track for extra-large sliders.
  * @cssprop --m3e-slider-tick-size - Size of each tick mark.
+ * @cssprop --m3e-slider-track-inset - Inset of thumb travel and stop indicators when `track-inset="fixed"` (default 8px).
  * @cssprop --m3e-slider-tick-shape - Corner shape of each tick mark.
  * @cssprop --m3e-slider-inactive-track-color - Background color of the inactive track when enabled.
  * @cssprop --m3e-slider-disabled-inactive-track-color - Base color of the inactive track when disabled.
@@ -153,6 +155,21 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
         --m3e-slider-small-inactive-track-end-shape,
         ${DesignToken.shape.corner.smallStart}
       );
+    }
+    /* Outer track corner per size (M3E: XS/S 8, M 12, L 16, XL 28). Clamped to half the track
+       thickness, so only the extra-small track ends up a full capsule. */
+    :host(:is(:state(--extra-small), :--extra-small)),
+    :host(:is(:state(--small), :--small)) {
+      --_slider-track-corner: var(--m3e-slider-track-corner, ${DesignToken.shape.corner.small});
+    }
+    :host(:is(:state(--medium), :--medium)) {
+      --_slider-track-corner: var(--m3e-slider-track-corner, ${DesignToken.shape.corner.medium});
+    }
+    :host(:is(:state(--large), :--large)) {
+      --_slider-track-corner: var(--m3e-slider-track-corner, ${DesignToken.shape.corner.large});
+    }
+    :host(:is(:state(--extra-large), :--extra-large)) {
+      --_slider-track-corner: var(--m3e-slider-track-corner, ${DesignToken.shape.corner.extraLarge});
     }
     :host(:is(:state(--extra-small), :--extra-small)) .track {
       height: calc(var(--m3e-slider-extra-small-track-height, 16px));
@@ -278,7 +295,7 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       transform: translateY(-50%);
       pointer-events: none;
       touch-action: none;
-      --_outer-r: var(--m3e-slider-track-outer-radius, calc(var(--_track-h, 16px) / 2));
+      --_outer-r: var(--_track-r, calc(var(--_track-h, 16px) / 2));
       --_inner-r: var(--m3e-slider-track-inner-radius, var(--_slider-inside-corner, 2px));
     }
     :host([orientation="vertical"]) .track {
@@ -597,6 +614,16 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
   @property({ type: Boolean, reflect: true }) centered = false;
 
   /**
+   * How far the thumb travel and the stop indicators stay from the track ends.
+   * - `"corner"` (default): native Android behaviour (Compose / MDC-Android); the inset equals the
+   *   outer corner radius, so it grows with the size (8 / 8 / 12 / 16 / 28px).
+   * - `"fixed"`: the original m3e/web and MICL behaviour; a constant inset of the stop indicator
+   *   trailing space (6px) plus half the dot, regardless of size. Override with `--m3e-slider-track-inset`.
+   * @default "corner"
+   */
+  @property({ attribute: "track-inset", reflect: true }) trackInset: "corner" | "fixed" = "corner";
+
+  /**
    * Whether to show value labels when activated.
    * @default false
    */
@@ -689,6 +716,7 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       _changedProperties.has("step") ||
       _changedProperties.has("steps") ||
       _changedProperties.has("centered") ||
+      _changedProperties.has("trackInset") ||
       _changedProperties.has("discrete")
     ) {
       this.#syncThumbValues();
@@ -852,8 +880,10 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
         ? this.#cachedClientEnd - (this.#vertical ? e.clientY : e.clientX)
         : e.clientX - this.#cachedClientStart;
 
-    const thumbRatio = this.#cachedSize ? this.#cachedThumbSize / this.#cachedSize : 0;
-    const percentage = (pos / this.#cachedClientSize - thumbRatio / 2) / (1 - thumbRatio || 1);
+    // Same travel as #updateDimensions: the thumb centre spans [inset, size - inset].
+    const scale = this.#cachedSize ? this.#cachedClientSize / this.#cachedSize : 1;
+    const inset = this.#travelInset * scale;
+    const percentage = (pos - inset) / (this.#cachedClientSize - 2 * inset || 1);
     const clamped = Math.min(1, Math.max(0, percentage));
     const raw = clamped * (this.max - this.min) + this.min;
 
@@ -903,12 +933,13 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     this._base?.classList.toggle("range", isRange);
     this._base?.classList.toggle("centered", centered);
 
-    // Everything is measured in px along the axis from the end holding the minimum. The thumb host
-    // is `along` px long and its centre travels across `length`, inset by along/2 at both ends.
+    // Everything is measured in px along the axis from the end holding the minimum. As in AndroidX,
+    // the thumb centre travels between the centres of the two outer track corners (inset = corner).
     const total = this.#cachedSize;
     const along = this.#cachedThumbSize;
-    const length = Math.max(0, total - along);
-    const centreOf = (fraction: number): number => along / 2 + fraction * length;
+    const inset = this.#travelInset;
+    const length = Math.max(0, total - 2 * inset);
+    const centreOf = (fraction: number): number => inset + fraction * length;
 
     const lo = sliderValueFraction(lowerValue, this.min, this.max);
     const hi = isRange ? sliderValueFraction(upperValue!, this.min, this.max) : lo;
@@ -953,6 +984,7 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     if (track) {
       const trackH = this.#trackHeight;
       track.style.setProperty("--_track-h", `${trackH}px`);
+      track.style.setProperty("--_track-r", `${this.#outerCorner}px`);
       track.classList.toggle("plain", !centered && !isRange);
       track.classList.toggle("centered", centered);
       track.classList.toggle("range", isRange);
@@ -972,7 +1004,8 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     // Thumb placement. The thumb host sits at the minimum end (inline-start, or the bottom when
     // vertical), so it is translated towards the maximum end.
     const place = (thumb: M3eSliderThumbElement, fraction: number): void => {
-      const offset = fraction * length;
+      // The thumb host sits at the minimum end; move its centre onto centreOf(fraction).
+      const offset = centreOf(fraction) - along / 2;
       thumb.style.transform = vertical
         ? `translate(0, ${-offset}px)`
         : `translate(${rtl ? -offset : offset}px, 0)`;
@@ -984,7 +1017,7 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     if ((centered || isRange) && headEnd > 0) segments.push([0, headEnd, false]);
     if (activeEnd > activeStart) segments.push([activeStart, activeEnd, true]);
     if (tailStart < total) segments.push([tailStart, total, false]);
-    this.#updateTickDots(segments, total, along, centered || isRange);
+    this.#updateTickDots(segments, centreOf, total - inset, inset, centered || isRange);
   }
 
   /** The centre value as a 0..1 fraction (0 within range, else the midpoint). @private */
@@ -997,15 +1030,20 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
    * Recomputes the dots. A discrete slider shows a tick at every anchor, aligned with the thumb
    * centre for that value. Otherwise only the stop indicators are shown: at the maximum end, and at
    * the minimum end too for range and centered sliders, inset by half the track thickness so they sit
-   * concentric with the rounded ends. A dot is shown only where a segment fully covers it, so dots
+   * at the centre of the outer corner radius. A dot is shown only where a segment fully covers it, so dots
    * under a thumb or inside a gap disappear; dots on the active segment take the active-tick colour.
    * @private
    */
-  #updateTickDots(segments: Array<[number, number, boolean]>, total: number, along: number, bothEnds: boolean): void {
+  #updateTickDots(
+    segments: Array<[number, number, boolean]>,
+    centreOf: (fraction: number) => number,
+    maxEnd: number,
+    minEnd: number,
+    bothEnds: boolean,
+  ): void {
     const dot = this.#tickSize;
     const covering = (pos: number) =>
       segments.find(([from, to]) => pos - dot / 2 >= from - 0.01 && pos + dot / 2 <= to + 0.01);
-    const length = Math.max(0, total - along);
     const positions: number[] = [];
 
     let anchors: number[] = [];
@@ -1018,11 +1056,12 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       }
     }
     if (anchors.length > 0) {
-      for (const value of anchors) positions.push(along / 2 + sliderValueFraction(value, this.min, this.max) * length);
+      for (const value of anchors) positions.push(centreOf(sliderValueFraction(value, this.min, this.max)));
     } else {
-      const inset = Math.max(along / 2, this.#trackHeight / 2);
-      if (bothEnds) positions.push(inset);
-      positions.push(total - inset);
+      // AndroidX draws stop indicators at the centre of the outer corner radius, not at half the
+      // track thickness, so on rounded-rectangle tracks they sit closer to the ends.
+      if (bothEnds) positions.push(minEnd);
+      positions.push(maxEnd);
     }
 
     this._ticks = positions.map((pos) => {
@@ -1037,6 +1076,26 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       class="tick ${tick.active ? "active" : "inactive"}${tick.hidden ? " hidden" : ""}"
       style=${`--_tick-pos:${tick.pos}px`}
     ></span>`;
+  }
+
+  /** The outer track corner radius in px: the size token, clamped to half the thickness. @private */
+  get #outerCorner(): number {
+    const half = this.#trackHeight / 2;
+    const raw = parseFloat(getComputedStyle(this).getPropertyValue("--_slider-track-corner"));
+    return Number.isFinite(raw) ? Math.min(raw, half) : half;
+  }
+
+  /**
+   * How far the thumb centre and the stop dots stay from each end: the outer corner radius
+   * (AndroidX), or a fixed trailing space + half the dot when `track-inset="fixed"`. @private
+   */
+  get #travelInset(): number {
+    if (this.trackInset === "fixed") {
+      const raw = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-slider-track-inset"));
+      const fixed = Number.isFinite(raw) ? raw : 6 + this.#tickSize / 2;
+      return Math.max(fixed, this.#handleWidth / 2);
+    }
+    return Math.max(this.#outerCorner, this.#handleWidth / 2);
   }
 
   /** The visible handle width along the axis (AndroidX HandleWidth, 4dp). @private */
