@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Linear Wavy Progress — engine test</title>
+    <script type="module" src="packages/web/dist/all.min.js"></script>
+    <style>
+      body {
+        margin: 32px;
+        font: 14px system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 520px;
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+      }
+      h3 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #333;
+      }
+      code {
+        font-size: 12px;
+        color: #777;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      input[type="range"] {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <m3e-theme></m3e-theme>
+
+    <section>
+      <h3>Determinate — animated amplitude (wave on 10%..95%)</h3>
+      <m3e-linear-progress-indicator id="det" variant="wavy" value="65"></m3e-linear-progress-indicator>
+      <div class="row">
+        <input id="detRange" type="range" min="0" max="100" value="65" />
+        <code id="detLabel">65%</code>
+      </div>
+    </section>
+
+    <section>
+      <h3>Determinate — width sweep (auto-drives value 0→100)</h3>
+      <m3e-linear-progress-indicator id="sweep" variant="wavy" value="0"></m3e-linear-progress-indicator>
+    </section>
+
+    <section>
+      <h3>Indeterminate (two chasing wave parts)</h3>
+      <m3e-linear-progress-indicator id="indet" variant="wavy" mode="indeterminate"></m3e-linear-progress-indicator>
+    </section>
+
+    <section style="width: 320px">
+      <h3>Narrow container (320px)</h3>
+      <m3e-linear-progress-indicator id="narrow" variant="wavy" value="45"></m3e-linear-progress-indicator>
+    </section>
+
+    <section style="--m3e-linear-progress-indicator-thickness: 8px; --m3e-linear-wavy-progress-indicator-amplitude: 6px; --m3e-linear-wavy-progress-indicator-wavelength: 60px">
+      <h3>Thick bar (thickness 8, amplitude 6, wavelength 60)</h3>
+      <m3e-linear-progress-indicator id="thick" variant="wavy" value="80"></m3e-linear-progress-indicator>
+    </section>
+
+    <script type="module">
+      const det = document.getElementById("det");
+      const detRange = document.getElementById("detRange");
+      const detLabel = document.getElementById("detLabel");
+      detRange.addEventListener("input", () => {
+        det.value = Number(detRange.value);
+        detLabel.textContent = `${detRange.value}%`;
+      });
+
+      // Auto sweep value 0 -> 100 and back, exercising amplitude rise/fall and stop indicator.
+      const sweep = document.getElementById("sweep");
+      let t = 0;
+      let dir = 1;
+      setInterval(() => {
+        t += dir * 2;
+        if (t >= 100) { t = 100; dir = -1; }
+        if (t <= 0) { t = 0; dir = 1; }
+        sweep.value = t;
+      }, 80);
+    </script>
+  </body>
+</html>
