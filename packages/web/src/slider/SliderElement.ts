@@ -60,6 +60,7 @@ import { sliderValueFraction } from "./slider-track";
  *
  * @attr disabled - Whether the element is disabled.
  * @attr discrete - Whether to show tick marks.
+ * @attr track-inset - Thumb travel / stop indicator inset: `corner` (native, default) or `fixed` (m3e/web, MICL).
  * @attr centered - Whether the active track fills from the centre of the range outwards.
  * @attr labelled - Whether to show value labels when activated.
  * @attr max - The maximum allowable value.
@@ -96,6 +97,7 @@ import { sliderValueFraction } from "./slider-track";
  * @cssprop --m3e-slider-large-track-height - Height of the track for large sliders.
  * @cssprop --m3e-slider-extra-large-track-height - Height of the track for extra-large sliders.
  * @cssprop --m3e-slider-tick-size - Size of each tick mark.
+ * @cssprop --m3e-slider-track-inset - Inset of thumb travel and stop indicators when `track-inset="fixed"` (default 8px).
  * @cssprop --m3e-slider-tick-shape - Corner shape of each tick mark.
  * @cssprop --m3e-slider-inactive-track-color - Background color of the inactive track when enabled.
  * @cssprop --m3e-slider-disabled-inactive-track-color - Base color of the inactive track when disabled.
@@ -612,6 +614,16 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
   @property({ type: Boolean, reflect: true }) centered = false;
 
   /**
+   * How far the thumb travel and the stop indicators stay from the track ends.
+   * - `"corner"` (default): native Android behaviour (Compose / MDC-Android); the inset equals the
+   *   outer corner radius, so it grows with the size (8 / 8 / 12 / 16 / 28px).
+   * - `"fixed"`: the original m3e/web and MICL behaviour; a constant inset of the stop indicator
+   *   trailing space (6px) plus half the dot, regardless of size. Override with `--m3e-slider-track-inset`.
+   * @default "corner"
+   */
+  @property({ attribute: "track-inset", reflect: true }) trackInset: "corner" | "fixed" = "corner";
+
+  /**
    * Whether to show value labels when activated.
    * @default false
    */
@@ -704,6 +716,7 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
       _changedProperties.has("step") ||
       _changedProperties.has("steps") ||
       _changedProperties.has("centered") ||
+      _changedProperties.has("trackInset") ||
       _changedProperties.has("discrete")
     ) {
       this.#syncThumbValues();
@@ -1072,8 +1085,16 @@ export class M3eSliderElement extends SupportsDirectionality(AttachInternals(Lit
     return Number.isFinite(raw) ? Math.min(raw, half) : half;
   }
 
-  /** How far the thumb centre stays from each end: the outer corner radius (AndroidX). @private */
+  /**
+   * How far the thumb centre and the stop dots stay from each end: the outer corner radius
+   * (AndroidX), or a fixed trailing space + half the dot when `track-inset="fixed"`. @private
+   */
   get #travelInset(): number {
+    if (this.trackInset === "fixed") {
+      const raw = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-slider-track-inset"));
+      const fixed = Number.isFinite(raw) ? raw : 6 + this.#tickSize / 2;
+      return Math.max(fixed, this.#handleWidth / 2);
+    }
     return Math.max(this.#outerCorner, this.#handleWidth / 2);
   }
 
