@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Button Group — real component (press squeeze)</title>
+    <script type="module" src="packages/web/dist/all.min.js"></script>
+    <style>
+      body {
+        margin: 24px;
+        font: 13px system-ui, sans-serif;
+        background: #fef7ff;
+        color: #1d1b20;
+        max-width: 900px;
+      }
+      h3 {
+        font-size: 13px;
+        margin: 6px 0;
+        color: #49454f;
+      }
+      .panel {
+        border: 1px solid #e7e0ec;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 16px 0;
+      }
+      .row {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 10px 0;
+      }
+      .wrap {
+        display: inline-block;
+        background: #f3edf7;
+        padding: 8px;
+        border-radius: 12px;
+      }
+      .readout {
+        font: 12px ui-monospace, monospace;
+        color: #49454f;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>m3e-button-group · 按下挤压扩张（真实组件）</h2>
+    <p>按住按钮：按下项变宽、邻居被压窄，总宽守恒；松手回弹。形状（圆角收缩/选中胶囊）由按钮自身 CSS 处理。</p>
+
+    <div class="panel">
+      <h3>Standard</h3>
+      <div class="wrap"><m3e-button-group id="std">
+        <m3e-button variant="tonal" toggle>Start</m3e-button>
+        <m3e-button variant="tonal" toggle>Directions</m3e-button>
+        <m3e-button variant="tonal" toggle>Share</m3e-button>
+      </m3e-button-group></div>
+      <div class="readout" id="stdOut"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Connected（单选）</h3>
+      <div class="wrap"><m3e-button-group id="con" variant="connected">
+        <m3e-button variant="tonal" shape="square" toggle>Day</m3e-button>
+        <m3e-button variant="tonal" shape="square" toggle>Week</m3e-button>
+        <m3e-button variant="tonal" shape="square" toggle>Month</m3e-button>
+        <m3e-button variant="tonal" shape="square" toggle>Year</m3e-button>
+      </m3e-button-group></div>
+      <div class="readout" id="conOut"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Standard · 长标签（内容自适应，验证 free=0 仍能扩张）</h3>
+      <div class="wrap"><m3e-button-group id="long">
+        <m3e-button variant="tonal" toggle>Prev</m3e-button>
+        <m3e-button variant="tonal" toggle>Play/Pause the thing</m3e-button>
+        <m3e-button variant="tonal" toggle>Next</m3e-button>
+      </m3e-button-group></div>
+      <div class="readout" id="longOut"></div>
+    </div>
+
+    <script type="module">
+      function bindReadout(groupId, outId) {
+        const g = document.getElementById(groupId);
+        const out = document.getElementById(outId);
+        const widths = () => [...g.querySelectorAll("m3e-button")].map((b) => Math.round(b.getBoundingClientRect().width));
+        const total = () => Math.round(g.getBoundingClientRect().width);
+        const baseTotal = total();
+        const log = (tag) => {
+          const w = widths();
+          const t = total();
+          out.textContent = `${tag}  widths=[${w.join(", ")}]  total=${t} (rest ${baseTotal}, Δ${t - baseTotal})`;
+        };
+        log("rest");
+        g.addEventListener("pointerdown", (e) => {
+          const b = e.target.closest("m3e-button");
+          if (b) setTimeout(() => log("pressed"), 120);
+        });
+        g.addEventListener("pointerup", () => setTimeout(() => log("released"), 120));
+        // expose for automated probe
+        g.__measure = () => ({ widths: widths(), total: total(), rest: baseTotal });
+      }
+      customElements.whenDefined("m3e-button-group").then(() => {
+        bindReadout("std", "stdOut");
+        bindReadout("con", "conOut");
+        bindReadout("long", "longOut");
+      });
+      window.__groups = () => ({
+        std: document.getElementById("std").__measure?.(),
+        con: document.getElementById("con").__measure?.(),
+        long: document.getElementById("long").__measure?.(),
+      });
+    </script>
+  </body>
+</html>

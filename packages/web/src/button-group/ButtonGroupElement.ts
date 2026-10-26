@@ -1,5 +1,5 @@
 import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
-import { property, query, queryAssignedElements } from "lit/decorators.js";
+import { property, queryAssignedElements } from "lit/decorators.js";
 
 import {
   PressedController,
@@ -10,7 +10,6 @@ import {
   addCustomState,
   customElement,
   prefersReducedMotion,
-  hasCustomState,
   waitForUpgrade,
   waitForUpdate,
   setCustomEnumState,
@@ -19,9 +18,11 @@ import {
 
 import { M3eButtonElement } from "@wanjie/m3e-web/button";
 import { M3eIconButtonElement } from "@wanjie/m3e-web/icon-button";
+import { SpringSimulation } from "@wanjie/m3e-web/physics";
 
 import { ButtonGroupVariant, isButtonGroupVariant } from "./ButtonGroupVariant";
 import { ButtonGroupSize, isButtonGroupSize } from "./ButtonGroupSize";
+import { squeezeLayout } from "./squeeze";
 
 /**
  * Organizes buttons and adds interactions between them.
@@ -105,10 +106,6 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     :host(:is(:state(--standard), :--standard)) .base {
       width: fit-content;
       flex: none;
-    }
-    :host(:is(:state(--standard), :--standard)) .base.pressed {
-      justify-content: space-between;
-      width: var(--_button-group-width);
     }
     :host(:is(:state(--standard), :--standard):is(:state(--extra-small), :--extra-small)) .base {
       column-gap: var(--m3e-standard-button-group-extra-small-spacing, ${DesignToken.measurement.space225});
@@ -312,15 +309,31 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     }
   `;
 
+  /** @private Per-button press-width spring (FastSpatial 800 / 0.6, AndroidX EnlargeOnPress). */
+  readonly #springs = new Map<M3eButtonElement | M3eIconButtonElement, SpringSimulation>();
+  /** @private Cached natural (rest) widths in px, refreshed on content/resize changes. */
+  #naturalWidths: number[] = [];
+  /** @private Per-button compression limit (px) = trailing content padding. */
+  #compressionLimits: number[] = [];
+  /** @private rAF handle for the shared squeeze loop. */
+  #squeezeRaf = 0;
+  /** @private Per-button pending release "wait until progress > 0.75" frame handles. */
+  readonly #releaseWait = new Map<M3eButtonElement | M3eIconButtonElement, number>();
+  /** @private Whether natural widths need (re)measurement before the next layout. */
+  #measureDirty = true;
+  /** @private ResizeObserver watching the buttons' content to refresh natural widths. */
+  #resizeObserver?: ResizeObserver;
+
   /** @private */ readonly #pressedController = new PressedController(this, {
     target: null,
     capture: true,
     minPressedDuration: 225,
     isPressedKey: (key) => key === " ",
-    callback: (pressed) => this.#handlePressedChange(pressed),
+    callback: (pressed, _point, target) => {
+      const button = target as M3eButtonElement | M3eIconButtonElement | undefined;
+      if (button) this.#handleButtonPress(button, pressed);
+    },
   });
-
-  @query(".base") private readonly _base?: HTMLElement;
 
   /**
    * The appearance variant of the group.
@@ -359,8 +372,15 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
   /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
-    this._base?.style.removeProperty("--_button-group-width");
-    this._base?.classList.remove("pressed");
+    if (this.#squeezeRaf) cancelAnimationFrame(this.#squeezeRaf);
+    this.#squeezeRaf = 0;
+    for (const raf of this.#releaseWait.values()) cancelAnimationFrame(raf);
+    this.#releaseWait.clear();
+    for (const spring of this.#springs.values()) spring.stop();
+    this.#springs.clear();
+    for (const b of this.buttons ?? []) b.style.removeProperty("width");
+    this.#resizeObserver?.disconnect();
+    this.#resizeObserver = undefined;
   }
 
   /** @inheritdoc */
@@ -381,9 +401,6 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
 
     if (changedProperties.has("multi") || changedProperties.has("variant")) {
       this.#updateButtons();
-    }
-    if (changedProperties.has("variant")) {
-      this._base?.style.removeProperty("--_button-group-width");
     }
   }
 
@@ -448,6 +465,18 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         }
       }
     });
+
+    // Natural widths are stale after the button set changes; re-measure on the next press.
+    this.#measureDirty = true;
+    this.#naturalWidths = [];
+    // Drop springs for buttons that are no longer in the group.
+    for (const key of [...this.#springs.keys()]) {
+      if (!buttons.includes(key)) {
+        this.#springs.get(key)?.stop();
+        this.#springs.delete(key);
+      }
+    }
+    this.#observeResize();
   }
 
   /** @private */
@@ -465,40 +494,124 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     }
   }
 
-  /** @private */
-  #handlePressedChange(pressed: boolean): void {
-    const base = this._base;
-    if (!base) return;
-    if (!pressed || this.variant === "connected") {
-      const button = this.buttons.find((x) => x === document.activeElement);
-      if (!prefersReducedMotion() && button) {
-        button.addEventListener(
-          "transitionend",
-          () =>
-            queueMicrotask(() => {
-              // Pressed state is tested to ensure this runs only when the button
-              // is no longer pressed. This handles changes to pressed state in
-              // quick succession.
+  // ── Press-squeeze (AndroidX EnlargeOnPress) ───────────────────────────────────────────────────
 
-              if (!hasCustomState(button, "--pressed")) {
-                this.#cleanupPressed(base);
-              }
-            }),
-          { once: true },
-        );
-      } else {
-        this.#cleanupPressed(base);
-      }
-    } else {
-      base.classList.add("pressed");
-      base.style.setProperty("--_button-group-width", `${base.getBoundingClientRect().width}px`);
+  /** @private Handle a per-button press change: drive its spring, squeeze neighbours. */
+  #handleButtonPress(button: M3eButtonElement | M3eIconButtonElement, pressed: boolean): void {
+    // Only 2+ buttons in a squeeze-eligible group participate.
+    if (this.buttons.length < 2) return;
+    // Reduced motion: no squeeze animation.
+    if (prefersReducedMotion()) return;
+
+    this.#ensureMeasured();
+    const spring = this.#springFor(button);
+
+    // Cancel any pending "wait until 0.75" release for this button.
+    const wait = this.#releaseWait.get(button);
+    if (wait != null) {
+      cancelAnimationFrame(wait);
+      this.#releaseWait.delete(button);
     }
+
+    if (pressed) {
+      spring.start(1, () => this.#requestLayout());
+    } else {
+      // AndroidX: on release wait until progress > 0.75 (if still climbing) then animate to 0.
+      const tryRelease = (): void => {
+        if (spring.value > 0.75 || !spring.isRunning) {
+          this.#releaseWait.delete(button);
+          spring.start(0, () => this.#requestLayout());
+        } else {
+          this.#releaseWait.set(button, requestAnimationFrame(tryRelease));
+        }
+      };
+      tryRelease();
+    }
+    this.#requestLayout();
   }
 
-  /** @private */
-  #cleanupPressed(base: HTMLElement): void {
-    base.style.removeProperty("--_button-group-width");
-    base.classList.remove("pressed");
+  /** @private Get-or-create the press spring for a button (mid-flight state is preserved). */
+  #springFor(button: M3eButtonElement | M3eIconButtonElement): SpringSimulation {
+    let spring = this.#springs.get(button);
+    if (!spring) {
+      spring = new SpringSimulation({ stiffness: 800, dampingRatio: 0.6, value: 0 });
+      this.#springs.set(button, spring);
+    }
+    return spring;
+  }
+
+  /** @private Schedule one layout pass on the next frame (coalesces multiple spring updates). */
+  #requestLayout(): void {
+    if (this.#squeezeRaf) return;
+    this.#squeezeRaf = requestAnimationFrame(() => {
+      this.#squeezeRaf = 0;
+      this.#applySqueeze();
+    });
+  }
+
+  /**
+   * @private Write the current squeeze widths. Reads natural widths (cached, measured off-frame) and
+   * per-button spring values, then writes each button's inline width. Does NOT read layout here, so
+   * it does not thrash. When all springs are at rest it clears the inline widths (back to natural).
+   */
+  #applySqueeze(): void {
+    const btns = this.buttons;
+    if (btns.length < 2 || this.#naturalWidths.length !== btns.length) return;
+    const progresses = btns.map((b) => this.#springs.get(b)?.value ?? 0);
+    const anyActive = progresses.some((p) => p > 1e-4) || btns.some((b) => this.#springs.get(b)?.isRunning);
+    if (!anyActive) {
+      for (const b of btns) b.style.removeProperty("width");
+      return;
+    }
+    const widths = squeezeLayout(this.#naturalWidths, progresses, this.#compressionLimits, 0.15);
+    btns.forEach((b, i) => {
+      b.style.width = `${widths[i]}px`;
+    });
+  }
+
+  /** @private Measure natural widths + compression limits once (lazily / after content changes). */
+  #ensureMeasured(): void {
+    const btns = this.buttons;
+    if (!this.#measureDirty && this.#naturalWidths.length === btns.length) return;
+    this.#measureDirty = false;
+    // Temporarily clear any inline widths so we read the natural content width.
+    const prev = btns.map((b) => b.style.width);
+    btns.forEach((b) => b.style.removeProperty("width"));
+    this.#naturalWidths = btns.map((b) => b.getBoundingClientRect().width);
+    this.#compressionLimits = btns.map((b) => {
+      // AndroidX default compressionLimit = contentPadding end. m3e buttons put their horizontal
+      // padding on the inner `.wrapper`, so read that; fall back to a sane 16px cap.
+      const wrapper = b.shadowRoot?.querySelector<HTMLElement>(".wrapper");
+      let pad = 0;
+      if (wrapper) {
+        const cs = getComputedStyle(wrapper);
+        const isRtl = getComputedStyle(b).direction === "rtl";
+        pad = parseFloat(isRtl ? cs.paddingLeft : cs.paddingRight) || 0;
+      }
+      if (pad <= 0) pad = 16;
+      return pad;
+    });
+    // Restore (the next layout will overwrite anyway, but avoid a visible flash).
+    btns.forEach((b, i) => {
+      if (prev[i]) b.style.width = prev[i];
+    });
+  }
+
+  /** @private (Re)start the resize observer that marks natural widths dirty on content change. */
+  #observeResize(): void {
+    this.#resizeObserver?.disconnect();
+    if (typeof ResizeObserver === "undefined") return;
+    this.#resizeObserver = new ResizeObserver(() => {
+      // Content changed -> recompute natural widths next press. Debounce via dirty flag; do not
+      // layout here (avoids feedback with our own width writes, which change box size but not
+      // intrinsic content width — we only need to re-measure when the button count/labels change,
+      // which fires as a target list change; observing the group is a cheap safety net).
+      this.#measureDirty = true;
+    });
+    // Observe the group box, not individual buttons: individual buttons change size during our own
+    // width animation, which would self-trigger. The group's outer box is conserved during squeeze,
+    // so this only fires on real layout changes (content, container resize).
+    this.#resizeObserver.observe(this);
   }
 }
 
