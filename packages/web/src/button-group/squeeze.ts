@@ -42,7 +42,7 @@ export function squeezeLayout(
     const p = progresses[i];
     if (!p || p <= 0) continue;
     const own = naturalWidths[i];
-    let grow = 0;
+    let grow: number;
     if (i > 0 && i < n - 1) {
       const g = p * Math.min((expandedRatio * own) / 2, limits[i - 1], limits[i + 1]);
       const gl = Math.min(g, w[i - 1]);

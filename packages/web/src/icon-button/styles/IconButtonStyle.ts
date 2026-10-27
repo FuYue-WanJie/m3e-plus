@@ -99,38 +99,9 @@ export const IconButtonStyle: CSSResultGroup = css`
     flex: 1 1 auto;
   }
   :host(:is(:state(--grouped), :--grouped):not(:is(:state(--connected), :--connected))) {
-    transition: ${unsafeCSS(`width ${DesignToken.motion.spring.fastSpatial}`)};
-  }
-  :host(:is(:state(--grouped), :--grouped):not(:is(:state(--connected), :--connected))) .wrapper {
-    transition: ${unsafeCSS(`padding-inline ${DesignToken.motion.spring.fastSpatial}`)};
-  }
-  :host(:is(:state(--grouped), :--grouped):not(:is(:state(--connected), :--connected))) {
+    /* Width while pressing is owned by M3eButtonGroupElement (inline width + --_adjacent-shrink). */
     flex-shrink: 0;
     flex-grow: 0;
-  }
-  :host(
-    :is(:state(--grouped), :--grouped):not(:is(:state(--connected), :--connected)):not(
-        :is(:state(--pressed), :--pressed, :state(--adjacent-pressed), :--adjacent-pressed)
-      )
-  ) {
-    width: var(--_button-width);
-  }
-  :host(
-    :is(:state(--grouped), :--grouped):not(:is(:state(--connected), :--connected)):not(
-        :is(:state(--pressed), :--pressed)
-      ):is(:state(--adjacent-pressed), :--adjacent-pressed)
-  ) {
-    width: calc(var(--_button-width) - var(--_adjacent-shrink, 0px));
-  }
-  :host(
-    :is(:state(--grouped), :--grouped):not(:is(:state(--connected), :--connected)):is(
-        :state(--pressed),
-        :--pressed
-      ):not([disabled-interactive]):not(:disabled)
-  ) {
-    width: calc(var(--_button-width) + var(--_pressed-growth, 0px));
-    /* Padding grows with the width, so the icon keeps its box while the spring overshoots on release. */
-    --_adjacent-shrink: calc(var(--_pressed-growth, 0px) * -1);
   }
   @media (forced-colors: active) {
     .base,

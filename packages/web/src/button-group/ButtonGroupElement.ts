@@ -378,7 +378,10 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     this.#releaseWait.clear();
     for (const spring of this.#springs.values()) spring.stop();
     this.#springs.clear();
-    for (const b of this.buttons ?? []) b.style.removeProperty("width");
+    for (const b of this.buttons ?? []) {
+      b.style.removeProperty("width");
+      b.style.removeProperty("--_adjacent-shrink");
+    }
     this.#resizeObserver?.disconnect();
     this.#resizeObserver = undefined;
   }
@@ -560,12 +563,19 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     const progresses = btns.map((b) => this.#springs.get(b)?.value ?? 0);
     const anyActive = progresses.some((p) => p > 1e-4) || btns.some((b) => this.#springs.get(b)?.isRunning);
     if (!anyActive) {
-      for (const b of btns) b.style.removeProperty("width");
+      for (const b of btns) {
+        b.style.removeProperty("width");
+        b.style.removeProperty("--_adjacent-shrink");
+      }
       return;
     }
     const widths = squeezeLayout(this.#naturalWidths, progresses, this.#compressionLimits, 0.15);
     btns.forEach((b, i) => {
       b.style.width = `${widths[i]}px`;
+      // A squeezed button gives up its padding (never its content), so the label is not clipped.
+      const shrink = Math.max(0, this.#naturalWidths[i] - widths[i]);
+      if (shrink > 0.01) b.style.setProperty("--_adjacent-shrink", `${shrink}px`);
+      else b.style.removeProperty("--_adjacent-shrink");
     });
   }
 
@@ -575,8 +585,11 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     if (!this.#measureDirty && this.#naturalWidths.length === btns.length) return;
     this.#measureDirty = false;
     // Temporarily clear any inline widths so we read the natural content width.
-    const prev = btns.map((b) => b.style.width);
-    btns.forEach((b) => b.style.removeProperty("width"));
+    const prev = btns.map((b) => [b.style.width, b.style.getPropertyValue("--_adjacent-shrink")]);
+    btns.forEach((b) => {
+      b.style.removeProperty("width");
+      b.style.removeProperty("--_adjacent-shrink");
+    });
     this.#naturalWidths = btns.map((b) => b.getBoundingClientRect().width);
     this.#compressionLimits = btns.map((b) => {
       // AndroidX default compressionLimit = contentPadding end. m3e buttons put their horizontal
@@ -593,7 +606,8 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     });
     // Restore (the next layout will overwrite anyway, but avoid a visible flash).
     btns.forEach((b, i) => {
-      if (prev[i]) b.style.width = prev[i];
+      if (prev[i][0]) b.style.width = prev[i][0];
+      if (prev[i][1]) b.style.setProperty("--_adjacent-shrink", prev[i][1]);
     });
   }
 

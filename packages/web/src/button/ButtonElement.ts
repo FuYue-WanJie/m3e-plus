@@ -18,15 +18,11 @@ import {
   Role,
   KeyboardClick,
   hasAssignedNodes,
-  ResizeController,
-  debounce,
   prefersReducedMotion,
   hasCustomState,
   deleteCustomState,
   setCustomState,
-  AttachInternalsMixin,
   customElement,
-  addCustomState,
   setCustomEnumState,
 } from "@wanjie/m3e-web/core";
 
@@ -509,7 +505,6 @@ export class M3eButtonElement extends KeyboardClick(
   /** The styles of the element. */
   static override styles: CSSResultGroup = [ButtonSizeStyle, ButtonVariantStyle, ButtonStyle];
 
-  /** @internal */ _adjacentPressedTimeout = -1;
 
   /** @private */ @query(".base") private readonly _base?: HTMLElement;
   /** @private */ @query(".elevation") private readonly _elevation?: M3eElevationElement;
@@ -556,7 +551,6 @@ export class M3eButtonElement extends KeyboardClick(
   constructor() {
     super();
 
-    new ResizeController(this, { callback: () => this._handleResize() });
     new FocusController(this, {
       callback: () => {},
     });
@@ -667,10 +661,7 @@ export class M3eButtonElement extends KeyboardClick(
     this.#clearCorners();
 
     ["--pressed", "--resting", "--grouped", "--connected"].forEach((x) => deleteCustomState(this, x));
-    this.style.removeProperty("--_button-width");
     this.style.removeProperty("--_adjacent-shrink");
-    this.style.removeProperty("--_pressed-growth");
-    deleteCustomState(this, "--adjacent-pressed");
 
     this.removeEventListener("click", this.#clickHandler);
   }
@@ -776,20 +767,6 @@ export class M3eButtonElement extends KeyboardClick(
   /** @private */
   #handleSelectedIconSlotChange(e: Event): void {
     this._base?.classList.toggle("with-selected-icon", hasAssignedNodes(<HTMLSlotElement>e.target));
-  }
-
-  /** @private */
-  @debounce(40)
-  private _handleResize(): void {
-    if (this.grouped && !hasCustomState(this, "--no-resize") && this !== document.activeElement) {
-      const width = this.getBoundingClientRect().width;
-      if (width > 0) {
-        this.style.setProperty("--_button-width", `${width}px`);
-      } else {
-        // Hidden (display:none): drop the lock so natural size restores on re-show.
-        this.style.removeProperty("--_button-width");
-      }
-    }
   }
 
   /**
@@ -912,104 +889,11 @@ export class M3eButtonElement extends KeyboardClick(
 
   /** @private */
   #handlePressedChange(pressed: boolean): void {
-    const clientWidth = this.getBoundingClientRect().width;
-    const group = this.closest("m3e-button-group");
-
-    if (group && group.variant === "standard") {
-      const buttons = [
-        ...group.querySelectorAll<HTMLElement & AttachInternalsMixin & { _adjacentPressedTimeout: number }>(
-          "m3e-button,m3e-icon-button",
-        ),
-      ];
-      for (const button of buttons) {
-        clearTimeout(button._adjacentPressedTimeout);
-        button._adjacentPressedTimeout = -1;
-      }
-
-      const index = buttons.indexOf(this);
-
-      if (pressed) {
-        const multiplier = parseFloat(
-          getComputedStyle(this).getPropertyValue("--m3e-standard-button-group-width-multiplier") || "0.15",
-        );
-        let adjacentShrink = clientWidth * multiplier;
-        if (index > 0 && index < buttons.length - 1) {
-          adjacentShrink /= 2;
-        }
-
-        // As in Compose, a neighbor shrinks by at most its end padding (its compression limit), and the
-        // pressed button grows by what its neighbors give up.
-        const adjacent = [buttons[index - 1], buttons[index + 1]].filter((x) => x !== undefined);
-        adjacentShrink = Math.min(adjacentShrink, ...adjacent.map((x) => this.#compressionLimit(x)));
-        this.style.setProperty("--_pressed-growth", `${adjacentShrink * Math.max(1, adjacent.length)}px`);
-
-        for (let i = 0; i < buttons.length; i++) {
-          if (i == index - 1 || i == index + 1) {
-            addCustomState(buttons[i], "--no-resize");
-            buttons[i].style.setProperty("--_adjacent-shrink", `${adjacentShrink}px`);
-            addCustomState(buttons[i], "--adjacent-pressed");
-          } else if (i == index) {
-            addCustomState(buttons[i], "--no-resize");
-            buttons[i].style.removeProperty("--_adjacent-shrink");
-            deleteCustomState(buttons[i], "--adjacent-pressed");
-          } else {
-            deleteCustomState(buttons[i], "--no-resize");
-            buttons[i].style.removeProperty("--_adjacent-shrink");
-            deleteCustomState(buttons[i], "--adjacent-pressed");
-          }
-        }
-      } else {
-        for (let i = 0; i < buttons.length; i++) {
-          if (i == index - 1 || i == index + 1) {
-            buttons[i].style.setProperty("--_adjacent-shrink", "0px");
-          }
-        }
-        if (!prefersReducedMotion()) {
-          this.addEventListener(
-            "transitionend",
-            (e) => {
-              if (e.propertyName === "width") {
-                this._adjacentPressedTimeout = setTimeout(() => {
-                  // Pressed timeout is tested to ensure this runs only when the button
-                  // is no longer pressed. This handles changes to pressed state in
-                  // quick succession.
-
-                  if (this._adjacentPressedTimeout > -1) {
-                    this.#cleanupAdjacentPressed(buttons);
-                  }
-                }, 600);
-              }
-            },
-            { once: true },
-          );
-        } else {
-          this.#cleanupAdjacentPressed(buttons);
-        }
-      }
-    }
-
+    // Width squeeze inside a group is owned by M3eButtonGroupElement.
     setCustomState(this, "--pressed", pressed);
     setCustomState(this, "--resting", !pressed);
   }
 
-  /** @private */
-  #cleanupAdjacentPressed(buttons: Array<HTMLElement & AttachInternalsMixin>): void {
-    for (const button of buttons) {
-      deleteCustomState(button, "--adjacent-pressed");
-      deleteCustomState(button, "--no-resize");
-      button.style.removeProperty("--_adjacent-shrink");
-      button.style.removeProperty("--_pressed-growth");
-    }
-  }
-
-  /** @private */
-  #compressionLimit(button: HTMLElement): number {
-    // The end padding at rest: the current padding plus what an ongoing shrink has taken from it.
-    const wrapper = button.shadowRoot?.querySelector(".wrapper");
-    if (!wrapper) return Infinity;
-    const shrink = parseFloat(button.style.getPropertyValue("--_adjacent-shrink")) || 0;
-    return parseFloat(getComputedStyle(wrapper).paddingInlineEnd) + shrink / 2;
-  }
 }
 
 declare global {
