@@ -24,6 +24,8 @@ export abstract class MenuItemElementBase extends KeyboardClick(
   /** The styles of the element. */
   static override styles: CSSResultGroup = css`
     :host {
+      /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+      touch-action: manipulation;
       display: inline-block;
       outline: none;
       user-select: none;

@@ -4,6 +4,8 @@
 }
 html {
   overflow: hidden;
+  /* Keep pinch-zoom, drop double-tap-to-zoom. */
+  touch-action: manipulation;
 }
 body {
   font-family: "Roboto";

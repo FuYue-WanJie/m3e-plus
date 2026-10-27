@@ -1,3 +1,7 @@
+/* Keep pinch-zoom and scrolling, but drop double-tap-to-zoom (it flashes the page on quick taps). */
+html {
+  touch-action: manipulation;
+}
 :root {
   --md-sys-color-background: var(--md-sys-color-surface-container-low);
 }

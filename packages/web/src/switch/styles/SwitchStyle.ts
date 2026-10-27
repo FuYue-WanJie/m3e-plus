@@ -7,6 +7,8 @@ import { SwitchToken } from "./SwitchToken";
  */
 export const SwitchStyle = css`
   :host {
+    /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+    touch-action: manipulation;
     display: inline-block;
     position: relative;
     outline: none;

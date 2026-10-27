@@ -84,6 +84,8 @@ export class M3eTreeItemElement extends Selected(Disabled(AttachInternals(Role(L
   /** The styles of the element. */
   static override styles: CSSResultGroup = css`
     :host {
+      /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+      touch-action: manipulation;
       display: block;
       flex: none;
       outline: none;

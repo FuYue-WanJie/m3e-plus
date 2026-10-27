@@ -33,6 +33,8 @@ export class M3eListItemButtonElement extends KeyboardClick(
     M3eListItemElement.styles,
     css`
       :host {
+        /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+        touch-action: manipulation;
         outline: none;
         user-select: none;
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0);

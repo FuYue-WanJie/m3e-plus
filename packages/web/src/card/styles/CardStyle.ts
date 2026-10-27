@@ -11,6 +11,8 @@ import { CardVariantToken } from "./CardVariantToken";
  */
 export const CardStyle: CSSResult = css`
   :host {
+    /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+    touch-action: manipulation;
     outline: none;
   }
   :host([hidden]) {

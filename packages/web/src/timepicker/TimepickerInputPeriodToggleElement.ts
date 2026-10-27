@@ -13,6 +13,8 @@ export class M3eTimepickerInputPeriodToggleElement extends Role(LitElement, "rad
   /** The styles of the element. */
   static override styles: CSSResultGroup = css`
     :host {
+      /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+      touch-action: manipulation;
       display: block;
     }
     :host([hidden]) {

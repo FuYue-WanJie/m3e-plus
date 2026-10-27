@@ -13,6 +13,8 @@ export abstract class CalendarViewElementBase extends LitElement {
   /** The styles of the element. */
   static override styles: CSSResultGroup = css`
     :host {
+      /* No double-tap-to-zoom delay or zoom flash on mobile when tapping quickly. */
+      touch-action: manipulation;
       display: inline-block;
       user-select: none;
       vertical-align: top;
