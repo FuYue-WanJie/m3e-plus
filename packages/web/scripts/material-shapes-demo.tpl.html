@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Material 3 Expressive · 35 个形状</title>
+<style>
+  html { touch-action: manipulation; }
+  :root {
+    --primary: #6750a4; --on-primary: #fff; --primary-container: #eaddff; --on-primary-container: #21005d;
+    --surface: #fef7ff; --surface-container: #f3edf7; --surface-container-high: #ece6f0;
+    --on-surface: #1d1b20; --on-surface-variant: #49454f; --outline-variant: #cac4d0; --tertiary: #7d5260;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #d0bcff; --on-primary: #381e72; --primary-container: #4f378b; --on-primary-container: #eaddff;
+      --surface: #141218; --surface-container: #211f26; --surface-container-high: #2b2930;
+      --on-surface: #e6e0e9; --on-surface-variant: #cac4d0; --outline-variant: #49454f; --tertiary: #efb8c8;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font: 14px/1.4 Roboto, system-ui, sans-serif; background: var(--surface); color: var(--on-surface); }
+  header { padding: 20px 16px 4px; max-width: 980px; margin: auto; }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--on-surface-variant); font-size: 13px; }
+  main { max-width: 980px; margin: auto; padding: 12px 16px 40px; }
+  .stage {
+    position: sticky; top: 0; z-index: 2; background: var(--surface); padding: 8px 0 12px;
+    display: grid; grid-template-columns: 168px 1fr; gap: 16px; align-items: center;
+  }
+  .big { width: 168px; height: 168px; border-radius: 28px; background: var(--surface-container); display: grid; place-items: center; }
+  .big svg { width: 136px; height: 136px; overflow: visible; }
+  .big path.shape { fill: var(--primary); }
+  .controls { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .now { font-size: 16px; font-weight: 500; }
+  .now small { display: block; font-weight: 400; color: var(--on-surface-variant); font-size: 12px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button.chip {
+    border: 1px solid var(--outline-variant); background: transparent; color: var(--on-surface);
+    height: 32px; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  button.chip[aria-pressed="true"] { background: var(--primary-container); color: var(--on-primary-container); border-color: transparent; }
+  label.sl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--on-surface-variant); }
+  label.sl input { flex: 1; min-width: 80px; accent-color: var(--primary); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .tile {
+    border: 0; background: var(--surface-container); color: inherit; border-radius: 16px; padding: 12px 6px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font: inherit;
+    transition: background-color 150ms;
+  }
+  .tile:hover { background: var(--surface-container-high); }
+  .tile[aria-current="true"] { background: var(--primary-container); }
+  .tile svg { width: 56px; height: 56px; overflow: visible; }
+  .tile path.shape { fill: var(--primary); }
+  .tile[aria-current="true"] path.shape { fill: var(--on-primary-container); }
+  path.old { fill: none; stroke: var(--tertiary); stroke-width: 0.012; stroke-dasharray: 0.03 0.02; display: none; }
+  body.compare path.old { display: inline; }
+  .tile span { font-size: 11px; text-align: center; line-height: 1.2; }
+  .tile span em { display: block; font-style: normal; color: var(--on-surface-variant); font-size: 10px; }
+  .legend { font-size: 12px; color: var(--on-surface-variant); display: none; }
+  body.compare .legend { display: block; }
+  @media (max-width: 520px) {
+    .stage { grid-template-columns: 120px 1fr; gap: 12px; }
+    .big { width: 120px; height: 120px; border-radius: 24px; }
+    .big svg { width: 96px; height: 96px; }
+    .grid { grid-template-columns: repeat(4, 1fr); }
+    .tile svg { width: 44px; height: 44px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Material 3 Expressive · 35 个形状</h1>
+  <p>数据来自 AndroidX MaterialShapes（RoundedPolygon），变形用 AndroidX Morph 算法 + 弹簧。点任意形状即可变形过去。</p>
+</header>
+<main>
+  <section class="stage">
+    <div class="big"><svg viewBox="0 0 1 1"><path class="shape" id="bigPath"></path><path class="old" id="bigOld"></path></svg></div>
+    <div class="controls">
+      <div class="now" id="now"></div>
+      <div class="row" id="springs">
+        <button class="chip" data-s="fast" aria-pressed="true">fastSpatial</button>
+        <button class="chip" data-s="default" aria-pressed="false">defaultSpatial</button>
+        <button class="chip" data-s="slow" aria-pressed="false">slowSpatial</button>
+      </div>
+      <div class="row">
+        <button class="chip" id="auto" aria-pressed="false">自动轮播</button>
+        <button class="chip" id="rotate" aria-pressed="true">边变边转</button>
+        <button class="chip" id="compare" aria-pressed="false">对比旧数据</button>
+      </div>
+      <label class="sl">慢放 <input id="slow" type="range" min="1" max="10" step="1" value="1" /> <b id="slowV">1×</b></label>
+      <div class="legend">虚线是原 m3e/web 的 Figma SVG 轮廓（没有 clamshell）。</div>
+    </div>
+  </section>
+  <section class="grid" id="grid"></section>
+</main>
+<script>/*LIB*/</script>
+<script>
+/*DATA*/
+const ANDROIDX = {"circle":"Circle","square":"Square","slanted":"Slanted","arch":"Arch","fan":"Fan","arrow":"Arrow","semicircle":"SemiCircle","oval":"Oval","pill":"Pill","triangle":"Triangle","diamond":"Diamond","clamshell":"ClamShell","pentagon":"Pentagon","gem":"Gem","very-sunny":"VerySunny","sunny":"Sunny","4-sided-cookie":"Cookie4Sided","6-sided-cookie":"Cookie6Sided","7-sided-cookie":"Cookie7Sided","9-sided-cookie":"Cookie9Sided","12-sided-cookie":"Cookie12Sided","4-leaf-clover":"Clover4Leaf","8-leaf-clover":"Clover8Leaf","burst":"Burst","soft-burst":"SoftBurst","boom":"Boom","soft-boom":"SoftBoom","flower":"Flower","puffy":"Puffy","puffy-diamond":"PuffyDiamond","ghost-ish":"Ghostish","pixel-circle":"PixelCircle","pixel-triangle":"PixelTriangle","bun":"Bun","heart":"Heart"};
+const NAMES = Object.keys(DATA);
+
+// Rebuild RoundedPolygons from the generated feature data (this is what proves the data is complete).
+function toPolygon(d) {
+  const feats = d.f.map(([k, n]) => {
+    const cubics = [];
+    for (let i = 2; i < n.length; i += 6) {
+      cubics.push(MS.Cubic.create ? MS.Cubic.create(n[i - 2], n[i - 1], n[i], n[i + 1], n[i + 2], n[i + 3], n[i + 4], n[i + 5])
+                                  : new MS.Cubic([n[i - 2], n[i - 1], n[i], n[i + 1], n[i + 2], n[i + 3], n[i + 4], n[i + 5]]));
+    }
+    return k === "e" ? new MS.Edge(cubics) : new MS.Corner(cubics, k === "x");
+  });
+  return MS.RoundedPolygon.createFromFeatures(feats, d.c[0], d.c[1]);
+}
+const POLY = Object.fromEntries(NAMES.map((n) => [n, toPolygon(DATA[n])]));
+
+const f3 = (v) => +v.toFixed(4);
+function cubicsToD(cubics) {
+  let d = `M${f3(cubics[0].anchor0X)} ${f3(cubics[0].anchor0Y)}`;
+  for (const c of cubics) d += `C${f3(c.control0X)} ${f3(c.control0Y)} ${f3(c.control1X)} ${f3(c.control1Y)} ${f3(c.anchor1X)} ${f3(c.anchor1Y)}`;
+  return d + "Z";
+}
+// Old m3e/web paths live in a 380×380 box; draw them in the same unit square.
+const oldD = (n) => OLD[n] ?? "";
+// Normalise each old path to the unit square the same way AndroidX does (fit the longer side, center).
+const measureSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+measureSvg.style.cssText = "position:absolute;width:0;height:0;visibility:hidden";
+document.body.append(measureSvg);
+const OLD_T = {};
+function oldTransform(n) {
+  if (!OLD[n]) return "";
+  if (OLD_T[n]) return OLD_T[n];
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", OLD[n]); measureSvg.append(p);
+  const b = p.getBBox(); p.remove();
+  const side = Math.max(b.width, b.height), k = 1 / side;
+  const tx = (side - b.width) / 2 - b.x, ty = (side - b.height) / 2 - b.y;
+  return (OLD_T[n] = `scale(${k}) translate(${tx} ${ty})`);
+}
+const OLD_STROKE = "stroke-width:4.5;stroke-dasharray:11 8;vector-effect:none";
+
+// ── grid ──
+const grid = document.getElementById("grid");
+for (const n of NAMES) {
+  const b = document.createElement("button");
+  b.className = "tile"; b.dataset.name = n;
+  b.innerHTML = `<svg viewBox="0 0 1 1"><path class="shape" d="${cubicsToD(POLY[n].cubics)}"></path>` +
+    `<path class="old" transform="${oldTransform(n)}" style="${OLD_STROKE}" d="${oldD(n)}"></path></svg>` +
+    `<span>${n}<em>${ANDROIDX[n]}</em></span>`;
+  b.addEventListener("click", () => { stopAuto(); go(n); });
+  grid.append(b);
+}
+
+// ── springs (Compose MotionScheme.expressive) ──
+const SPRINGS = { fast: { d: 0.6, k: 800 }, default: { d: 0.8, k: 380 }, slow: { d: 0.8, k: 200 } };
+let spring = SPRINGS.fast;
+document.getElementById("springs").addEventListener("click", (e) => {
+  const s = e.target.closest("button"); if (!s) return;
+  spring = SPRINGS[s.dataset.s];
+  for (const c of e.currentTarget.children) c.setAttribute("aria-pressed", String(c === s));
+});
+let slowmo = 1;
+const slowEl = document.getElementById("slow");
+slowEl.addEventListener("input", () => { slowmo = +slowEl.value; document.getElementById("slowV").textContent = slowmo + "×"; });
+const toggle = (id, fn) => { const el = document.getElementById(id); el.addEventListener("click", () => { const v = el.getAttribute("aria-pressed") !== "true"; el.setAttribute("aria-pressed", String(v)); fn(v); }); };
+let rotate = true;
+toggle("rotate", (v) => (rotate = v));
+toggle("compare", (v) => document.body.classList.toggle("compare", v));
+
+// ── morph stage ──
+const bigPath = document.getElementById("bigPath"), bigOld = document.getElementById("bigOld");
+bigOld.style.cssText = OLD_STROKE;
+let current = "circle", morph = null, x = 1, v = 0, raf = 0, last = 0;
+
+function render() {
+  const cubics = morph ? morph.asCubics(x) : POLY[current].cubics;
+  bigPath.setAttribute("d", cubicsToD(cubics));
+  // Spin -90° -> 0° with the same spring, so every shape settles upright.
+  const a = rotate && morph ? -90 * (1 - x) : 0;
+  bigPath.setAttribute("transform", `rotate(${f3(a)} 0.5 0.5)`);
+}
+function setCurrent(n) {
+  document.getElementById("now").innerHTML = `${n}<small>AndroidX: MaterialShapes.${ANDROIDX[n]} · ${POLY[n].cubics.length} 段三次贝塞尔</small>`;
+  for (const t of grid.children) t.setAttribute("aria-current", String(t.dataset.name === n));
+  bigOld.setAttribute("d", oldD(n));
+  bigOld.setAttribute("transform", oldTransform(n));
+}
+function go(n) {
+  if (n === current && !morph) return;
+  // Start from wherever we are now (mid-flight morphs restart from their current outline's target).
+  const fromName = current;
+  morph = new MS.Morph(POLY[fromName], POLY[n]);
+  current = n; x = 0; v = 0;
+  setCurrent(n);
+  cancelAnimationFrame(raf); last = 0; raf = requestAnimationFrame(step);
+}
+function step(t) {
+  const dt = last ? Math.min(0.032, (t - last) / 1000) / slowmo : 0;
+  last = t;
+  // Damped spring toward 1 (semi-implicit Euler, 4 substeps).
+  const w = Math.sqrt(spring.k);
+  for (let i = 0; i < 4; i++) {
+    const h = dt / 4;
+    v += (-spring.k * (x - 1) - 2 * spring.d * w * v) * h;
+    x += v * h;
+  }
+  render();
+  if (Math.abs(x - 1) < 1e-3 && Math.abs(v) < 1e-3) { x = 1; render(); return; }
+  raf = requestAnimationFrame(step);
+}
+
+// ── auto cycle ──
+let autoTimer = 0;
+const autoEl = document.getElementById("auto");
+function stopAuto() { clearInterval(autoTimer); autoTimer = 0; autoEl.setAttribute("aria-pressed", "false"); }
+autoEl.addEventListener("click", () => {
+  if (autoTimer) return stopAuto();
+  autoEl.setAttribute("aria-pressed", "true");
+  const next = () => go(NAMES[(NAMES.indexOf(current) + 1) % NAMES.length]);
+  next(); autoTimer = setInterval(next, 1100);
+});
+
+setCurrent(current); render();
+</script>
+</body>
+</html>
