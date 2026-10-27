@@ -622,3 +622,280 @@ function calculateMediumChildSize(minimumMediumSize: number, largeItemSize: numb
   }
   return mediumItemSize;
 }
+
+// ── Strategy: scroll offset → keyline list (moving focus across steps) ───────────────────────────
+
+/** Linear remap with clamping (`Strategy.kt` `lerp`), in Float arithmetic. */
+export function lerpRange(outputMin: number, outputMax: number, inputMin: number, inputMax: number, value: number): number {
+  if (value <= inputMin) return outputMin;
+  if (value >= inputMax) return outputMax;
+  return lerpValue(outputMin, outputMax, f(f(value - inputMin) / f(inputMax - inputMin)));
+}
+
+const roundToInt = (v: number): number => Math.round(v);
+
+function movedKeylineList(from: KeylineList, srcIndex: number, dstIndex: number, size: number, itemSpacing: number): KeylineList {
+  const pivotDir = srcIndex > dstIndex ? 1 : -1;
+  const pivotDelta = f(f(f(from[srcIndex].size - from[srcIndex].cutoff) + itemSpacing) * pivotDir);
+  const newPivotIndex = from.pivotIndex + pivotDir;
+  const newPivotOffset = f(from.pivot.offset + pivotDelta);
+  const moved = [...from];
+  const [keyline] = moved.splice(srcIndex, 1);
+  moved.splice(dstIndex, 0, keyline);
+  return keylineListOf(size, itemSpacing, { pivotIndex: newPivotIndex, pivotOffset: newPivotOffset }, (scope) => {
+    for (const k of moved) scope.add(k.size, k.isAnchor);
+  });
+}
+
+function shiftedForContentPadding(from: KeylineList, size: number, itemSpacing: number, contentPadding: number, pivot: Keyline, pivotIndex: number): KeylineList {
+  const numberOfNonAnchor = from.filter((k) => !k.isAnchor).length;
+  const sizeReduction = f(contentPadding / numberOfNonAnchor);
+  const newKeylines = keylineListOf(size, itemSpacing, { pivotIndex, pivotOffset: f(f(pivot.offset - half(sizeReduction)) + contentPadding) }, (scope) => {
+    for (const k of from) scope.add(f(k.size - Math.abs(sizeReduction)), k.isAnchor);
+  });
+  return KeylineList.from(newKeylines.map((k, i) => ({ ...k, unadjustedOffset: from[i].unadjustedOffset })));
+}
+
+function startKeylineSteps(defaultKeylines: KeylineList, size: number, itemSpacing: number, beforeContentPadding: number): KeylineList[] {
+  if (!defaultKeylines.length) return [];
+  const steps: KeylineList[] = [defaultKeylines];
+  if (isFirstFocalAtStart(defaultKeylines)) {
+    if (beforeContentPadding !== 0) {
+      steps.push(shiftedForContentPadding(defaultKeylines, size, itemSpacing, beforeContentPadding, defaultKeylines.firstFocal, defaultKeylines.firstFocalIndex));
+    }
+    return steps;
+  }
+  const startIndex = defaultKeylines.firstNonAnchorIndex;
+  const endIndex = defaultKeylines.firstFocalIndex;
+  const numberOfSteps = endIndex - startIndex;
+  if (numberOfSteps <= 0 && defaultKeylines.firstFocal.cutoff > 0) {
+    steps.push(movedKeylineList(defaultKeylines, 0, 0, size, itemSpacing));
+    return steps;
+  }
+  for (let i = 0; i < numberOfSteps; i++) {
+    const prevStep = steps[steps.length - 1];
+    const originalItemIndex = startIndex + i;
+    let dstIndex = defaultKeylines.length - 1;
+    if (originalItemIndex > 0) {
+      const originalNeighborBeforeSize = defaultKeylines[originalItemIndex - 1].size;
+      dstIndex = prevStep.firstIndexAfterFocalRangeWithSize(originalNeighborBeforeSize) - 1;
+    }
+    steps.push(movedKeylineList(prevStep, defaultKeylines.firstNonAnchorIndex, dstIndex, size, itemSpacing));
+  }
+  if (beforeContentPadding !== 0) {
+    const last = steps[steps.length - 1];
+    steps[steps.length - 1] = shiftedForContentPadding(last, size, itemSpacing, beforeContentPadding, last.firstFocal, last.firstFocalIndex);
+  }
+  return steps;
+}
+
+function endKeylineSteps(defaultKeylines: KeylineList, size: number, itemSpacing: number, afterContentPadding: number): KeylineList[] {
+  if (!defaultKeylines.length) return [];
+  const steps: KeylineList[] = [defaultKeylines];
+  if (isLastFocalAtEnd(defaultKeylines, size)) {
+    if (afterContentPadding !== 0) {
+      steps.push(shiftedForContentPadding(defaultKeylines, size, itemSpacing, -afterContentPadding, defaultKeylines.lastFocal, defaultKeylines.lastFocalIndex));
+    }
+    return steps;
+  }
+  const startIndex = defaultKeylines.lastFocalIndex;
+  const endIndex = defaultKeylines.lastNonAnchorIndex;
+  const numberOfSteps = endIndex - startIndex;
+  if (numberOfSteps <= 0 && defaultKeylines.lastFocal.cutoff > 0) {
+    steps.push(movedKeylineList(defaultKeylines, 0, 0, size, itemSpacing));
+    return steps;
+  }
+  for (let i = 0; i < numberOfSteps; i++) {
+    const prevStep = steps[steps.length - 1];
+    const originalItemIndex = endIndex - i;
+    let dstIndex = 0;
+    if (originalItemIndex < defaultKeylines.length - 1) {
+      const originalNeighborAfterSize = defaultKeylines[originalItemIndex + 1].size;
+      dstIndex = prevStep.lastIndexBeforeFocalRangeWithSize(originalNeighborAfterSize) + 1;
+    }
+    steps.push(movedKeylineList(prevStep, defaultKeylines.lastNonAnchorIndex, dstIndex, size, itemSpacing));
+  }
+  if (afterContentPadding !== 0) {
+    const last = steps[steps.length - 1];
+    steps[steps.length - 1] = shiftedForContentPadding(last, size, itemSpacing, -afterContentPadding, last.lastFocal, last.lastFocalIndex);
+  }
+  return steps;
+}
+
+function isFirstFocalAtStart(kl: KeylineList): boolean {
+  const firstFocalLeft = f(kl.firstFocal.offset - half(kl.firstFocal.size));
+  return firstFocalLeft >= 0 && keylineEquals(kl.firstFocal, kl.firstNonAnchor);
+}
+function isLastFocalAtEnd(kl: KeylineList, size: number): boolean {
+  const lastFocalRight = f(kl.lastFocal.offset + half(kl.lastFocal.size));
+  return lastFocalRight <= size && keylineEquals(kl.lastFocal, kl.lastNonAnchor);
+}
+
+function startShiftDistance(steps: KeylineList[], beforeContentPadding: number): number {
+  if (!steps.length) return 0;
+  const last = steps[steps.length - 1];
+  return Math.max(f(last[0].unadjustedOffset - steps[0][0].unadjustedOffset), beforeContentPadding);
+}
+function endShiftDistance(steps: KeylineList[], afterContentPadding: number): number {
+  if (!steps.length) return 0;
+  const last = steps[steps.length - 1];
+  return Math.max(f(steps[0][steps[0].length - 1].unadjustedOffset - last[last.length - 1].unadjustedOffset), afterContentPadding);
+}
+function stepInterpolationPoints(totalShiftDistance: number, steps: KeylineList[], shiftingLeft: boolean): number[] {
+  const points = [0];
+  if (totalShiftDistance === 0 || !steps.length) return points;
+  for (let i = 1; i < steps.length; i++) {
+    const prev = steps[i - 1];
+    const curr = steps[i];
+    const distanceShifted = shiftingLeft
+      ? f(curr[0].unadjustedOffset - prev[0].unadjustedOffset)
+      : f(prev[prev.length - 1].unadjustedOffset - curr[curr.length - 1].unadjustedOffset);
+    const pct = f(distanceShifted / totalShiftDistance);
+    points.push(i === steps.length - 1 ? 1 : f(points[i - 1] + pct));
+  }
+  return points;
+}
+
+/** Drives the moving keyline layout as the carousel scrolls (`Strategy.kt`). */
+export class Strategy {
+  readonly defaultKeylines: KeylineList;
+  readonly availableSpace: number;
+  readonly itemSpacing: number;
+  readonly beforeContentPadding: number;
+  readonly afterContentPadding: number;
+  readonly startKeylineSteps: KeylineList[];
+  readonly endKeylineSteps: KeylineList[];
+  readonly minItemSize: number;
+  readonly maxItemSize: number;
+  readonly startShiftDistance: number;
+  readonly endShiftDistance: number;
+  readonly startShiftPoints: number[];
+  readonly endShiftPoints: number[];
+  readonly isValid: boolean;
+  #cache: { scrollOffset: number; maxScrollOffset: number; round: boolean; result: KeylineList } | null = null;
+
+  constructor(defaultKeylines: KeylineList, availableSpace: number, itemSpacing: number, beforeContentPadding: number, afterContentPadding: number) {
+    [availableSpace, itemSpacing, beforeContentPadding, afterContentPadding] = [availableSpace, itemSpacing, beforeContentPadding, afterContentPadding].map(f);
+    this.defaultKeylines = defaultKeylines;
+    this.availableSpace = availableSpace;
+    this.itemSpacing = itemSpacing;
+    this.beforeContentPadding = beforeContentPadding;
+    this.afterContentPadding = afterContentPadding;
+    this.startKeylineSteps = startKeylineSteps(defaultKeylines, availableSpace, itemSpacing, beforeContentPadding);
+    this.endKeylineSteps = endKeylineSteps(defaultKeylines, availableSpace, itemSpacing, afterContentPadding);
+    let min = defaultKeylines.minSize;
+    let max = defaultKeylines.maxSize;
+    for (const step of [...this.startKeylineSteps, ...this.endKeylineSteps]) {
+      if (step.minSize < min) min = step.minSize;
+      if (step.maxSize > max) max = step.maxSize;
+    }
+    this.minItemSize = min;
+    this.maxItemSize = max;
+    this.startShiftDistance = startShiftDistance(this.startKeylineSteps, beforeContentPadding);
+    this.endShiftDistance = endShiftDistance(this.endKeylineSteps, afterContentPadding);
+    this.startShiftPoints = stepInterpolationPoints(this.startShiftDistance, this.startKeylineSteps, true);
+    this.endShiftPoints = stepInterpolationPoints(this.endShiftDistance, this.endKeylineSteps, false);
+    this.isValid = defaultKeylines.length > 0 && availableSpace !== 0 && this.itemMainAxisSize !== 0;
+  }
+
+  get itemMainAxisSize(): number {
+    return this.defaultKeylines.length ? this.defaultKeylines.firstFocal.size : 0;
+  }
+
+  getKeylineListForScrollOffset(scrollOffset: number, maxScrollOffset: number, roundToNearestStep = false): KeylineList {
+    const c = this.#cache;
+    if (c && c.scrollOffset === scrollOffset && c.maxScrollOffset === maxScrollOffset && c.round === roundToNearestStep) return c.result;
+    const result = this.#forScrollOffset(scrollOffset, maxScrollOffset, roundToNearestStep);
+    this.#cache = { scrollOffset, maxScrollOffset, round: roundToNearestStep, result };
+    return result;
+  }
+
+  #forScrollOffset(scrollOffset: number, maxScrollOffset: number, roundToNearestStep: boolean): KeylineList {
+    const positive = Math.max(0, f(scrollOffset));
+    const startShift = this.startShiftDistance;
+    maxScrollOffset = f(maxScrollOffset);
+    const endShift = Math.max(0, f(maxScrollOffset - this.endShiftDistance));
+    if (positive >= startShift && positive <= endShift) return this.defaultKeylines;
+
+    let interpolation = lerpRange(1, 0, 0, startShift, positive);
+    let shiftPoints = this.startShiftPoints;
+    let steps = this.startKeylineSteps;
+    if (positive > endShift) {
+      interpolation = lerpRange(0, 1, endShift, maxScrollOffset, positive);
+      shiftPoints = this.endShiftPoints;
+      steps = this.endKeylineSteps;
+    }
+    let fromStepIndex = 0;
+    let toStepIndex = 0;
+    let steppedInterpolation = 0;
+    let lower = shiftPoints[0];
+    for (let i = 1; i < steps.length; i++) {
+      const upper = shiftPoints[i];
+      if (interpolation <= upper) {
+        fromStepIndex = i - 1;
+        toStepIndex = i;
+        steppedInterpolation = lerpRange(0, 1, lower, upper, interpolation);
+        break;
+      }
+      lower = upper;
+    }
+    if (roundToNearestStep) return steps[roundToInt(steppedInterpolation) === 0 ? fromStepIndex : toStepIndex];
+    return lerpKeylineList(steps[fromStepIndex], steps[toStepIndex], steppedInterpolation);
+  }
+}
+
+/** Where item `itemIndex` rests, from the carousel start (`KeylineSnapPosition`). */
+export function getSnapPositionOffset(strategy: Strategy, itemIndex: number, itemCount: number): number {
+  if (!strategy.isValid) return 0;
+  let offset = roundToInt(f(strategy.defaultKeylines.firstFocal.unadjustedOffset - half(strategy.itemMainAxisSize)));
+  const startLast = strategy.startKeylineSteps.length - 1;
+  if (startLast >= 0 && itemIndex <= startLast) {
+    const stepIndex = coerceIn(startLast - itemIndex, 0, startLast);
+    const startKeylines = strategy.startKeylineSteps[stepIndex];
+    if (startKeylines) offset = roundToInt(f(startKeylines.firstFocal.unadjustedOffset - half(strategy.itemMainAxisSize)));
+  }
+  const lastItemIndex = itemCount - 1;
+  const endLast = strategy.endKeylineSteps.length - 1;
+  if (endLast >= 0 && itemIndex >= lastItemIndex - endLast && itemCount > strategy.defaultKeylines.focalCount) {
+    const stepIndex = coerceIn(endLast - (lastItemIndex - itemIndex), 0, endLast);
+    const endKeylines = strategy.endKeylineSteps[stepIndex];
+    if (endKeylines) offset = roundToInt(f(endKeylines.lastFocal.unadjustedOffset - half(strategy.itemMainAxisSize)));
+  }
+  return offset;
+}
+
+/** Scroll offset from the pager's current page + offset fraction. */
+export function calculateCurrentScrollOffset(strategy: Strategy, currentPage: number, currentPageOffsetFraction: number, pageCount: number): number {
+  const itemSizeWithSpacing = f(strategy.itemMainAxisSize + strategy.itemSpacing);
+  const currentItemScrollOffset = f(f(currentPage * itemSizeWithSpacing) + f(f(currentPageOffsetFraction) * itemSizeWithSpacing));
+  return f(currentItemScrollOffset - getSnapPositionOffset(strategy, currentPage, pageCount));
+}
+
+/** The pager's scroll range. */
+export function calculateMaxScrollOffset(strategy: Strategy, itemCount: number): number {
+  const maxScrollPossible = f(f(strategy.itemMainAxisSize * itemCount) + f(strategy.itemSpacing * f(itemCount - 1)));
+  return Math.max(0, f(maxScrollPossible - strategy.availableSpace));
+}
+
+/** An item's mask extent and translation for a scroll offset (`Modifier.carouselItem`). */
+export function carouselItemPlacement(
+  strategy: Strategy,
+  index: number,
+  scrollOffset: number,
+  maxScrollOffset: number,
+): { size: number; maskStart: number; maskEnd: number; translation: number; keyline: Keyline } {
+  scrollOffset = f(scrollOffset);
+  const keylines = strategy.getKeylineListForScrollOffset(scrollOffset, maxScrollOffset);
+  const itemSizeWithSpacing = f(strategy.itemMainAxisSize + strategy.itemSpacing);
+  const unadjustedCenter = f(f(f(index * itemSizeWithSpacing) + half(strategy.itemMainAxisSize)) - scrollOffset);
+  const before = keylines.getKeylineBefore(unadjustedCenter);
+  const after = keylines.getKeylineAfter(unadjustedCenter);
+  const outOfBounds = keylineEquals(before, after);
+  const progress = outOfBounds ? 1 : f(f(unadjustedCenter - before.unadjustedOffset) / f(after.unadjustedOffset - before.unadjustedOffset));
+  const interpolated = lerpKeyline(before, after, progress);
+  const center = half(strategy.itemMainAxisSize);
+  const halfMask = half(interpolated.size);
+  let translation = f(interpolated.offset - unadjustedCenter);
+  if (outOfBounds) translation = f(translation + f(f(unadjustedCenter - interpolated.unadjustedOffset) / interpolated.size));
+  return { size: interpolated.size, maskStart: f(center - halfMask), maskEnd: f(center + halfMask), translation, keyline: interpolated };
+}
