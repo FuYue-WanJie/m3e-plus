@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>M3 Expressive Carousel · Keyline 引擎实测</title>
+<style>
+:root{
+  --bg:#141218; --surface:#1d1b20; --surface-hi:#2b2930; --surface-hst:#36343b;
+  --on:#e6e0e9; --on-var:#cac4d0; --outline:#49454f; --primary:#d0bcff; --on-primary:#381e72;
+  --pc:#4f378b; --tertiary:#efb8c8; --secondary:#ccc2dc;
+  --radius:28px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#fef7ff; --surface:#f7f2fa; --surface-hi:#ece6f0; --surface-hst:#e6e0e9;
+    --on:#1d1b20; --on-var:#49454f; --outline:#cac4d0; --primary:#6750a4; --on-primary:#fff; --pc:#eaddff;
+    --tertiary:#7d5260; --secondary:#625b71; color-scheme: light; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--on);font-family:"Roboto Flex","Roboto","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+body{padding:max(16px,env(safe-area-inset-top)) 16px 64px}
+main{max-width:1080px;margin:0 auto}
+header h1{font-size:28px;font-weight:500;letter-spacing:0;margin:8px 0 4px}
+header p{margin:0 0 16px;color:var(--on-var);font-size:14px;line-height:20px}
+.controls{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;
+  background:var(--surface);box-shadow:0 4px 12px rgba(0,0,0,.18);
+  border-radius:24px;padding:12px 16px;margin:0 0 20px;border:1px solid color-mix(in srgb,var(--outline) 50%,transparent)}
+.controls label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--on-var);white-space:nowrap}
+.controls output{min-width:34px;color:var(--on);font-variant-numeric:tabular-nums}
+.controls input[type=range]{width:110px;accent-color:var(--primary)}
+.chip{appearance:none;border:1px solid var(--outline);background:transparent;color:var(--on-var);border-radius:8px;height:32px;padding:0 12px;font:500 13px/1 inherit;cursor:pointer;transition:background .2s,color .2s,border-color .2s,border-radius .25s}
+.chip[aria-pressed=true]{background:var(--pc);color:var(--on);border-color:transparent;border-radius:16px}
+.chip:active{border-radius:6px}
+section.demo{background:var(--surface);border-radius:28px;padding:20px 20px 16px;margin:0 0 20px}
+section.demo h2{font-size:20px;font-weight:500;margin:0 0 2px}
+section.demo .desc{font-size:13px;color:var(--on-var);margin:0 0 14px;line-height:18px}
+.row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.carousel{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;outline:none;overflow:visible;cursor:grab}
+.carousel.vertical{touch-action:pan-x}
+.carousel.dragging{cursor:grabbing}
+.carousel:focus-visible{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--primary);border-radius:var(--radius)}
+.track{position:absolute;inset:0;will-change:transform;overflow:hidden;contain:strict}
+.item{position:absolute;top:0;left:0;contain:strict;cursor:pointer;visibility:hidden;overflow:hidden;border-radius:var(--radius);transform:translateZ(0)}
+.item.live{will-change:transform}
+/* the picture is its own GPU layer that never changes size, so revealing it only moves a clip: no re-raster */
+.item .pic{position:absolute;top:0;left:0;will-change:transform;contain:strict}
+.item .img{position:absolute;inset:0;background-size:cover;background-position:center}
+.item .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 55%)}
+.item .label{position:absolute;bottom:16px;left:16px;color:#fff;white-space:nowrap;pointer-events:none;transform-origin:left bottom}
+.item .label b{display:block;font-size:18px;font-weight:500;line-height:24px}
+.item .label span{display:block;font-size:12px;opacity:.85;line-height:16px}
+.vertical .item .label{left:20px;bottom:20px}
+.debug{position:absolute;inset:0;pointer-events:none;display:none;z-index:5}
+body.show-debug .debug{display:block}
+.readout{font:12px/16px ui-monospace,"Cascadia Mono",Consolas,monospace;color:var(--on-var);margin-top:10px;white-space:pre-wrap;min-height:32px;display:none}
+body.show-debug .readout{display:block}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:12px}
+.dots i{width:8px;height:8px;border-radius:4px;background:var(--outline);transition:width .35s cubic-bezier(.2,0,0,1),background .35s}
+.dots i.on{width:24px;background:var(--primary)}
+.phone{width:300px;height:560px;border-radius:40px;padding:10px;background:#000;box-shadow:0 0 0 2px var(--outline)}
+.phone .carousel{width:100%;height:100%}
+.side{flex:1;min-width:240px;font-size:13px;color:var(--on-var);line-height:20px}
+.side kbd{font:12px ui-monospace,monospace;background:var(--surface-hst);color:var(--on);padding:1px 6px;border-radius:6px}
+footer{color:var(--on-var);font-size:12px;text-align:center;margin-top:24px;line-height:18px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>M3 Expressive Carousel</h1>
+  <p>布局完全由 m3e-plus 仓库里的 <code>carousel-keylines.ts</code> 计算（Compose Keylines / Strategy 移植）。拖拽、触控板、滚轮、键盘、点击都能用；松手按速度惯性滑行再弹簧吸附，拉过头有 Android 12 式拉伸回弹。</p>
+</header>
+
+<div class="controls" id="controls">
+  <label>首选尺寸 <input type="range" id="pref" min="120" max="420" value="220"><output id="prefO">220</output></label>
+  <label>间距 <input type="range" id="gap" min="0" max="24" value="8"><output id="gapO">8</output></label>
+  <label>数量 <input type="range" id="count" min="1" max="20" value="12"><output id="countO">12</output></label>
+  <label>圆角 <input type="range" id="rad" min="0" max="48" value="28"><output id="radO">28</output></label>
+  <button class="chip" id="slow" aria-pressed="false">慢放 ×5</button>
+  <button class="chip" id="dbg" aria-pressed="false">Keyline 调试</button>
+  <span id="fps" style="font:12px ui-monospace,monospace;color:var(--on-var);min-width:64px">— fps</span>
+  <button class="chip" id="spring" aria-pressed="false">弹簧：Compose 原版</button>
+</div>
+
+<section class="demo">
+  <h2>Multi-browse 多浏览</h2>
+  <p class="desc">一大 + 中 + 小，Arrangement 自动挑成本最低的组合。滑动时焦点从左边沿着 keyline 步进移到右边，快速甩动可以一次跨多张。</p>
+  <div class="carousel" data-variant="multi" style="height:220px"></div>
+  <div class="readout"></div>
+</section>
+
+<section class="demo">
+  <h2>Hero 主角</h2>
+  <p class="desc">一张大图 + 一张小预览，每次最多翻一张（像 Pager），首选尺寸为 0 时铺满容器。</p>
+  <div class="carousel" data-variant="hero" style="height:260px"></div>
+  <div class="dots"></div>
+  <div class="readout"></div>
+</section>
+
+<section class="demo">
+  <h2>Centered Hero 居中主角</h2>
+  <p class="desc">大图居中、两侧各一张小图，至少 3 张才居中，否则退回左对齐。</p>
+  <div class="carousel" data-variant="hero-center" style="height:260px"></div>
+  <div class="dots"></div>
+  <div class="readout"></div>
+</section>
+
+<section class="demo">
+  <h2>Uncontained 无边界</h2>
+  <p class="desc">固定宽度平铺，末尾露出被裁切的一张，自由滚动不吸附（尺寸跟“首选尺寸”走）。</p>
+  <div class="carousel" data-variant="uncontained" style="height:200px"></div>
+  <div class="readout"></div>
+</section>
+
+<section class="demo">
+  <h2>Full-screen 竖向全屏</h2>
+  <div class="row">
+    <div class="phone"><div class="carousel vertical" data-variant="fullscreen" data-axis="y"></div></div>
+    <div class="side">
+      <p>同一套引擎换到纵轴：每屏一张，上下翻页，翻页时下一张从 10px 的锚点“长”出来。</p>
+      <p>键盘：聚焦任意轮播后 <kbd>←</kbd><kbd>→</kbd>（竖向是 <kbd>↑</kbd><kbd>↓</kbd>）翻页，<kbd>Home</kbd>/<kbd>End</kbd> 到两端。</p>
+      <p>开启 <b>Keyline 调试</b> 能看到每条 keyline：紫色是焦点，粉色是锚点，虚线是 pivot；下方实时显示当前处于 start 步进、默认还是 end 步进。</p>
+      <p>开启 <b>慢放</b> 看吸附弹簧和遮罩变形的细节。</p>
+      <div class="readout"></div>
+    </div>
+  </div>
+</section>
+
+<footer>keyline 数学：AndroidX Compose Material3 carousel（Apache-2.0），由 m3e-plus 移植并对 Kotlin oracle 校验。<br>手势物理：VelocityTracker(Lsq2)、Android spline 衰减、Pager 吸附规则，移植自 AndroidX，速度追踪与衰减代码取自 md3e-web-unofficial（Apache-2.0）。<br>遮罩、拉伸与调试图层为本演示独立实现，未改动仓库。</footer>
+</main>
+
+<script type="module">
+/**
+ * Carousel keyline layout engine — pure functions porting the AndroidX Material3 Expressive
+ * carousel keyline math (`compose/material3/carousel/Keylines.kt`, `KeylineList.kt`,
+ * `Arrangement.kt`).
+ *
+ * A carousel lays out one screenful of items as a `KeylineList`: each item is a "keyline" with a
+ * main-axis `size` and a centre `offset`, tagged `isFocal`/`isAnchor`/`isPivot` and a `cutoff`
+ * fraction. Three strategies (multi-browse, uncontained, hero) differ only in how they choose the
+ * large/medium/small counts and sizes. Scrolling interpolates between successive keyline lists.
+ *
+ * Float arithmetic: the source uses Kotlin `Float` (32-bit); we mirror that with `Math.fround` so
+ * values match the reference implementation bit-for-bit (validated against a Kotlin oracle).
+ */
+/** 32-bit float rounding, mirroring Kotlin `Float` arithmetic. */
+const f = Math.fround;
+const FLOAT_MAX = f(3.4028234663852886e38);
+const coerceIn = (v, min, max) => Math.min(Math.max(v, min), max);
+const lerpValue = (start, stop, fraction) => f(f(f(1 - fraction) * start) + f(fraction * stop));
+/** Kotlin `Float.toInt`: truncation, NaN→0, clamped to Int range. */
+const toInt = (v) => Number.isNaN(v) ? 0 : Math.trunc(Math.min(Math.max(v, -2147483648), 2147483647));
+const half = (v) => f(v / 2);
+/**
+ * Descending integer range from `maxLargeCount` down to `minLargeCount` (inclusive), guarding against
+ * a zero/non-finite `targetLargeSize` (divide-by-zero) that would otherwise allocate a runaway array.
+ */
+const largeCountRange = (minLargeCount, maxLargeCount) => {
+    const lo = Math.max(1, Math.min(minLargeCount, maxLargeCount));
+    const hi = Math.max(lo, Math.min(maxLargeCount, lo + 512));
+    const out = [];
+    for (let v = hi; v >= lo; v--)
+        out.push(v);
+    return out;
+};
+/** Array.prototype.findLastIndex equivalent (ES2023; target is ES2021). */
+const findLastIdx = (arr, pred) => {
+    for (let i = arr.length - 1; i >= 0; i--)
+        if (pred(arr[i]))
+            return i;
+    return -1;
+};
+/** Default sizing constants (`CarouselDefaults`). */
+const CarouselDefaults = Object.freeze({
+    MinSmallItemSize: 40,
+    MaxSmallItemSize: 56,
+    ItemSpacing: 0,
+    AnchorSize: 10,
+    MediumLargeItemDiffThreshold: 0.85,
+});
+const MediumItemFlexPercentage = f(0.1);
+// ── Arrangement ─────────────────────────────────────────────────────────────────────────────────
+/** A candidate large/medium/small count+size combination, scored by how close its large size is. */
+class Arrangement {
+    priority;
+    smallSize;
+    smallCount;
+    mediumSize;
+    mediumCount;
+    largeSize;
+    largeCount;
+    constructor(priority, smallSize, smallCount, mediumSize, mediumCount, largeSize, largeCount) {
+        this.priority = priority;
+        this.smallSize = smallSize;
+        this.smallCount = smallCount;
+        this.mediumSize = mediumSize;
+        this.mediumCount = mediumCount;
+        this.largeSize = largeSize;
+        this.largeCount = largeCount;
+    }
+    isValid() {
+        if (this.largeCount > 0 && this.smallCount > 0 && this.mediumCount > 0) {
+            return this.largeSize > this.mediumSize && this.mediumSize > this.smallSize;
+        }
+        else if (this.largeCount > 0 && this.smallCount > 0) {
+            return this.largeSize > this.smallSize;
+        }
+        return true;
+    }
+    cost(targetLargeSize) {
+        if (!this.isValid())
+            return FLOAT_MAX;
+        return f(Math.abs(f(targetLargeSize - this.largeSize)) * this.priority);
+    }
+    itemCount() {
+        return this.largeCount + this.mediumCount + this.smallCount;
+    }
+    static findLowestCostArrangement(opts) {
+        let lowest = null;
+        let priority = 1;
+        for (const largeCount of opts.largeCounts) {
+            for (const mediumCount of opts.mediumCounts) {
+                for (const smallCount of opts.smallCounts) {
+                    const arrangement = fit({
+                        priority,
+                        availableSpace: opts.availableSpace,
+                        itemSpacing: opts.itemSpacing,
+                        smallCount,
+                        smallSize: opts.targetSmallSize,
+                        minSmallSize: opts.minSmallSize,
+                        maxSmallSize: opts.maxSmallSize,
+                        mediumCount,
+                        mediumSize: opts.targetMediumSize,
+                        largeCount,
+                        largeSize: opts.targetLargeSize,
+                    });
+                    if (lowest === null || arrangement.cost(opts.targetLargeSize) < lowest.cost(opts.targetLargeSize)) {
+                        lowest = arrangement;
+                        if (lowest.cost(opts.targetLargeSize) === 0)
+                            return lowest;
+                    }
+                    priority++;
+                }
+            }
+        }
+        return lowest;
+    }
+}
+function fit(p) {
+    const totalItemCount = p.largeCount + p.mediumCount + p.smallCount;
+    const availableSpaceWithoutSpacing = f(p.availableSpace - f((totalItemCount - 1) * p.itemSpacing));
+    let arrangedSmallSize = coerceIn(p.smallSize, p.minSmallSize, p.maxSmallSize);
+    let arrangedMediumSize = p.mediumSize;
+    let arrangedLargeSize = p.largeSize;
+    const totalSpaceTaken = f(f(f(arrangedLargeSize * p.largeCount) + f(arrangedMediumSize * p.mediumCount)) +
+        f(arrangedSmallSize * p.smallCount));
+    const delta = f(availableSpaceWithoutSpacing - totalSpaceTaken);
+    if (p.smallCount > 0 && delta > 0) {
+        arrangedSmallSize = f(arrangedSmallSize + Math.min(f(delta / p.smallCount), f(p.maxSmallSize - arrangedSmallSize)));
+    }
+    else if (p.smallCount > 0 && delta < 0) {
+        arrangedSmallSize = f(arrangedSmallSize + Math.max(f(delta / p.smallCount), f(p.minSmallSize - arrangedSmallSize)));
+    }
+    arrangedSmallSize = p.smallCount > 0 ? arrangedSmallSize : 0;
+    arrangedLargeSize = calculateLargeSize(availableSpaceWithoutSpacing, p.smallCount, arrangedSmallSize, p.mediumCount, p.largeCount);
+    arrangedMediumSize = half(f(arrangedLargeSize + arrangedSmallSize));
+    if (p.mediumCount > 0 && arrangedLargeSize !== p.largeSize) {
+        const targetAdjustment = f(f(p.largeSize - arrangedLargeSize) * p.largeCount);
+        const availableMediumFlex = f(f(arrangedMediumSize * MediumItemFlexPercentage) * p.mediumCount);
+        const distribute = Math.min(Math.abs(targetAdjustment), availableMediumFlex);
+        if (targetAdjustment > 0) {
+            arrangedMediumSize = f(arrangedMediumSize - f(distribute / p.mediumCount));
+            arrangedLargeSize = f(arrangedLargeSize + f(distribute / p.largeCount));
+        }
+        else {
+            arrangedMediumSize = f(arrangedMediumSize + f(distribute / p.mediumCount));
+            arrangedLargeSize = f(arrangedLargeSize - f(distribute / p.largeCount));
+        }
+    }
+    return new Arrangement(p.priority, arrangedSmallSize, p.smallCount, arrangedMediumSize, p.mediumCount, arrangedLargeSize, p.largeCount);
+}
+function calculateLargeSize(availableSpace, smallCount, smallSize, mediumCount, largeCount) {
+    return f(f(availableSpace - f(f(smallCount + half(mediumCount)) * smallSize)) / f(largeCount + half(mediumCount)));
+}
+/** A screenful of keylines with derived index accessors. */
+class KeylineList extends Array {
+    minSize = 0;
+    maxSize = 0;
+    pivotIndex = -1;
+    firstNonAnchorIndex = -1;
+    lastNonAnchorIndex = -1;
+    firstFocalIndex = -1;
+    lastFocalIndex = -1;
+    focalCount = 0;
+    static from(items) {
+        const list = new KeylineList();
+        for (let i = 0; i < items.length; i++)
+            list.push(items[i]);
+        list.#index();
+        return list;
+    }
+    #index() {
+        let min = FLOAT_MAX;
+        let max = 0;
+        for (const k of this) {
+            if (k.size < min)
+                min = k.size;
+            if (k.size > max)
+                max = k.size;
+        }
+        this.minSize = min;
+        this.maxSize = max;
+        this.pivotIndex = this.findIndex((k) => k.isPivot);
+        this.firstNonAnchorIndex = this.findIndex((k) => !k.isAnchor);
+        this.lastNonAnchorIndex = findLastIdx(this, (k) => !k.isAnchor);
+        this.firstFocalIndex = this.findIndex((k) => k.isFocal);
+        this.lastFocalIndex = findLastIdx(this, (k) => k.isFocal);
+        this.focalCount = this.lastFocalIndex - this.firstFocalIndex + 1;
+    }
+    get pivot() {
+        return this[this.pivotIndex];
+    }
+    get firstNonAnchor() {
+        return this[this.firstNonAnchorIndex];
+    }
+    get lastNonAnchor() {
+        return this[this.lastNonAnchorIndex];
+    }
+    get firstFocal() {
+        const k = this[this.firstFocalIndex];
+        if (!k)
+            throw new RangeError("KeylineList must have at least one focal keyline");
+        return k;
+    }
+    get lastFocal() {
+        const k = this[this.lastFocalIndex];
+        if (!k)
+            throw new RangeError("KeylineList must have at least one focal keyline");
+        return k;
+    }
+    firstIndexAfterFocalRangeWithSize(size) {
+        for (let i = this.lastFocalIndex; i <= this.length - 1; i++)
+            if (this[i].size === size)
+                return i;
+        return this.length - 1;
+    }
+    lastIndexBeforeFocalRangeWithSize(size) {
+        for (let i = this.firstFocalIndex - 1; i >= 0; i--)
+            if (this[i].size === size)
+                return i;
+        return 0;
+    }
+    getKeylineBefore(unadjustedOffset) {
+        for (let index = this.length - 1; index >= 0; index--) {
+            if (this[index].unadjustedOffset < unadjustedOffset)
+                return this[index];
+        }
+        return this[0];
+    }
+    getKeylineAfter(unadjustedOffset) {
+        return this.find((k) => k.unadjustedOffset >= unadjustedOffset) ?? this[this.length - 1];
+    }
+    equals(other) {
+        if (this === other)
+            return true;
+        if (!(other instanceof KeylineList) || this.length !== other.length)
+            return false;
+        return this.every((k, i) => keylineEquals(k, other[i]));
+    }
+}
+const keylineEquals = (a, b) => a.size === b.size &&
+    a.offset === b.offset &&
+    a.unadjustedOffset === b.unadjustedOffset &&
+    a.isFocal === b.isFocal &&
+    a.isAnchor === b.isAnchor &&
+    a.isPivot === b.isPivot &&
+    a.cutoff === b.cutoff;
+const emptyKeylineList = () => KeylineList.from([]);
+const CarouselAlignment = Object.freeze({ Start: -1, Center: 0, End: 1 });
+const isFocalIndex = (index, firstFocal, lastFocal) => index >= firstFocal && index <= lastFocal;
+class KeylineListScope {
+    firstFocalIndex = -1;
+    focalItemSize = 0;
+    tmp = [];
+    add(size, isAnchor = false) {
+        this.tmp.push({ size, isAnchor });
+        if (!isAnchor && size > this.focalItemSize) {
+            this.firstFocalIndex = this.tmp.length - 1;
+            this.focalItemSize = size;
+        }
+    }
+    #findLastFocalIndex() {
+        if (this.firstFocalIndex < 0)
+            return -1;
+        let last = this.firstFocalIndex;
+        while (last < this.tmp.length - 1 && this.tmp[last + 1].size === this.focalItemSize)
+            last++;
+        return last;
+    }
+    createWithPivot(size, itemSpacing, pivotIndex, pivotOffset) {
+        return KeylineList.from(this.#createKeylinesWithPivot(pivotIndex, pivotOffset, this.firstFocalIndex, this.#findLastFocalIndex(), this.focalItemSize, size, itemSpacing));
+    }
+    createWithAlignment(size, itemSpacing, alignment) {
+        const lastFocalIndex = this.#findLastFocalIndex();
+        const focalItemCount = lastFocalIndex - this.firstFocalIndex;
+        const pivotIndex = this.firstFocalIndex;
+        let pivotOffset;
+        if (alignment === CarouselAlignment.Center) {
+            const itemSpacingSplit = itemSpacing === 0 || focalItemCount % 2 === 0 ? 0 : half(itemSpacing);
+            const itemSpaceCounts = f(Math.trunc(focalItemCount / 2) * itemSpacing);
+            pivotOffset = f(f(f(half(size) - f(half(this.focalItemSize) * focalItemCount)) - itemSpacingSplit) - itemSpaceCounts);
+        }
+        else if (alignment === CarouselAlignment.End) {
+            pivotOffset = f(size - half(this.focalItemSize));
+        }
+        else {
+            pivotOffset = half(this.focalItemSize);
+        }
+        return KeylineList.from(this.#createKeylinesWithPivot(pivotIndex, pivotOffset, this.firstFocalIndex, lastFocalIndex, this.focalItemSize, size, itemSpacing));
+    }
+    #createKeylinesWithPivot(pivotIndex, pivotOffset, firstFocalIndex, lastFocalIndex, itemMainAxisSize, size, itemSpacing) {
+        const tmp = this.tmp;
+        if (!tmp.length || pivotIndex < 0 || pivotIndex >= tmp.length)
+            return [];
+        const isCutoffLeft = (s, o) => f(o - half(s)) < 0 && f(o + half(s)) > 0;
+        const isCutoffRight = (s, o) => f(o - half(s)) < size && f(o + half(s)) > size;
+        const pivot = tmp[pivotIndex];
+        const keylines = [];
+        const pivotCutoff = isCutoffLeft(pivot.size, pivotOffset)
+            ? f(pivotOffset - half(pivot.size))
+            : isCutoffRight(pivot.size, pivotOffset)
+                ? f(f(pivotOffset + half(pivot.size)) - size)
+                : 0;
+        keylines.push({
+            size: pivot.size,
+            offset: pivotOffset,
+            unadjustedOffset: pivotOffset,
+            isFocal: isFocalIndex(pivotIndex, firstFocalIndex, lastFocalIndex),
+            isAnchor: pivot.isAnchor,
+            isPivot: true,
+            cutoff: pivotCutoff,
+        });
+        let offset = f(f(pivotOffset - half(itemMainAxisSize)) - itemSpacing);
+        let unadj = f(f(pivotOffset - half(itemMainAxisSize)) - itemSpacing);
+        for (let oi = pivotIndex - 1; oi >= 0; oi--) {
+            const t = tmp[oi];
+            const tmpOffset = f(offset - half(t.size));
+            const tmpUnadj = f(unadj - half(itemMainAxisSize));
+            const cutoff = isCutoffLeft(t.size, tmpOffset) ? Math.abs(f(tmpOffset - half(t.size))) : 0;
+            keylines.unshift({
+                size: t.size,
+                offset: tmpOffset,
+                unadjustedOffset: tmpUnadj,
+                isFocal: isFocalIndex(oi, firstFocalIndex, lastFocalIndex),
+                isAnchor: t.isAnchor,
+                isPivot: false,
+                cutoff,
+            });
+            offset = f(offset - f(t.size + itemSpacing));
+            unadj = f(unadj - f(itemMainAxisSize + itemSpacing));
+        }
+        offset = f(f(pivotOffset + half(itemMainAxisSize)) + itemSpacing);
+        unadj = f(f(pivotOffset + half(itemMainAxisSize)) + itemSpacing);
+        for (let oi = pivotIndex + 1; oi < tmp.length; oi++) {
+            const t = tmp[oi];
+            const tmpOffset = f(offset + half(t.size));
+            const tmpUnadj = f(unadj + half(itemMainAxisSize));
+            const cutoff = isCutoffRight(t.size, tmpOffset) ? f(f(tmpOffset + half(t.size)) - size) : 0;
+            keylines.push({
+                size: t.size,
+                offset: tmpOffset,
+                unadjustedOffset: tmpUnadj,
+                isFocal: isFocalIndex(oi, firstFocalIndex, lastFocalIndex),
+                isAnchor: t.isAnchor,
+                isPivot: false,
+                cutoff,
+            });
+            offset = f(offset + f(t.size + itemSpacing));
+            unadj = f(unadj + f(itemMainAxisSize + itemSpacing));
+        }
+        return keylines;
+    }
+}
+/** Build a KeylineList with an alignment (`CarouselAlignment.*`) or an explicit pivot. */
+function keylineListOf(size, itemSpacing, alignmentOrPivot, build) {
+    const scope = new KeylineListScope();
+    build(scope);
+    return typeof alignmentOrPivot === "object"
+        ? scope.createWithPivot(size, itemSpacing, alignmentOrPivot.pivotIndex, alignmentOrPivot.pivotOffset)
+        : scope.createWithAlignment(size, itemSpacing, alignmentOrPivot);
+}
+/** Interpolate a single keyline (flags switch at 0.5). */
+function lerpKeyline(start, end, fraction) {
+    return {
+        size: lerpValue(start.size, end.size, fraction),
+        offset: lerpValue(start.offset, end.offset, fraction),
+        unadjustedOffset: lerpValue(start.unadjustedOffset, end.unadjustedOffset, fraction),
+        isFocal: fraction < 0.5 ? start.isFocal : end.isFocal,
+        isAnchor: fraction < 0.5 ? start.isAnchor : end.isAnchor,
+        isPivot: fraction < 0.5 ? start.isPivot : end.isPivot,
+        cutoff: lerpValue(start.cutoff, end.cutoff, fraction),
+    };
+}
+/** Interpolate two keyline lists (same length) at `fraction`. */
+function lerpKeylineList(from, to, fraction) {
+    return KeylineList.from(from.map((k, i) => lerpKeyline(k, to[i], fraction)));
+}
+/** multi-browse: one large + options of medium/small, focused; balances sizes to fit. */
+function multiBrowseKeylineList(p) {
+    const [size, preferred, itemSpacing, minSmall, maxSmall] = [
+        p.carouselMainAxisSize,
+        p.preferredItemSize,
+        p.itemSpacing,
+        p.minSmallItemSize ?? CarouselDefaults.MinSmallItemSize,
+        p.maxSmallItemSize ?? CarouselDefaults.MaxSmallItemSize,
+    ].map(f);
+    if (size === 0 || preferred === 0)
+        return emptyKeylineList();
+    let smallCounts = [1];
+    const mediumCounts = [1, 0];
+    const targetLargeSize = Math.min(preferred, size);
+    const targetSmallSize = coerceIn(f(targetLargeSize / 3), minSmall, maxSmall);
+    const targetMediumSize = half(f(targetLargeSize + targetSmallSize));
+    if (size < f(minSmall * 2))
+        smallCounts = [0];
+    const minAvailableLargeSpace = f(f(size - f(targetMediumSize * Math.max(...mediumCounts))) - f(maxSmall * Math.max(...smallCounts)));
+    const minLargeCount = Math.max(1, toInt(Math.floor(f(minAvailableLargeSpace / targetLargeSize))));
+    const maxLargeCount = toInt(Math.ceil(f(size / targetLargeSize)));
+    const largeCounts = largeCountRange(minLargeCount, maxLargeCount);
+    const anchorSize = CarouselDefaults.AnchorSize;
+    const find = (small, medium) => Arrangement.findLowestCostArrangement({
+        availableSpace: size,
+        itemSpacing,
+        targetSmallSize,
+        minSmallSize: minSmall,
+        maxSmallSize: maxSmall,
+        smallCounts: small,
+        targetMediumSize,
+        mediumCounts: medium,
+        targetLargeSize,
+        largeCounts,
+    });
+    let arrangement = find(smallCounts, mediumCounts);
+    if (arrangement !== null && arrangement.itemCount() > p.itemCount) {
+        let surplus = arrangement.itemCount() - p.itemCount;
+        let smallCount = arrangement.smallCount;
+        let mediumCount = arrangement.mediumCount;
+        while (surplus > 0) {
+            if (smallCount > 0)
+                smallCount -= 1;
+            else if (mediumCount > 1)
+                mediumCount -= 1;
+            surplus -= 1;
+        }
+        arrangement = find([smallCount], [mediumCount]);
+    }
+    if (arrangement === null)
+        return emptyKeylineList();
+    return createLeftAlignedKeylineList(size, itemSpacing, anchorSize, anchorSize, arrangement);
+}
+/** uncontained: fixed item size tiled across, with one cut-off item showing at the end. */
+function uncontainedKeylineList(p) {
+    const [size, itemSizeRaw, itemSpacing] = [p.carouselMainAxisSize, p.itemSize, p.itemSpacing].map(f);
+    if (size === 0 || itemSizeRaw === 0)
+        return emptyKeylineList();
+    const largeItemSize = Math.min(f(itemSizeRaw + itemSpacing), size);
+    const largeCount = Math.max(1, toInt(Math.floor(f(size / largeItemSize))));
+    const remainingSpace = f(size - f(largeCount * largeItemSize));
+    const mediumCount = remainingSpace > 0 ? 1 : 0;
+    const defaultAnchorSize = CarouselDefaults.AnchorSize;
+    const mediumItemSize = calculateMediumChildSize(defaultAnchorSize, largeItemSize, remainingSpace);
+    const arrangement = new Arrangement(0, 0, 0, mediumItemSize, mediumCount, largeItemSize, largeCount);
+    const xSmallSize = Math.min(defaultAnchorSize, itemSizeRaw);
+    const leftAnchorSize = Math.max(xSmallSize, f(mediumItemSize * 0.5));
+    return createLeftAlignedKeylineList(size, itemSpacing, leftAnchorSize, defaultAnchorSize, arrangement);
+}
+/** centered hero: one large item centred, flanked by small items. */
+function heroKeylineList(p) {
+    let preferred = p.preferredItemSize;
+    const [size, itemSpacing, minSmall, maxSmall] = [
+        p.carouselMainAxisSize,
+        p.itemSpacing,
+        p.minSmallItemSize ?? CarouselDefaults.MinSmallItemSize,
+        p.maxSmallItemSize ?? CarouselDefaults.MaxSmallItemSize,
+    ].map(f);
+    if (preferred !== null)
+        preferred = f(preferred);
+    if (size === 0)
+        return emptyKeylineList();
+    // A null OR non-positive preference means "use the full container" (matches the reference: a
+    // preferredItemSize of 0 yields a large item as big as the carousel).
+    if (preferred === null || preferred <= 0)
+        preferred = size;
+    const shouldCenter = !!p.isCentered && p.itemCount >= 3;
+    let smallCounts = p.itemCount <= 1 ? [0] : shouldCenter ? [2] : [1];
+    const targetLargeSize = Math.min(preferred, size);
+    const targetSmallSize = coerceIn(f(targetLargeSize / 3), minSmall, maxSmall);
+    const fullscreenThreshold = f(f(minSmall * Math.max(...smallCounts)) + f(minSmall * 1.25));
+    if (size < fullscreenThreshold)
+        smallCounts = [0];
+    const minAvailableLargeSpace = f(size - f(minSmall * Math.max(...smallCounts)));
+    const minLargeCount = Math.max(1, toInt(Math.floor(f(minAvailableLargeSpace / targetLargeSize))));
+    const maxLargeCount = toInt(Math.ceil(f(size / targetLargeSize)));
+    const largeCounts = largeCountRange(minLargeCount, maxLargeCount);
+    const anchorSize = CarouselDefaults.AnchorSize;
+    const arrangement = Arrangement.findLowestCostArrangement({
+        availableSpace: size,
+        itemSpacing,
+        targetSmallSize,
+        minSmallSize: minSmall,
+        maxSmallSize: maxSmall,
+        smallCounts,
+        targetMediumSize: 0,
+        mediumCounts: [0],
+        targetLargeSize,
+        largeCounts,
+    });
+    if (arrangement === null)
+        return emptyKeylineList();
+    return shouldCenter && p.itemCount >= arrangement.itemCount()
+        ? createCenterAlignedKeylineList(size, itemSpacing, anchorSize, anchorSize, arrangement)
+        : createLeftAlignedKeylineList(size, itemSpacing, anchorSize, anchorSize, arrangement);
+}
+function createLeftAlignedKeylineList(size, itemSpacing, leftAnchorSize, rightAnchorSize, arrangement) {
+    return keylineListOf(size, itemSpacing, CarouselAlignment.Start, (scope) => {
+        scope.add(leftAnchorSize, true);
+        for (let i = 0; i < arrangement.largeCount; i++)
+            scope.add(arrangement.largeSize);
+        for (let i = 0; i < arrangement.mediumCount; i++)
+            scope.add(arrangement.mediumSize);
+        for (let i = 0; i < arrangement.smallCount; i++)
+            scope.add(arrangement.smallSize);
+        scope.add(rightAnchorSize, true);
+    });
+}
+function createCenterAlignedKeylineList(size, itemSpacing, leftAnchorSize, rightAnchorSize, arrangement) {
+    return keylineListOf(size, itemSpacing, CarouselAlignment.Center, (scope) => {
+        scope.add(leftAnchorSize, true);
+        for (let i = 0; i < Math.trunc(arrangement.smallCount / 2); i++)
+            scope.add(arrangement.smallSize);
+        for (let i = 0; i < Math.trunc(arrangement.mediumCount / 2); i++)
+            scope.add(arrangement.mediumSize);
+        for (let i = 0; i < arrangement.largeCount; i++)
+            scope.add(arrangement.largeSize);
+        for (let i = 0; i < Math.trunc(arrangement.mediumCount / 2); i++)
+            scope.add(arrangement.mediumSize);
+        for (let i = 0; i < Math.trunc(arrangement.smallCount / 2); i++)
+            scope.add(arrangement.smallSize);
+        scope.add(rightAnchorSize, true);
+    });
+}
+function calculateMediumChildSize(minimumMediumSize, largeItemSize, remainingSpace) {
+    let mediumItemSize = Math.max(f(remainingSpace * 1.5), minimumMediumSize);
+    const largeItemThreshold = f(largeItemSize * f(CarouselDefaults.MediumLargeItemDiffThreshold));
+    if (mediumItemSize > largeItemThreshold) {
+        const sizeWithFifthCutOff = f(remainingSpace * f(1.2));
+        mediumItemSize = Math.min(Math.max(largeItemThreshold, sizeWithFifthCutOff), largeItemSize);
+    }
+    return mediumItemSize;
+}
+// ── Strategy: scroll offset → keyline list (moving focus across steps) ───────────────────────────
+/** Linear remap with clamping (`Strategy.kt` `lerp`), in Float arithmetic. */
+function lerpRange(outputMin, outputMax, inputMin, inputMax, value) {
+    if (value <= inputMin)
+        return outputMin;
+    if (value >= inputMax)
+        return outputMax;
+    return lerpValue(outputMin, outputMax, f(f(value - inputMin) / f(inputMax - inputMin)));
+}
+const roundToInt = (v) => Math.round(v);
+function movedKeylineList(from, srcIndex, dstIndex, size, itemSpacing) {
+    const pivotDir = srcIndex > dstIndex ? 1 : -1;
+    const pivotDelta = f(f(f(from[srcIndex].size - from[srcIndex].cutoff) + itemSpacing) * pivotDir);
+    const newPivotIndex = from.pivotIndex + pivotDir;
+    const newPivotOffset = f(from.pivot.offset + pivotDelta);
+    const moved = [...from];
+    const [keyline] = moved.splice(srcIndex, 1);
+    moved.splice(dstIndex, 0, keyline);
+    return keylineListOf(size, itemSpacing, { pivotIndex: newPivotIndex, pivotOffset: newPivotOffset }, (scope) => {
+        for (const k of moved)
+            scope.add(k.size, k.isAnchor);
+    });
+}
+function shiftedForContentPadding(from, size, itemSpacing, contentPadding, pivot, pivotIndex) {
+    const numberOfNonAnchor = from.filter((k) => !k.isAnchor).length;
+    const sizeReduction = f(contentPadding / numberOfNonAnchor);
+    const newKeylines = keylineListOf(size, itemSpacing, { pivotIndex, pivotOffset: f(f(pivot.offset - half(sizeReduction)) + contentPadding) }, (scope) => {
+        for (const k of from)
+            scope.add(f(k.size - Math.abs(sizeReduction)), k.isAnchor);
+    });
+    return KeylineList.from(newKeylines.map((k, i) => ({ ...k, unadjustedOffset: from[i].unadjustedOffset })));
+}
+function startKeylineSteps(defaultKeylines, size, itemSpacing, beforeContentPadding) {
+    if (!defaultKeylines.length)
+        return [];
+    const steps = [defaultKeylines];
+    if (isFirstFocalAtStart(defaultKeylines)) {
+        if (beforeContentPadding !== 0) {
+            steps.push(shiftedForContentPadding(defaultKeylines, size, itemSpacing, beforeContentPadding, defaultKeylines.firstFocal, defaultKeylines.firstFocalIndex));
+        }
+        return steps;
+    }
+    const startIndex = defaultKeylines.firstNonAnchorIndex;
+    const endIndex = defaultKeylines.firstFocalIndex;
+    const numberOfSteps = endIndex - startIndex;
+    if (numberOfSteps <= 0 && defaultKeylines.firstFocal.cutoff > 0) {
+        steps.push(movedKeylineList(defaultKeylines, 0, 0, size, itemSpacing));
+        return steps;
+    }
+    for (let i = 0; i < numberOfSteps; i++) {
+        const prevStep = steps[steps.length - 1];
+        const originalItemIndex = startIndex + i;
+        let dstIndex = defaultKeylines.length - 1;
+        if (originalItemIndex > 0) {
+            const originalNeighborBeforeSize = defaultKeylines[originalItemIndex - 1].size;
+            dstIndex = prevStep.firstIndexAfterFocalRangeWithSize(originalNeighborBeforeSize) - 1;
+        }
+        steps.push(movedKeylineList(prevStep, defaultKeylines.firstNonAnchorIndex, dstIndex, size, itemSpacing));
+    }
+    if (beforeContentPadding !== 0) {
+        const last = steps[steps.length - 1];
+        steps[steps.length - 1] = shiftedForContentPadding(last, size, itemSpacing, beforeContentPadding, last.firstFocal, last.firstFocalIndex);
+    }
+    return steps;
+}
+function endKeylineSteps(defaultKeylines, size, itemSpacing, afterContentPadding) {
+    if (!defaultKeylines.length)
+        return [];
+    const steps = [defaultKeylines];
+    if (isLastFocalAtEnd(defaultKeylines, size)) {
+        if (afterContentPadding !== 0) {
+            steps.push(shiftedForContentPadding(defaultKeylines, size, itemSpacing, -afterContentPadding, defaultKeylines.lastFocal, defaultKeylines.lastFocalIndex));
+        }
+        return steps;
+    }
+    const startIndex = defaultKeylines.lastFocalIndex;
+    const endIndex = defaultKeylines.lastNonAnchorIndex;
+    const numberOfSteps = endIndex - startIndex;
+    if (numberOfSteps <= 0 && defaultKeylines.lastFocal.cutoff > 0) {
+        steps.push(movedKeylineList(defaultKeylines, 0, 0, size, itemSpacing));
+        return steps;
+    }
+    for (let i = 0; i < numberOfSteps; i++) {
+        const prevStep = steps[steps.length - 1];
+        const originalItemIndex = endIndex - i;
+        let dstIndex = 0;
+        if (originalItemIndex < defaultKeylines.length - 1) {
+            const originalNeighborAfterSize = defaultKeylines[originalItemIndex + 1].size;
+            dstIndex = prevStep.lastIndexBeforeFocalRangeWithSize(originalNeighborAfterSize) + 1;
+        }
+        steps.push(movedKeylineList(prevStep, defaultKeylines.lastNonAnchorIndex, dstIndex, size, itemSpacing));
+    }
+    if (afterContentPadding !== 0) {
+        const last = steps[steps.length - 1];
+        steps[steps.length - 1] = shiftedForContentPadding(last, size, itemSpacing, -afterContentPadding, last.lastFocal, last.lastFocalIndex);
+    }
+    return steps;
+}
+function isFirstFocalAtStart(kl) {
+    const firstFocalLeft = f(kl.firstFocal.offset - half(kl.firstFocal.size));
+    return firstFocalLeft >= 0 && keylineEquals(kl.firstFocal, kl.firstNonAnchor);
+}
+function isLastFocalAtEnd(kl, size) {
+    const lastFocalRight = f(kl.lastFocal.offset + half(kl.lastFocal.size));
+    return lastFocalRight <= size && keylineEquals(kl.lastFocal, kl.lastNonAnchor);
+}
+function startShiftDistance(steps, beforeContentPadding) {
+    if (!steps.length)
+        return 0;
+    const last = steps[steps.length - 1];
+    return Math.max(f(last[0].unadjustedOffset - steps[0][0].unadjustedOffset), beforeContentPadding);
+}
+function endShiftDistance(steps, afterContentPadding) {
+    if (!steps.length)
+        return 0;
+    const last = steps[steps.length - 1];
+    return Math.max(f(steps[0][steps[0].length - 1].unadjustedOffset - last[last.length - 1].unadjustedOffset), afterContentPadding);
+}
+function stepInterpolationPoints(totalShiftDistance, steps, shiftingLeft) {
+    const points = [0];
+    if (totalShiftDistance === 0 || !steps.length)
+        return points;
+    for (let i = 1; i < steps.length; i++) {
+        const prev = steps[i - 1];
+        const curr = steps[i];
+        const distanceShifted = shiftingLeft
+            ? f(curr[0].unadjustedOffset - prev[0].unadjustedOffset)
+            : f(prev[prev.length - 1].unadjustedOffset - curr[curr.length - 1].unadjustedOffset);
+        const pct = f(distanceShifted / totalShiftDistance);
+        points.push(i === steps.length - 1 ? 1 : f(points[i - 1] + pct));
+    }
+    return points;
+}
+/** Drives the moving keyline layout as the carousel scrolls (`Strategy.kt`). */
+class Strategy {
+    defaultKeylines;
+    availableSpace;
+    itemSpacing;
+    beforeContentPadding;
+    afterContentPadding;
+    startKeylineSteps;
+    endKeylineSteps;
+    minItemSize;
+    maxItemSize;
+    startShiftDistance;
+    endShiftDistance;
+    startShiftPoints;
+    endShiftPoints;
+    isValid;
+    #cache = null;
+    constructor(defaultKeylines, availableSpace, itemSpacing, beforeContentPadding, afterContentPadding) {
+        [availableSpace, itemSpacing, beforeContentPadding, afterContentPadding] = [availableSpace, itemSpacing, beforeContentPadding, afterContentPadding].map(f);
+        this.defaultKeylines = defaultKeylines;
+        this.availableSpace = availableSpace;
+        this.itemSpacing = itemSpacing;
+        this.beforeContentPadding = beforeContentPadding;
+        this.afterContentPadding = afterContentPadding;
+        this.startKeylineSteps = startKeylineSteps(defaultKeylines, availableSpace, itemSpacing, beforeContentPadding);
+        this.endKeylineSteps = endKeylineSteps(defaultKeylines, availableSpace, itemSpacing, afterContentPadding);
+        let min = defaultKeylines.minSize;
+        let max = defaultKeylines.maxSize;
+        for (const step of [...this.startKeylineSteps, ...this.endKeylineSteps]) {
+            if (step.minSize < min)
+                min = step.minSize;
+            if (step.maxSize > max)
+                max = step.maxSize;
+        }
+        this.minItemSize = min;
+        this.maxItemSize = max;
+        this.startShiftDistance = startShiftDistance(this.startKeylineSteps, beforeContentPadding);
+        this.endShiftDistance = endShiftDistance(this.endKeylineSteps, afterContentPadding);
+        this.startShiftPoints = stepInterpolationPoints(this.startShiftDistance, this.startKeylineSteps, true);
+        this.endShiftPoints = stepInterpolationPoints(this.endShiftDistance, this.endKeylineSteps, false);
+        this.isValid = defaultKeylines.length > 0 && availableSpace !== 0 && this.itemMainAxisSize !== 0;
+    }
+    get itemMainAxisSize() {
+        return this.defaultKeylines.length ? this.defaultKeylines.firstFocal.size : 0;
+    }
+    getKeylineListForScrollOffset(scrollOffset, maxScrollOffset, roundToNearestStep = false) {
+        const c = this.#cache;
+        if (c && c.scrollOffset === scrollOffset && c.maxScrollOffset === maxScrollOffset && c.round === roundToNearestStep)
+            return c.result;
+        const result = this.#forScrollOffset(scrollOffset, maxScrollOffset, roundToNearestStep);
+        this.#cache = { scrollOffset, maxScrollOffset, round: roundToNearestStep, result };
+        return result;
+    }
+    #forScrollOffset(scrollOffset, maxScrollOffset, roundToNearestStep) {
+        const positive = Math.max(0, f(scrollOffset));
+        const startShift = this.startShiftDistance;
+        maxScrollOffset = f(maxScrollOffset);
+        const endShift = Math.max(0, f(maxScrollOffset - this.endShiftDistance));
+        if (positive >= startShift && positive <= endShift)
+            return this.defaultKeylines;
+        let interpolation = lerpRange(1, 0, 0, startShift, positive);
+        let shiftPoints = this.startShiftPoints;
+        let steps = this.startKeylineSteps;
+        if (positive > endShift) {
+            interpolation = lerpRange(0, 1, endShift, maxScrollOffset, positive);
+            shiftPoints = this.endShiftPoints;
+            steps = this.endKeylineSteps;
+        }
+        let fromStepIndex = 0;
+        let toStepIndex = 0;
+        let steppedInterpolation = 0;
+        let lower = shiftPoints[0];
+        for (let i = 1; i < steps.length; i++) {
+            const upper = shiftPoints[i];
+            if (interpolation <= upper) {
+                fromStepIndex = i - 1;
+                toStepIndex = i;
+                steppedInterpolation = lerpRange(0, 1, lower, upper, interpolation);
+                break;
+            }
+            lower = upper;
+        }
+        if (roundToNearestStep)
+            return steps[roundToInt(steppedInterpolation) === 0 ? fromStepIndex : toStepIndex];
+        return lerpKeylineList(steps[fromStepIndex], steps[toStepIndex], steppedInterpolation);
+    }
+}
+/** Where item `itemIndex` rests, from the carousel start (`KeylineSnapPosition`). */
+function getSnapPositionOffset(strategy, itemIndex, itemCount) {
+    if (!strategy.isValid)
+        return 0;
+    let offset = roundToInt(f(strategy.defaultKeylines.firstFocal.unadjustedOffset - half(strategy.itemMainAxisSize)));
+    const startLast = strategy.startKeylineSteps.length - 1;
+    if (startLast >= 0 && itemIndex <= startLast) {
+        const stepIndex = coerceIn(startLast - itemIndex, 0, startLast);
+        const startKeylines = strategy.startKeylineSteps[stepIndex];
+        if (startKeylines)
+            offset = roundToInt(f(startKeylines.firstFocal.unadjustedOffset - half(strategy.itemMainAxisSize)));
+    }
+    const lastItemIndex = itemCount - 1;
+    const endLast = strategy.endKeylineSteps.length - 1;
+    if (endLast >= 0 && itemIndex >= lastItemIndex - endLast && itemCount > strategy.defaultKeylines.focalCount) {
+        const stepIndex = coerceIn(endLast - (lastItemIndex - itemIndex), 0, endLast);
+        const endKeylines = strategy.endKeylineSteps[stepIndex];
+        if (endKeylines)
+            offset = roundToInt(f(endKeylines.lastFocal.unadjustedOffset - half(strategy.itemMainAxisSize)));
+    }
+    return offset;
+}
+/** Scroll offset from the pager's current page + offset fraction. */
+function calculateCurrentScrollOffset(strategy, currentPage, currentPageOffsetFraction, pageCount) {
+    const itemSizeWithSpacing = f(strategy.itemMainAxisSize + strategy.itemSpacing);
+    const currentItemScrollOffset = f(f(currentPage * itemSizeWithSpacing) + f(f(currentPageOffsetFraction) * itemSizeWithSpacing));
+    return f(currentItemScrollOffset - getSnapPositionOffset(strategy, currentPage, pageCount));
+}
+/** The pager's scroll range. */
+function calculateMaxScrollOffset(strategy, itemCount) {
+    const maxScrollPossible = f(f(strategy.itemMainAxisSize * itemCount) + f(strategy.itemSpacing * f(itemCount - 1)));
+    return Math.max(0, f(maxScrollPossible - strategy.availableSpace));
+}
+/** An item's mask extent and translation for a scroll offset (`Modifier.carouselItem`). */
+function carouselItemPlacement(strategy, index, scrollOffset, maxScrollOffset) {
+    scrollOffset = f(scrollOffset);
+    const keylines = strategy.getKeylineListForScrollOffset(scrollOffset, maxScrollOffset);
+    const itemSizeWithSpacing = f(strategy.itemMainAxisSize + strategy.itemSpacing);
+    const unadjustedCenter = f(f(f(index * itemSizeWithSpacing) + half(strategy.itemMainAxisSize)) - scrollOffset);
+    const before = keylines.getKeylineBefore(unadjustedCenter);
+    const after = keylines.getKeylineAfter(unadjustedCenter);
+    const outOfBounds = keylineEquals(before, after);
+    const progress = outOfBounds ? 1 : f(f(unadjustedCenter - before.unadjustedOffset) / f(after.unadjustedOffset - before.unadjustedOffset));
+    const interpolated = lerpKeyline(before, after, progress);
+    const center = half(strategy.itemMainAxisSize);
+    const halfMask = half(interpolated.size);
+    let translation = f(interpolated.offset - unadjustedCenter);
+    if (outOfBounds)
+        translation = f(translation + f(f(unadjustedCenter - interpolated.unadjustedOffset) / interpolated.size));
+    return { size: interpolated.size, maskStart: f(center - halfMask), maskEnd: f(center + halfMask), translation, keyline: interpolated };
+}
+
+
+// ───────────────────────── scenery ─────────────────────────
+const PALETTES = [
+  ['#ffcf9e','#ff8e72','#5b2a5e','#3a1c4a','#22122e','#ffe7b8'],
+  ['#9fd8ff','#c7ecff','#4c7a9b','#2f566f','#163246','#fff6c8'],
+  ['#0b1030','#26306b','#3b2f6e','#251c4a','#120d26','#e8ecff'],
+  ['#ffd7e6','#ffb3c9','#9a5c8a','#6e3d6b','#3e2240','#fff0f5'],
+  ['#c9f2d9','#e6fff0','#4f8f6b','#2f6a4c','#173d2b','#fffbe0'],
+  ['#ffefc2','#ffc46b','#c46a2b','#8a3f1c','#4d1f10','#fff7dd'],
+  ['#1c0d2e','#5a1f63','#a33b6b','#5e2148','#2a0f26','#ffd2ea'],
+  ['#e5e9ff','#b9c4ff','#6d6fb8','#474a8c','#262859','#ffffff'],
+  ['#ffe0c2','#ffad8a','#6a4c93','#43306b','#221838','#fff1e0'],
+  ['#d4f4ff','#8ad3e6','#2f7f8f','#1d5a66','#0d323a','#f4ffff'],
+  ['#2a1b0c','#6b3e12','#b06a2a','#6b3a17','#331b0a','#ffd59b'],
+  ['#f6e8ff','#d6b8ff','#7a55b5','#523683','#2b1b4a','#fff7ff'],
+];
+const TITLES = [['赣南晨雾','江西 · 06:12'],['冰川湖','雷克雅未克'],['星轨','可可西里'],['樱色山脊','吉野'],['雨林梯田','元阳'],['沙丘黄昏','敦煌'],['霓虹海湾','维多利亚港'],['雪原','阿勒泰'],['紫色山谷','普罗旺斯'],['潮间带','霞浦'],['峡谷','羚羊谷'],['薰衣草','伊犁']];
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+function scene(i){
+  const p=PALETTES[i%PALETTES.length], r=rng(i*7919+13), night=i%PALETTES.length===2||i%PALETTES.length===6;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p[0]}"/><stop offset=".65" stop-color="${p[1]}"/></linearGradient><radialGradient id="sun"><stop offset="0" stop-color="${p[5]}"/><stop offset=".45" stop-color="${p[5]}" stop-opacity=".9"/><stop offset="1" stop-color="${p[5]}" stop-opacity="0"/></radialGradient></defs><rect width="400" height="300" fill="url(#g)"/>`;
+  if(night) for(let k=0;k<70;k++) s+=`<circle cx="${(r()*400).toFixed(1)}" cy="${(r()*170).toFixed(1)}" r="${(r()*1.3+.2).toFixed(2)}" fill="#fff" opacity="${(r()*.8+.2).toFixed(2)}"/>`;
+  const sx=60+r()*280, sy=60+r()*70; s+=`<circle cx="${sx}" cy="${sy}" r="70" fill="url(#sun)"/><circle cx="${sx}" cy="${sy}" r="${night?14:22}" fill="${p[5]}"/>`;
+  for(let L=0;L<4;L++){
+    const base=150+L*38, amp=50-L*9, f1=.008+r()*.01, f2=.02+r()*.02, ph=r()*10; let d=`M0 300 L0 ${base}`;
+    for(let x=0;x<=400;x+=8){const y=base-amp*(.55*Math.sin(x*f1+ph)+.3*Math.sin(x*f2+ph*2)+.15*Math.sin(x*.07+ph*3));d+=` L${x} ${y.toFixed(1)}`}
+    s+=`<path d="${d} L400 300Z" fill="${p[2+Math.min(L,2)]}" opacity="${L===0?.55:L===1?.8:1}"/>`;
+  }
+  s+=`<rect y="262" width="400" height="38" fill="${p[4]}"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
+}
+const SCENES = Array.from({length:20},(_,i)=>scene(i));
+// Pre-rasterise each SVG scene to a JPEG bitmap once: repainting a masked item then blits a bitmap
+// instead of re-rendering vector paths + gradients every frame (the biggest cost on weak GPUs).
+const BITMAPS = [];
+async function rasterise(){
+  const dpr=Math.min(window.devicePixelRatio||1,2), W=Math.round(720*dpr), H=Math.round(540*dpr);
+  for(let i=0;i<SCENES.length;i++){
+    const svg=decodeURIComponent(SCENES[i].slice(SCENES[i].indexOf(',')+1,-2));
+    const img=new Image(); img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    try{ await img.decode() }catch{ continue }
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d');
+    const sc=Math.max(W/400,H/300); g.drawImage(img,(W-400*sc)/2,(H-300*sc)/2,400*sc,300*sc);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.88)); if(!blob) continue;
+    const url=URL.createObjectURL(blob); const pre=new Image(); pre.src=url; try{ await pre.decode() }catch{}
+    BITMAPS[i]=`url("${url}")`;
+    document.querySelectorAll(`.img[data-scene="${i}"]`).forEach(e=>e.style.backgroundImage=BITMAPS[i]);
+    await new Promise(r=>setTimeout(r,0)); // yield so first paint / input is never blocked
+  }
+}
+
+// ───────────────────────── settings ─────────────────────────
+const S = { pref:220, gap:8, count:12, rad:28, slow:false, debug:false, expressive:false };
+const timeScale = () => S.slow ? 0.2 : 1;
+// ───────────────────────── motion (Compose-faithful) ─────────────────────────
+// VelocityTracker1D (Lsq2) and AndroidFlingSpline / SplineBasedFloatDecayAnimationSpec are taken from
+// md3e-web-unofficial (materialwebunofficial, Apache-2.0), themselves ports of AndroidX
+// (Copyright The Android Open Source Project, Apache-2.0).
+const fr=Math.fround;
+const dotF=(a,b)=>{let r=0;for(let i=0;i<a.length;i++)r=fr(r+fr(a[i]*b[i]));return r};
+function leastSquaresVelocity(samples,maximum=8000){
+  const points=[],times=[],newest=samples[samples.length-1]; if(!newest) return 0; let previous=newest;
+  for(let i=samples.length-1;i>=0&&points.length<20;i--){ const s=samples[i],age=fr(newest.time-s.time),gap=fr(Math.abs(s.time-previous.time)); previous=s;
+    if(age>100||gap>40) break; points.push(fr(s.position)); times.push(-age) }
+  if(points.length<2) return 0;
+  const count=points.length,n=Math.min(3,count);
+  const a=Array.from({length:n},()=>new Float32Array(count)),q=Array.from({length:n},()=>new Float32Array(count)),r=Array.from({length:n},()=>new Float32Array(n));
+  for(let h=0;h<count;h++){ a[0][h]=1; for(let i=1;i<n;i++) a[i][h]=fr(a[i-1][h]*times[h]) }
+  for(let j=0;j<n;j++){ const w=q[j]; w.set(a[j]);
+    for(let i=0;i<j;i++){ const z=q[i],pr=dotF(w,z); for(let h=0;h<count;h++) w[h]=fr(w[h]-fr(pr*z[h])) }
+    const inv=fr(1/Math.max(fr(Math.sqrt(dotF(w,w))),fr(1e-6))); for(let h=0;h<count;h++) w[h]=fr(w[h]*inv);
+    for(let i=0;i<n;i++) r[j][i]=i<j?0:dotF(w,a[i]) }
+  const c=new Float32Array(n);
+  for(let i=n-1;i>=0;i--){ let v=dotF(q[i],points); for(let j=n-1;j>i;j--) v=fr(v-fr(r[i][j]*c[j])); c[i]=fr(v/r[i][i]) }
+  const vel=fr(c[1]*1000); return Number.isNaN(vel)?0:Math.max(-maximum,Math.min(maximum,vel));
+}
+class VelocityTracker{
+  constructor(){ this.samples=[]; this.lastMove=0 }
+  add(t,p){ this.samples.push({time:Math.floor(t),position:fr(p)}); if(this.samples.length>20) this.samples.shift() }
+  down(t,p){ this.samples=[]; this.add(t,p); this.lastMove=Math.floor(t) }
+  move(t,p){ this.add(t,p); this.lastMove=Math.floor(t) }
+  up(t,max=8000){ if(Math.floor(t)-this.lastMove>40) this.samples=[]; return leastSquaresVelocity(this.samples,max) }
+}
+const FlingSpline=(()=>{ const inflection=fr(.35),p1=fr(fr(.5)*inflection),p2=fr(1-fr(1-inflection));
+  const positions=new Float32Array(101); let xMin=0;
+  for(let i=0;i<100;i++){ const alpha=fr(i/100); let xMax=1,x,coef;
+    for(;;){ x=fr(xMin+fr(fr(xMax-xMin)/2)); coef=fr(fr(3*x)*fr(1-x)); const tx=fr(fr(coef*fr(fr(fr(1-x)*p1)+fr(x*p2)))+fr(fr(x*x)*x));
+      if(Math.abs(fr(tx-alpha))<1e-5) break; if(tx>alpha) xMax=x; else xMin=x }
+    positions[i]=fr(fr(coef*fr(fr(fr(1-x)*fr(.5))+x))+fr(fr(x*x)*x)) }
+  positions[100]=1; return {positions,inflection} })();
+class FlingDecay{
+  constructor(){ this.friction=fr(.015); this.physical=fr(fr(fr(fr(fr(9.80665)*fr(39.37))*1)*160)*fr(.84)); this.rate=fr(Math.log(.78)/Math.log(.9)) }
+  info(v){ v=fr(v); if(!v) return {velocity:0,distance:0,duration:0}; const l=Math.log(fr(FlingSpline.inflection*Math.abs(v))/fr(this.friction*this.physical)),m=this.rate-1;
+    return {velocity:v,distance:fr(fr(this.friction*this.physical)*Math.exp(this.rate/m*l)),duration:Math.trunc(1000*Math.exp(l/m))} }
+  target(v){ const i=this.info(v); return fr(i.distance*Math.sign(i.velocity)) }
+  sample(t,v){ const i=this.info(v); if(!i.duration) return {position:0,velocity:0};
+    const fx=Math.max(0,Math.min(1,fr(Math.trunc(t)/i.duration))),idx=Math.trunc(100*fx),P=FlingSpline.positions; let dc=1,vc=0;
+    if(idx<100){ const lo=idx/100,hi=(idx+1)/100; vc=fr((P[idx+1]-P[idx])/(hi-lo)); dc=fr(P[idx]+fr((fx-lo)*vc)) }
+    const s=Math.sign(i.velocity); return {position:fr(i.distance*s*dc),velocity:fr(vc*s*i.distance/i.duration*1000)} }
+}
+// Analytic damped spring (px, px/s, seconds), from → to.
+function springSolve(x0,v0,k,z,t){
+  const w=Math.sqrt(k);
+  if(z<1){ const wd=w*Math.sqrt(1-z*z),a=z*w,c2=(v0+a*x0)/wd,e=Math.exp(-a*t);
+    return {x:e*(x0*Math.cos(wd*t)+c2*Math.sin(wd*t)), v:e*((-a*x0+wd*c2)*Math.cos(wd*t)+(-a*c2-wd*x0)*Math.sin(wd*t))} }
+  const c2=v0+w*x0,e=Math.exp(-w*t); return {x:(x0+c2*t)*e, v:(c2-w*(x0+c2*t))*e};
+}
+// PagerDefaults / SnapFlingBehavior constants (1 dp = 1 CSS px)
+const MIN_FLING_VELOCITY=400, POSITION_THRESHOLD=56, SNAP_POSITIONAL_THRESHOLD=0.5, MAX_FLING=8000;
+const SNAP_SPRING={k:400,z:1,coerce:true};      // spring(StiffnessMediumLow)
+const SCROLL_SPRING={k:1500,z:1,coerce:true};   // animateScrollToItem default spring()
+const EXPRESSIVE_SPRING={k:800,z:0.6,coerce:false}; // M3E spatialFast, lets it bounce
+const snapSpring=()=>S.expressive?EXPRESSIVE_SPRING:SNAP_SPRING;
+const touchSlop=type=>type==='mouse'?fr(8*fr(.125/18)):8;
+
+// ───────────────────────── carousel ─────────────────────────
+const SVGNS='http://www.w3.org/2000/svg';
+class Carousel {
+  constructor(el){
+    this.el=el; this.variant=el.dataset.variant; this.vertical=el.dataset.axis==='y';
+    this.section=el.closest('section'); this.readout=this.section.querySelector('.readout'); this.dotsEl=this.section.querySelector('.dots');
+    this.track=document.createElement('div'); this.track.className='track'; el.appendChild(this.track);
+    this.dbg=document.createElementNS(SVGNS,'svg'); this.dbg.classList.add('debug'); el.appendChild(this.dbg);
+    el.tabIndex=0; el.setAttribute('role','region'); el.setAttribute('aria-roledescription','carousel');
+    el.setAttribute('aria-label',this.section.querySelector('h2').textContent);
+    this.pos=0; this.vel=0; this.anim=null; this.items=[]; this.size=0;
+    this.samples=[]; this.dragging=false; this.wheelTimer=0;
+    new ResizeObserver(()=>this.rebuild(true)).observe(el);
+    this.bind();
+  }
+  get count(){ return this.variant==='fullscreen' ? Math.min(S.count, 20) : S.count }
+  rebuild(keep=true){
+    const r=this.el.getBoundingClientRect(); const size=Math.round(this.vertical?r.height:r.width); if(!size) return;
+    const frac = this.max>0 ? this.pos/this.max : 0;
+    this.size=size;
+    const n=this.count, gap=S.gap, pref=Math.min(S.pref,size);
+    let kl;
+    switch(this.variant){
+      case 'multi': kl=multiBrowseKeylineList({carouselMainAxisSize:size,preferredItemSize:pref,itemSpacing:gap,itemCount:n}); break;
+      case 'hero': kl=heroKeylineList({carouselMainAxisSize:size,preferredItemSize:Math.max(pref,size-72-gap),itemSpacing:gap,itemCount:n,isCentered:false}); break;
+      case 'hero-center': kl=heroKeylineList({carouselMainAxisSize:size,preferredItemSize:Math.max(Math.min(pref,size),size-2*(56+gap)-20),itemSpacing:gap,itemCount:n,isCentered:true}); break;
+      case 'uncontained': kl=uncontainedKeylineList({carouselMainAxisSize:size,itemSize:pref,itemSpacing:gap}); break;
+      case 'fullscreen': kl=uncontainedKeylineList({carouselMainAxisSize:size,itemSize:size,itemSpacing:gap}); break;
+    }
+    this.kl=kl;
+    this.strategy=new Strategy(kl,size,gap,0,0);
+    this.max=calculateMaxScrollOffset(this.strategy,n);
+    this.itemSize=this.strategy.itemMainAxisSize;
+    this.snaps=[]; for(let i=0;i<n;i++) this.snaps.push(Math.min(Math.max(i*(this.itemSize+gap)-getSnapPositionOffset(this.strategy,i,n),0),this.max));
+    this.stops=[]; for(const s of [...this.snaps].sort((a,b)=>a-b)) if(!this.stops.length||s-this.stops[this.stops.length-1]>0.5) this.stops.push(s);
+    this.buildItems(n);
+    if(keep) this.pos = this.snapMode() ? this.nearestStop(frac*this.max) : frac*this.max;
+    this.stopAnim(); this.render();
+  }
+  snapMode(){ return this.variant==='uncontained' ? null : (this.variant==='multi' ? 'multi' : 'page') }
+  buildItems(n){
+    while(this.items.length>n) this.items.pop().el.remove();
+    while(this.items.length<n){
+      const i=this.items.length, e=document.createElement('div'); e.className='item';
+      e.setAttribute('role','group'); e.setAttribute('aria-roledescription','slide');
+      const t=TITLES[i%TITLES.length];
+      e.style.visibility='hidden';
+      e.innerHTML=`<div class="pic"><div class="img" data-scene="${i%SCENES.length}" style='background-image:${BITMAPS[i%SCENES.length]||SCENES[i%SCENES.length]}'></div><div class="scrim"></div></div><div class="label"><b>${t[0]}</b><span>${t[1]}</span></div>`;
+      e.addEventListener('click',ev=>{ if(this.suppressClick) return; this.animateToItemStop(this.snaps[i] ?? 0) });
+      this.track.appendChild(e); this.items.push({el:e,pic:e.querySelector('.pic'),label:e.querySelector('.label'),i,c:{}});
+    }
+    this.items.forEach((it,i)=>it.el.setAttribute('aria-label',`${i+1} / ${n}：${TITLES[i%TITLES.length][0]}`));
+    const v=this.vertical, cross='100%';
+    for(const it of this.items){ it.c={}; const w=v?'100%':this.itemSize+'px', h=v?this.itemSize+'px':'100%'; it.pic.style.width=w; it.pic.style.height=h; it.el.style.width=v?'100%':''; it.el.style.height=v?'':'100%' }
+    this.lastDot=-1; if(this.dotsEl){ this.dotsEl.innerHTML=this.stops.map(()=>'<i></i>').join('') }
+  }
+  nearestStop(p){ let b=this.stops[0]??0; for(const s of this.stops) if(Math.abs(s-p)<Math.abs(b-p)) b=s; return b }
+  stopIndex(p){ let bi=0; this.stops.forEach((s,i)=>{ if(Math.abs(s-p)<Math.abs(this.stops[bi]-p)) bi=i }); return bi }
+
+  // ── render ──
+  render(){
+    const st=this.strategy; if(!st||!st.isValid){ this.items.forEach(it=>{it.el.style.visibility='hidden';it.c={}}); return }
+    const cl=Math.min(Math.max(this.pos,0),this.max), over=this.pos-cl, v=this.vertical, size=this.size, isz=this.itemSize, R=S.rad, sws=isz+S.gap;
+    // overscroll stretch (Android 12 style)
+    const stretch = over===0?1:1+Math.min(Math.abs(over)/size,0.5)*0.35;
+    const tt = over===0?'':(v?`scaleY(${stretch.toFixed(4)})`:`scaleX(${stretch.toFixed(4)})`);
+    if(tt!==this.lastTrack){ this.lastTrack=tt;
+      this.track.style.transformOrigin = v ? (over<0?'50% 0':'50% 100%') : (over<0?'0 50%':'100% 50%');
+      this.track.style.transform = tt }
+    const focalSize=this.kl.firstFocal.size, minSize=this.strategy.minItemSize;
+    const set=(it,k,val,fn)=>{ if(it.c[k]!==val){ it.c[k]=val; fn(val) } };
+    // only items whose unadjusted slot is near the viewport can be visible: skip the rest entirely
+    const lo=Math.max(0,Math.floor((cl-sws)/sws)-1), hi=Math.min(this.items.length-1,Math.ceil((cl+size+sws)/sws)+1);
+    for(const it of this.items){
+      if(it.i<lo||it.i>hi){ if(it.c.vis!==0){ it.c.vis=0; it.el.style.visibility='hidden'; it.el.classList.remove('live') } continue }
+      const p=carouselItemPlacement(st,it.i,cl,this.max);
+      const start=it.i*sws-cl+p.translation;
+      const visA=start+p.maskStart, visB=start+p.maskEnd;
+      if(visB<-1||visA>size+1||p.size<=0.5){ if(it.c.vis!==0){ it.c.vis=0; it.el.style.visibility='hidden'; it.el.classList.remove('live') } continue }
+      if(it.c.vis!==1){ it.c.vis=1; it.el.style.visibility='visible'; it.el.classList.add('live') }
+      // mask = rounded overflow box at [visA, visB]; picture counter-translated so it stays put
+      const ms=Math.round(visA*100)/100, ml=Math.round((visB-visA)*100)/100, off=Math.round(-p.maskStart*100)/100;
+      set(it,'t',ms,x=>it.el.style.transform = v?`translate3d(0,${x}px,0)`:`translate3d(${x}px,0,0)`);
+      set(it,'w',ml,x=>{ if(v) it.el.style.height=x+'px'; else it.el.style.width=x+'px' });
+      set(it,'p',off,x=>it.pic.style.transform = v?`translate3d(0,${x}px,0)`:`translate3d(${x}px,0,0)`);
+      set(it,'r',Math.round(Math.min(R,p.size/2)),x=>it.el.style.borderRadius=x+'px');
+      const t=Math.max(0,Math.min(1,(p.size-Math.max(minSize,focalSize*0.45))/(focalSize*0.35)));
+      const tq=Math.round(t*50)/50;
+      set(it,'o',tq,x=>{ it.label.style.opacity=x; it.label.style.visibility=x>0?'':'hidden' });
+      if(tq>0&&!v) set(it,'l',`translate3d(0,${((1-tq)*8).toFixed(1)}px,0)`,x=>it.label.style.transform=x);
+      set(it,'h',p.size < focalSize*0.5,x=>it.el.setAttribute('aria-hidden',x?'true':'false'));
+    }
+    if(this.dotsEl){ const k=this.stopIndex(cl); if(k!==this.lastDot){ this.lastDot=k; [...this.dotsEl.children].forEach((d,i)=>d.classList.toggle('on',i===k)) } }
+    if(S.debug) this.renderDebug(cl);
+  }
+  renderDebug(cl){
+    const kls=this.strategy.getKeylineListForScrollOffset(cl,this.max), v=this.vertical, size=this.size;
+    const W=v?this.el.clientWidth:size, H=v?size:this.el.clientHeight;
+    this.dbg.setAttribute('viewBox',`0 0 ${W} ${H}`); this.dbg.setAttribute('width',W); this.dbg.setAttribute('height',H);
+    let s='';
+    kls.forEach((k,idx)=>{
+      const c=k.isAnchor?'#ff8fb1':k.isFocal?'#b69df8':'#fff';
+      const o=k.offset, h=k.size/2;
+      if(v){ s+=`<line x1="0" x2="${W}" y1="${o}" y2="${o}" stroke="${c}" stroke-width="${k.isPivot?2:1}" ${k.isPivot?'stroke-dasharray="6 4"':''}/><rect x="${W-14}" y="${o-h}" width="6" height="${k.size}" fill="${c}" opacity=".85" rx="3"/><text x="${W-18}" y="${o-4}" fill="${c}" font-size="10" text-anchor="end" font-family="monospace">${k.size.toFixed(0)}</text>` }
+      else { s+=`<line y1="0" y2="${H}" x1="${o}" x2="${o}" stroke="${c}" stroke-width="${k.isPivot?2:1}" ${k.isPivot?'stroke-dasharray="6 4"':''}/><rect y="-12" x="${o-h}" height="6" width="${k.size}" fill="${c}" opacity=".85" rx="3"/><text y="${H+14}" x="${o}" fill="${c}" font-size="10" text-anchor="middle" font-family="monospace">${k.size.toFixed(0)}</text>` }
+    });
+    this.dbg.innerHTML=s; this.dbg.style.overflow='visible';
+    const st=this.strategy, phase = cl<st.startShiftDistance-0.01 ? `start 步进（${st.startKeylineSteps.length} 步）` : cl>this.max-st.endShiftDistance+0.01 ? `end 步进（${st.endKeylineSteps.length} 步）` : '默认 keylines';
+    const sizes=[...this.kl].map(k=>k.size.toFixed(0)+(k.isAnchor?'ᵃ':k.isFocal?'ᶠ':'')).join(' ');
+    this.readout.textContent=`scroll ${cl.toFixed(1)} / ${this.max.toFixed(1)}  v ${(this.vel*1000).toFixed(0)}px/s  ${phase}\n容器 ${size}px  item ${this.itemSize.toFixed(1)}px  默认 keylines [${sizes}]  吸附点 ${this.stops.length}`;
+  }
+
+  // ── physics: scroll consumed through scrollBy, exactly like Compose's ScrollScope ──
+  scrollBy(d){ const t=this.pos+d, n=Math.min(Math.max(0,t),this.max), used=n===t?d:n-this.pos; this.pos=n; if(used!==0) this.render(); return used }
+  requestRender(){ if(this.anim||this.rq) return; this.rq=requestAnimationFrame(()=>{ this.rq=0; this.render() }) }
+  stopAnim(){ if(this.anim){ cancelAnimationFrame(this.anim.raf); this.anim=null } }
+  // drives step(elapsedMs) on a slow-motion-aware virtual clock; step returns true when finished
+  run(step,onDone){
+    this.stopAnim(); const m={raf:0,t:0,last:performance.now()}; this.anim=m;
+    const tick=now=>{ if(this.anim!==m) return; m.t+=Math.min(now-m.last,64)*timeScale(); m.last=now;
+      if(step(m.t)){ this.anim=null; this.target=null; this.vel=0; this.render(); onDone&&onDone(); return }
+      m.raf=requestAnimationFrame(tick) };
+    m.raf=requestAnimationFrame(tick);
+  }
+  // SnapFlingBehavior.animateWithTarget: spring over a distance, coerced never to pass it
+  springBy(dist,v0,spec=snapSpring(),onDone){
+    if(Math.abs(dist)<0.01){ onDone&&onDone(); return }
+    this.target=this.pos+dist; let prev=0;
+    this.run(t=>{ const st=springSolve(-dist,v0,spec.k,spec.z,t/1000); let val=dist+st.x; this.vel=st.v/1000;
+      const raw=val; if(spec.coerce) val=dist>0?Math.min(val,dist):Math.max(val,dist);
+      const d=val-prev, used=this.scrollBy(d); prev+=used;
+      const settled=Math.abs(st.x)<0.5&&Math.abs(st.v)<5;
+      if(settled){ this.scrollBy(dist-prev); return true }
+      return (spec.coerce&&raw!==val) || Math.abs(d-used)>0.5;
+    },onDone);
+  }
+  springTo(target,v0=0,spec){ this.springBy(target-this.pos,v0,spec) }
+  // noSnapFlingBehavior: Android spline decay, ends when no longer consumed
+  decay(v){
+    if(!v) return; const dc=new FlingDecay(), dur=dc.info(v).duration; let prev=0;
+    this.run(t=>{ const e=Math.min(t,dur), st=dc.sample(e,v); this.vel=st.velocity/1000; const d=st.position-prev, used=this.scrollBy(d); prev+=used;
+      return e>=dur || Math.abs(d-used)>0.5 });
+  }
+  pageOffset(i){ return i*(this.itemSize+S.gap)-this.pos }
+  visiblePages(){ const out=[]; for(let i=0;i<this.count;i++){ const o=this.pageOffset(i); if(o+this.itemSize>0&&o<this.size) out.push({i,o}) } return out }
+  isForward(v,dd){ const notGesture=Math.trunc(dd)===0; return !((notGesture?-v:dd)>0) }
+  // PagerSnapLayoutInfoProvider.calculateSnapOffset + calculateFinalSnappingBound
+  snapOffset(v,dd){
+    let lo=-Infinity,hi=Infinity;
+    for(const p of this.visiblePages()){ const o=p.o-getSnapPositionOffset(this.strategy,p.i,this.count); if(o<=0&&o>lo) lo=o; if(o>=0&&o<hi) hi=o }
+    if(lo===-Infinity) lo=hi; if(hi===Infinity) hi=lo;
+    const fwd=this.isForward(v,dd);
+    if(this.pos>=this.max){ hi=0; if(fwd) lo=0 } if(this.pos<=0){ lo=0; if(!fwd) hi=0 }
+    const ps=this.itemSize, off=ps?dd/ps:0, ovf=off-Math.trunc(off); let r;
+    if(Math.abs(v)<MIN_FLING_VELOCITY){
+      if(Math.abs(ovf)>SNAP_POSITIONAL_THRESHOLD) r=fwd?hi:lo;
+      else if(Math.abs(off)>=Math.min(POSITION_THRESHOLD,ps/2)/ps) r=fwd?lo:hi;
+      else r=Math.abs(lo)<Math.abs(hi)?lo:hi;
+    } else r=v>0?hi:lo;
+    return Number.isFinite(r)?r:0;
+  }
+  // multiBrowseFlingBehavior: decay (or spring) approach to one page before the target, then snap
+  multiFling(v,dd){
+    const dc=new FlingDecay(), decayOff=dc.target(v), eps=this.itemSize+S.gap;
+    const first=this.visiblePages()[0]?.i??0, startPage=v<0?first+1:first;
+    const target=Math.min(Math.max(startPage+Math.trunc(fr(decayOff/eps)),0),this.count);
+    const approach=Math.max(Math.abs((target-startPage)*eps)-eps,0)*Math.sign(v);
+    const snap=fv=>this.springBy(this.snapOffset(fv,dd),fv);
+    if(!approach||!v) return snap(v);
+    let prev=0;
+    if(Math.abs(decayOff)>=Math.abs(approach)){
+      const dur=dc.info(v).duration;
+      this.run(t=>{ const e=Math.min(t,dur), st=dc.sample(e,v); let val=st.position, stop=e>=dur; this.vel=st.velocity/1000;
+        if(Math.abs(val)>=Math.abs(approach)){ val=approach>0?Math.min(val,approach):Math.max(val,approach); stop=true }
+        const d=val-prev, used=this.scrollBy(d); prev=val; if(Math.abs(d-used)>0.5) stop=true;
+        if(stop) this._fv=st.velocity; return stop },()=>snap(this._fv||0));
+    } else this.springBy(approach,v,SNAP_SPRING,()=>snap(0));
+  }
+  fling(v,dd){
+    const cl=Math.min(Math.max(this.pos,0),this.max);
+    if(cl!==this.pos) return this.springTo(cl,0,SNAP_SPRING); // release from overscroll stretch
+    const mode=this.snapMode();
+    if(!mode) return this.decay(v);
+    if(mode==='multi') return this.multiFling(v,dd);
+    this.springBy(this.snapOffset(v,dd),v); // singleAdvanceFlingBehavior (PagerSnapDistance.atMost(1))
+  }
+  animateToItemStop(target){ this.springTo(target,0,SCROLL_SPRING) }
+
+  // ── input ──
+  bind(){
+    const el=this.el, V=()=>this.vertical, main=e=>V()?e.clientY:e.clientX, cross=e=>V()?e.clientX:e.clientY;
+    el.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse'&&e.button!==0) return;
+      this.stopAnim(); this.target=null; // a touch on a moving carousel stops it
+      const tr=new VelocityTracker(); tr.down(e.timeStamp,main(e));
+      this.drag={id:e.pointerId,start:main(e),startC:cross(e),x:main(e),moved:false,tr,slop:touchSlop(e.pointerType)};
+      this.suppressClick=false;
+    });
+    el.addEventListener('pointermove',e=>{
+      const d=this.drag; if(!d||d.id!==e.pointerId) return;
+      const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e]; for(const c of (evs.length?evs:[e])) d.tr.move(c.timeStamp,main(c));
+      if(!d.moved){ const dm=main(e)-d.start, dc=cross(e)-d.startC;
+        if(Math.abs(dm)<=d.slop) return;
+        if(Math.abs(dc)>Math.abs(dm)){ this.drag=null; return } // belongs to the page
+        d.moved=true; d.x=d.start+Math.sign(dm)*d.slop; el.setPointerCapture(e.pointerId); el.classList.add('dragging'); this.dragging=true }
+      e.preventDefault();
+      let delta=d.x-main(e); d.x=main(e);
+      const cl=Math.min(Math.max(this.pos,0),this.max);
+      if(this.pos!==cl||this.pos+delta<0||this.pos+delta>this.max){ // overscroll stretch with resistance
+        const inside=this.pos+delta<0?-this.pos:this.pos+delta>this.max?this.max-this.pos:delta;
+        const okIn=(this.pos>=0&&this.pos<=this.max)?inside:0; this.pos+=okIn; delta-=okIn;
+        const over=Math.abs(this.pos-Math.min(Math.max(this.pos,0),this.max)); delta*=0.45*Math.max(0.05,1-over/(this.size*0.6)) }
+      this.pos+=delta; this.requestRender();
+    });
+    const up=(e,cancel)=>{
+      const d=this.drag; if(!d||d.id!==e.pointerId) return; this.drag=null;
+      if(!d.moved) return; this.dragging=false; el.classList.remove('dragging');
+      this.suppressClick=!cancel; try{ el.releasePointerCapture(e.pointerId) }catch{}
+      const pv=cancel?0:d.tr.up(e.timeStamp,MAX_FLING);
+      this.fling(-pv,(cancel?d.x:main(e))-d.start);
+      setTimeout(()=>this.suppressClick=false,0);
+    };
+    el.addEventListener('pointerup',e=>up(e,false)); el.addEventListener('pointercancel',e=>up(e,true));
+    el.addEventListener('lostpointercapture',e=>{ if(this.drag&&this.drag.id===e.pointerId) up(e,true) });
+    el.addEventListener('dragstart',e=>e.preventDefault());
+    el.addEventListener('click',e=>{ if(this.suppressClick){ e.stopPropagation(); e.preventDefault() } },true);
+    el.addEventListener('wheel',e=>{
+      const d = V()? e.deltaY : (Math.abs(e.deltaX)>Math.abs(e.deltaY)? e.deltaX : (e.shiftKey? e.deltaY : 0));
+      if(!d) return; e.preventDefault();
+      const mul = e.deltaMode===1?16:e.deltaMode===2?this.size:1;
+      if(this.snapMode()==='page' && V() && Math.abs(d*mul)>=50){ // mouse-wheel notch on the vertical pager → one page
+        if(this.wheelLock) return; this.wheelLock=true; setTimeout(()=>this.wheelLock=false,350);
+        const i=this.stopIndex(this.anim&&this.target!=null?this.target:this.pos)+Math.sign(d);
+        return this.animateToItemStop(this.stops[Math.max(0,Math.min(this.stops.length-1,i))]) }
+      this.stopAnim(); this.scrollBy(d*mul);
+      clearTimeout(this.wheelTimer);
+      if(this.snapMode()) this.wheelTimer=setTimeout(()=>this.fling(0,0),100); // settle like a release without velocity
+    },{passive:false});
+    el.addEventListener('keydown',e=>{
+      const fwd=V()?'ArrowDown':'ArrowRight', back=V()?'ArrowUp':'ArrowLeft';
+      let i=this.stopIndex(this.anim&&this.target!=null?this.target:this.pos);
+      if(e.key===fwd) i++; else if(e.key===back) i--; else if(e.key==='Home') i=0; else if(e.key==='End') i=this.stops.length-1; else return;
+      e.preventDefault();
+      if(!this.snapMode()){ const step=this.itemSize+S.gap, base=this.anim&&this.target!=null?this.target:this.pos; return this.animateToItemStop(Math.min(Math.max(base+(e.key===fwd?step:e.key===back?-step:e.key==='Home'?-1e9:1e9),0),this.max)) }
+      this.animateToItemStop(this.stops[Math.max(0,Math.min(this.stops.length-1,i))]);
+    });
+  }
+}
+
+const carousels=[...document.querySelectorAll('.carousel')].map(el=>new Carousel(el));
+window.__carousels=carousels; window.__cip=carouselItemPlacement;
+const bindRange=(id,key)=>{ const i=document.getElementById(id), o=document.getElementById(id+'O');
+  i.addEventListener('input',()=>{ S[key]=+i.value; o.textContent=i.value; carousels.forEach(c=>c.rebuild(true)) }) };
+bindRange('pref','pref'); bindRange('gap','gap'); bindRange('count','count');
+document.getElementById('rad').addEventListener('input',e=>{ S.rad=+e.target.value; document.getElementById('radO').textContent=S.rad; document.documentElement.style.setProperty('--radius',S.rad+'px'); carousels.forEach(c=>c.render()) });
+const toggle=(id,key,fn)=>document.getElementById(id).addEventListener('click',e=>{ S[key]=!S[key]; e.currentTarget.setAttribute('aria-pressed',S[key]); fn&&fn(e.currentTarget) });
+toggle('slow','slow');
+{ const el=document.getElementById('fps'); let n=0,t0=performance.now(),worst=0,prev=t0;
+  const loop=now=>{ n++; worst=Math.max(worst,now-prev); prev=now;
+    if(now-t0>=500){ const busy=carousels.some(c=>c.anim||c.dragging); el.textContent=busy?`${Math.round(n*1000/(now-t0))} fps · 最慢 ${worst.toFixed(0)}ms`:'空闲'; n=0; t0=now; worst=0 }
+    requestAnimationFrame(loop) }; requestAnimationFrame(loop) }
+rasterise();
+toggle('dbg','debug',()=>{ document.body.classList.toggle('show-debug',S.debug); carousels.forEach(c=>c.render()) });
+toggle('spring','expressive',b=>b.textContent=S.expressive?'弹簧：Expressive 回弹':'弹簧：Compose 原版');
+</script>
+</body>
+</html>

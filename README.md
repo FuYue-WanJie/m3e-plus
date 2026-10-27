@@ -84,7 +84,7 @@ npm install pkg.pr.new/matraic/m3e/commit/<COMMIT_SHA>
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. Some files are ported from AndroidX and other Apache-2.0 projects; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## 🧪 Testing
 
