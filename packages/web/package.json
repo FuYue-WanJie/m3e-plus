@@ -22,6 +22,7 @@
     "bottom-sheet",
     "breadcrumb",
     "button",
+    "carousel",
     "button-group",
     "calendar",
     "callout",
@@ -82,6 +83,10 @@
     "./geometry": {
       "types": "./dist/src/geometry/index.d.ts",
       "default": "./dist/geometry.js"
+    },
+    "./carousel": {
+      "types": "./dist/src/carousel/index.d.ts",
+      "default": "./dist/carousel.js"
     },
     "./core": {
       "types": "./dist/src/core/index.d.ts",

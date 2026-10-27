@@ -16,6 +16,7 @@ const inputs = [
   "bottom-sheet",
   "breadcrumb",
   "button",
+  "carousel",
   "button-group",
   "calendar",
   "callout",

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Button Group × Button morph — joint regression</title>
+    <script type="module" src="packages/web/dist/all.min.js"></script>
+    <style>
+      body {
+        margin: 24px;
+        font: 13px system-ui, sans-serif;
+        background: #fef7ff;
+        color: #1d1b20;
+        max-width: 900px;
+      }
+      h2 {
+        font-size: 15px;
+      }
+      h3 {
+        font-size: 13px;
+        margin: 6px 0;
+        color: #49454f;
+      }
+      .panel {
+        border: 1px solid #e7e0ec;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 16px 0;
+      }
+      .wrap {
+        display: inline-block;
+        background: #f3edf7;
+        padding: 8px;
+        border-radius: 12px;
+      }
+      .readout {
+        font: 12px ui-monospace, monospace;
+        color: #49454f;
+        margin-top: 8px;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Button Group × Button morph · 联合回归</h2>
+    <p>纯探查页：用真实 m3e-button 组件，暴露测量接口供自动化逐帧采样。</p>
+
+    <div class="panel">
+      <h3>场景 1：物理冲突 — 快速按下 A 再点 B（standard）</h3>
+      <div class="wrap"><m3e-button-group id="g1">
+        <m3e-button id="g1a" variant="tonal" toggle>A</m3e-button>
+        <m3e-button id="g1b" variant="tonal" toggle>B</m3e-button>
+        <m3e-button id="g1c" variant="tonal" toggle>C</m3e-button>
+      </m3e-button-group></div>
+      <div class="readout" id="r1"></div>
+    </div>
+
+    <div class="panel">
+      <h3>场景 2：形变打架 — standard 选中一按钮，形变 vs 挤宽是否同步结束</h3>
+      <div class="wrap"><m3e-button-group id="g2">
+        <m3e-button id="g2a" variant="tonal" toggle>Alpha</m3e-button>
+        <m3e-button id="g2b" variant="tonal" toggle>Beta long</m3e-button>
+        <m3e-button id="g2c" variant="tonal" toggle>Gamma</m3e-button>
+      </m3e-button-group></div>
+      <div class="readout" id="r2"></div>
+    </div>
+
+    <div class="panel">
+      <h3>场景 3：connected 死亡踩坑 — 按下中间按钮四角 morph / 接缝</h3>
+      <div class="wrap"><m3e-button-group id="g3" variant="connected">
+        <m3e-button id="g3a" variant="tonal" shape="square" toggle>Day</m3e-button>
+        <m3e-button id="g3b" variant="tonal" shape="square" toggle>Week</m3e-button>
+        <m3e-button id="g3c" variant="tonal" shape="square" toggle>Month</m3e-button>
+      </m3e-button-group></div>
+      <div class="readout" id="r3"></div>
+    </div>
+
+    <script type="module">
+      // Probe helpers exposed for Playwright.
+      function corners(btnId) {
+        const btn = document.getElementById(btnId);
+        const base = btn.shadowRoot?.querySelector(".base");
+        if (!base) return null;
+        const cs = getComputedStyle(base);
+        return {
+          ts: parseFloat(cs.borderStartStartRadius),
+          te: parseFloat(cs.borderStartEndRadius),
+          bs: parseFloat(cs.borderEndStartRadius),
+          be: parseFloat(cs.borderEndEndRadius),
+        };
+      }
+      function widthOf(btnId) {
+        return document.getElementById(btnId).getBoundingClientRect().width;
+      }
+      function progressOf(btnId) {
+        // Read the button's morph progress indirectly via --_button-shape if set, else null.
+        const base = document.getElementById(btnId).shadowRoot?.querySelector(".base");
+        return base ? parseFloat(base.style.getPropertyValue("--_button-shape")) || null : null;
+      }
+      window.__probe = { corners, widthOf, progressOf };
+      window.__allCorners = (ids) => Object.fromEntries(ids.map((id) => [id, corners(id)]));
+    </script>
+  </body>
+</html>
