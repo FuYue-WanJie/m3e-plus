@@ -422,8 +422,22 @@ export class M3eCarouselElement extends LitElement {
   /** @private Item whose snap position is nearest `pos`. */
   #indexAt(pos: number): number {
     let best = 0;
+    let bestDist = Math.abs(this.#snaps[0] - pos);
+    // Tail items can share one clamped snap position (#max) and head items share 0. On a tie we want
+    // the item that visually matches: the LAST item when resting at the end, the FIRST at the start.
+    const preferLarger = pos > 0.5;
     for (let i = 1; i < this.#snaps.length; i++) {
-      if (Math.abs(this.#snaps[i] - pos) < Math.abs(this.#snaps[best] - pos) - 0.5) best = i;
+      const d = Math.abs(this.#snaps[i] - pos);
+      if (d < bestDist - 0.5) {
+        best = i;
+        bestDist = d;
+      } else if (Math.abs(d - bestDist) <= 0.5) {
+        // Tie: choose the index at the correct end of the shared run.
+        if (preferLarger ? i > best : i < best) {
+          best = i;
+          bestDist = d;
+        }
+      }
     }
     return best;
   }
