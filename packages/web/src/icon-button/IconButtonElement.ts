@@ -26,7 +26,8 @@ import {
 } from "@wanjie/m3e-web/core";
 
 import { IconButtonSize, isIconButtonSize } from "./IconButtonSize";
-import { IconButtonShape, isIconButtonShape } from "./IconButtonShape";
+import { IconButtonShape, isCornerVariantShape, isIconButtonShape } from "./IconButtonShape";
+import { shapeToClipPath } from "@wanjie/m3e-web/shape";
 import { IconButtonVariant, isIconButtonVariant } from "./IconButtonVariant";
 import { IconButtonWidth, isIconButtonWidth } from "./IconButtonWidth";
 
@@ -351,6 +352,9 @@ export class M3eIconButtonElement extends KeyboardClick(
 
 
   /** @private */ @query(".base") private readonly _base?: HTMLElement;
+
+  /** @private Whether the named-shape clip-path still needs its first application after render. */
+  #firstShapeApply = true;
   /** @private */ @query(".elevation") private readonly _elevation?: M3eElevationElement;
   /** @private */ @query(".focus-ring") private readonly _focusRing?: M3eFocusRingElement;
   /** @private */ @query(".state-layer") private readonly _stateLayer?: M3eStateLayerElement;
@@ -502,6 +506,13 @@ export class M3eIconButtonElement extends KeyboardClick(
   protected override updated(_changedProperties: PropertyValues<this>): void {
     super.updated(_changedProperties);
 
+    // (Re)apply the named-shape clip-path once .base exists / the shape changes (also covers size
+    // changes since the clip is percentage-based, but re-applying is cheap and safe).
+    if (_changedProperties.has("shape") || _changedProperties.has("size") || this.#firstShapeApply) {
+      this.#firstShapeApply = false;
+      this.#applyNamedShapeClip();
+    }
+
     if (
       (_changedProperties.has("disabled") && this.disabled) ||
       (_changedProperties.has("disabledInteractive") && this.disabledInteractive)
@@ -533,7 +544,29 @@ export class M3eIconButtonElement extends KeyboardClick(
     if (!isIconButtonShape(this.shape)) {
       this.shape = "rounded";
     }
-    setCustomEnumState(this, this.shape, "rounded", "square");
+    if (isCornerVariantShape(this.shape)) {
+      setCustomEnumState(this, this.shape, "rounded", "square");
+    } else {
+      // A named Material shape: not a corner variant. Clear any rounded/square custom state so the
+      // corner rules don't fight the clip-path applied in #applyNamedShapeClip().
+      deleteCustomState(this, "--rounded");
+      deleteCustomState(this, "--square");
+    }
+  }
+
+  /**
+   * @private Apply (or clear) the `clip-path` for a named Material shape on `.base`. Called after
+   * render (the `.base` element only exists then) whenever the shape changes. Corner variants
+   * (rounded/square) clear the clip-path and use border-radius instead.
+   */
+  #applyNamedShapeClip(): void {
+    const base = this._base;
+    if (!base) return;
+    if (isCornerVariantShape(this.shape)) {
+      base.style.removeProperty("clip-path");
+    } else {
+      base.style.clipPath = shapeToClipPath(this.shape);
+    }
   }
 
   /** @private */

@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>IconButton named shapes</title>
+<script type="module" src="packages/web/dist/all.min.js"></script>
+<style>body{margin:24px;font:13px system-ui;background:#fef7ff;color:#1d1b20}
+.row{display:flex;gap:20px;flex-wrap:wrap;margin:14px 0}
+.cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+.note{color:#49454f;font-size:12px}</style></head>
+<body>
+<h2>IconButton 具名形状（MaterialShapes）</h2>
+<p class="note">rounded/square 走 border-radius；具名形状走 clip-path（Shape 静态裁剪，不 morph）。</p>
+<div class="row" id="row"></div>
+<script type="module">
+const SHAPES=["rounded","square","pill","4-leaf-clover","4-sided-cookie","6-sided-cookie","9-sided-cookie","12-sided-cookie","burst","soft-burst","sunny","heart","diamond","arch","pentagon"];
+customElements.whenDefined('m3e-icon-button').then(()=>{
+  const row=document.getElementById('row');
+  for(const s of SHAPES){
+    const cell=document.createElement('div');cell.className='cell';
+    const btn=document.createElement('m3e-icon-button');
+    btn.setAttribute('variant','filled');btn.setAttribute('shape',s);btn.setAttribute('size','large');
+    btn.innerHTML='<m3e-icon name="star" filled></m3e-icon>';
+    cell.append(btn, document.createTextNode(s));
+    row.append(cell);
+  }
+});
+</script>
+</body></html>
