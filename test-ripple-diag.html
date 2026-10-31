@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Ripple 诊断（慢放 + 日志）</title>
+<script type="importmap">
+{ "imports": {
+  "tslib": "./node_modules/tslib/tslib.es6.mjs",
+  "lit": "./node_modules/lit/index.js",
+  "lit/": "./node_modules/lit/",
+  "lit-element": "./node_modules/lit-element/lit-element.js",
+  "lit-element/": "./node_modules/lit-element/",
+  "lit-html": "./node_modules/lit-html/lit-html.js",
+  "lit-html/": "./node_modules/lit-html/",
+  "@lit/reactive-element": "./node_modules/@lit/reactive-element/reactive-element.js",
+  "@lit/reactive-element/": "./node_modules/@lit/reactive-element/",
+  "@wanjie/m3e-web/icon": "./packages/web/dist/icon.js",
+  "@wanjie/m3e-web/core": "./packages/web/dist/core.js",
+  "@wanjie/m3e-web/": "./packages/web/dist/"
+}}
+</script>
+<script type="module">
+import "./packages/web/dist/theme.js";
+import "./packages/web/dist/button.js";
+</script>
+<style>
+  body { margin:24px; font:13px system-ui,"PingFang SC","Microsoft YaHei",sans-serif; background:#fef7ff; color:#1d1b20; }
+  .panel { border:1px solid #e7e0ec; border-radius:12px; padding:14px 18px; margin:16px 0; }
+  .wrap { display:inline-block; background:#f3edf7; padding:10px; border-radius:12px; }
+  #log { font:12px ui-monospace,monospace; white-space:pre-wrap; background:#1d1b20; color:#e8def8; padding:12px; border-radius:8px; max-height:420px; overflow:auto; }
+  .slowbtn { padding:6px 12px; border-radius:20px; border:1px solid #79747e; background:#fff; cursor:pointer; }
+  .grid { display:grid; grid-template-columns:260px 1fr; gap:8px 16px; align-items:center; }
+  .label { font:12px ui-monospace; color:#49454f; text-align:right; }
+  .widebtn { width:100%; }
+</style>
+</head>
+<body>
+  <h2>Ripple 诊断（非官方站对比无它问题）</h2>
+  <p>在按钮上点击<b>不同位置</b>（靠上/中间/靠下），观察波纹是否从点击点对称散开。列表会实时记录每帧圆心/半径/上下边界。</p>
+  <div class="panel">
+    <div class="grid">
+      <div class="label">窄按钮 (120x40)</div>
+      <div class="wrap"><m3e-button id="narrow" variant="tonal" style="width:120px">Start</m3e-button></div>
+      <div class="label">宽按钮 (260x40)</div>
+      <div class="wrap" style="width:282px"><m3e-button id="wide" variant="tonal" style="width:100%">Wide label button</m3e-button></div>
+      <div class="label">大按钮 (extra-large 高64)</div>
+      <div class="wrap"><m3e-button id="big" variant="filled" size="extra-large">Big</m3e-button></div>
+      <div class="label">大宽按钮 (extra-large, 宽320)</div>
+      <div class="wrap" style="width:342px"><m3e-button id="bigwide" variant="tonal" size="extra-large" style="width:100%">Big wide button</m3e-button></div>
+      <div class="label">图标按钮 (56x56)</div>
+      <div class="wrap"><m3e-button id="square" variant="tonal">56</m3e-button></div>
+    </div>
+  </div>
+  <div class="panel">
+    <button class="slowbtn" id="slow">切换慢放 x1 / x4 慢</button>
+    <button class="slowbtn" id="dump">导出日志 / 复制</button>
+    <pre id="log">（点击按钮开始记录…）</pre>
+  </div>
+<script type="module">
+let slow = 1;
+const lines=[];
+function log(m){ lines.push(m); document.getElementById('log').textContent = lines.join('\n'); }
+const SLOW_BY = {1:1, 4:0.25}[slow] ?? 1;
+
+// 拦截按钮内 ripple 的动画：手动驱动慢放
+for (const id of ['narrow','wide','big','bigwide','square']) {
+  const btn = document.getElementById(id);
+  btn.addEventListener('pointerdown', (e)=>{
+    const rip = btn.shadowRoot.querySelector('m3e-ripple');
+    if(!rip) return;
+    const circle = rip.shadowRoot.querySelector('.ripple');
+    if(!circle) return;
+    log(`\n[${id}] pointerdown at (${e.clientX},${e.clientY})`);
+    // 每帧采样
+    let last=0;
+    const samp = (ts)=>{
+      const anims = circle.getAnimations();
+      const base = anims[0]; // radius&center track
+      const ed = parseFloat(circle.style.width)/2;
+      const rr = rip.getBoundingClientRect();
+      let centerY=null, radius=null;
+      if(base){
+        // ad-hoc: rich-position by reading currentKeyframes stop; fallback computed transform
+        const cs = getComputedStyle(circle);
+        const m = cs.transform.match(/matrix\(([^)]+)\)/);
+        if(m){ const parts=m[1].split(',').map(Number); const s=parts[0]; const td=ed; centerY = rr.top + parts[5] + s*td; radius = s*td; }
+      }
+      if(centerY!=null){
+        const top = centerY-radius, bottom = centerY+radius;
+        log(`  t=${ts}ms 圆心Y=${centerY.toFixed(1)} 半径=${radius.toFixed(1)} 上缘=${top.toFixed(1)} 下缘=${bottom.toFixed(1)} 按钮Y=${rr.top.toFixed(0)}-${(rr.top+rr.height).toFixed(0)}`);
+      }
+      if(ts<260) requestAnimationFrame(samp);
+    };
+    setTimeout(()=>requestAnimationFrame(samp), 0);
+  });
+}
+
+document.getElementById('slow').addEventListener('click', ()=>{
+  slow = slow===1?4:1;
+  // 重放日志头
+  log(`慢放 x${slow}（注：此页通过记录帧间余量近似，实际动画未变慢；如需真慢放可后续用 WAAPI playbackRate）`);
+});
+document.getElementById('dump').addEventListener('click', async ()=>{
+  const t = lines.join('\n');
+  try{ await navigator.clipboard.writeText(t); log('已复制'); }catch(e){ log('请手动复制'); }
+  console.log(t);
+});
+window.__rippleLog = ()=>lines.join('\n');
+</script>
+</body>
+</html>

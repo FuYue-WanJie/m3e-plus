@@ -87,6 +87,9 @@ export class M3eRippleElement extends HtmlFor(Role(LitElement, "none")) {
       position: absolute;
       left: 0;
       top: 0;
+      /* The transform math in show() solves translate(px) scale(s) around the box's top-left
+         corner; neutralise the default center origin or the ripple drifts off the touch point. */
+      transform-origin: 0 0;
       pointer-events: none;
       border-radius: 50%;
       background-color: ${RippleToken.color};
