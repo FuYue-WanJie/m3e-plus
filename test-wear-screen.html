@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Wear Screen</title>
+<script type="module" src="packages/web/dist/all.min.js"></script>
+<style>body{margin:24px;font:13px system-ui;background:#fef7ff;color:#1d1b20}
+.row{display:flex;gap:28px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.cell{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:#49454f}
+.title{font-size:16px;font-weight:600;color:#fff}
+</style></head>
+<body>
+<h2>m3e-wear-screen（Wear 圆形屏容器）</h2>
+<div class="row" id="row"></div>
+<script type="module">
+customElements.whenDefined('m3e-wear-screen').then(()=>{
+  const row=document.getElementById('row');
+  // 1) circular screen, content only
+  const c1=document.createElement('div');c1.className='cell';
+  const s1=document.createElement('m3e-wear-screen');
+  s1.setAttribute('diameter','200');
+  s1.innerHTML='<div class="title">12:30</div><div style="opacity:.8;margin-top:6px">今天 3 项</div>';
+  c1.append(s1, document.createTextNode('circle + content'));
+
+  // 2) circular screen with edge button
+  const c2=document.createElement('div');c2.className='cell';
+  const s2=document.createElement('m3e-wear-screen');
+  s2.setAttribute('diameter','220');
+  s2.innerHTML='<div class="title">Done</div><m3e-edge-button slot="edgeButton" size="small"><m3e-icon name="check" filled></m3e-icon></m3e-edge-button>';
+  c2.append(s2, document.createTextNode('circle + edgeButton'));
+
+  // 3) round-square
+  const c3=document.createElement('div');c3.className='cell';
+  const s3=document.createElement('m3e-wear-screen');
+  s3.setAttribute('diameter','200');s3.setAttribute('shape','round-square');
+  s3.innerHTML='<div class="title">Round</div>';
+  c3.append(s3, document.createTextNode('round-square'));
+
+  row.append(c1,c2,c3);
+});
+</script>
+</body></html>

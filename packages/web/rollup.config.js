@@ -76,6 +76,7 @@ const inputs = [
   "tooltip",
   "tree",
   "wear/edge-button",
+  "wear/wear-screen",
 ];
 
 export default createConfig({

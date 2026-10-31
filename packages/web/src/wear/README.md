@@ -8,6 +8,7 @@ visually and structurally distinct from the handheld `material3` components.
 
 | Element | Source | Notes |
 | --- | --- | --- |
+| `m3e-wear-screen` | `ScreenScaffold.kt` (simplified) | Circular / round-square screen container that clips content to the screen shape, with a default content slot and an `edgeButton` slot pinned to the bottom. |
 | `m3e-edge-button` | `EdgeButton.kt` (`EdgeButtonShape`) | Bottom-of-screen action with a custom arc-top / ellipse-bottom container that morphs to a rounded rectangle when small. |
 
 ## Conventions

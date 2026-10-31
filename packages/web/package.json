@@ -73,7 +73,8 @@
     "toolbar",
     "tooltip",
     "tree",
-    "wear/edge-button"
+    "wear/edge-button",
+    "wear/wear-screen"
   ],
   "type": "module",
   "exports": {
@@ -376,6 +377,10 @@
     "./wear/edge-button": {
       "types": "./dist/src/wear/edge-button/index.d.ts",
       "default": "./dist/wear-edge-button.js"
+    },
+    "./wear/wear-screen": {
+      "types": "./dist/src/wear/wear-screen/index.d.ts",
+      "default": "./dist/wear-wear-screen.js"
     },
     "./all": {
       "types": "./dist/src/all.d.ts",
