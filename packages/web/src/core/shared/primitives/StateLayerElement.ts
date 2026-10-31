@@ -7,6 +7,9 @@ import { customElement } from "../decorators";
 
 import { StateLayerToken } from "./StateLayerToken";
 
+/** The state-layer names supported by `M3eStateLayerElement`. */
+export type StateName = "hover" | "focused" | "pressed" | "dragged";
+
 /**
  * Provides focus and hover state layer treatment for an interactive element.
  *
@@ -67,7 +70,7 @@ export class M3eStateLayerElement extends HtmlFor(Role(LitElement, "none")) {
     .layer {
       contain: layout style paint;
       will-change: background-color;
-      transition: ${unsafeCSS(`background-color ${StateLayerToken.duration} ${StateLayerToken.easing}`)};
+      transition: ${unsafeCSS(`background-color var(--m3e-state-layer-duration, 150ms) ${StateLayerToken.easing}`)};
     }
     .layer.focused {
       background-color: color-mix(in srgb, ${StateLayerToken.focusColor} ${StateLayerToken.focusOpacity}, transparent);
@@ -79,6 +82,13 @@ export class M3eStateLayerElement extends HtmlFor(Role(LitElement, "none")) {
       background-color: color-mix(
         in srgb,
         ${StateLayerToken.pressedColor} ${StateLayerToken.pressedOpacity},
+        transparent
+      );
+    }
+    .layer.dragged {
+      background-color: color-mix(
+        in srgb,
+        ${StateLayerToken.draggedColor} ${StateLayerToken.draggedOpacity},
         transparent
       );
     }
@@ -139,18 +149,29 @@ export class M3eStateLayerElement extends HtmlFor(Role(LitElement, "none")) {
 
   /**
    * Launches a manual state layer.
-   * @param {"hover" | "focused" | "pressed"} state The state of the layer to show.
+   * @param {"hover" | "focused" | "pressed" | "dragged"} state The state of the layer to show.
    */
-  show(state: "hover" | "focused" | "pressed"): void {
-    this._layer?.classList.toggle(state, true);
+  show(state: StateName): void {
+    const layer = this._layer;
+    if (!layer) return;
+    layer.style.transitionDuration = String(StateLayerToken[`${this.#tokenState(state)}EnterDuration`]);
+    layer.classList.toggle(state, true);
   }
 
   /**
    * Hides the state layer.
-   * @param {"hover" | "focused" | "pressed"} state The state of the layer to hide.
+   * @param {"hover" | "focused" | "pressed" | "dragged"} state The state of the layer to hide.
    */
-  hide(state: "hover" | "focused" | "pressed"): void {
-    this._layer?.classList.toggle(state, false);
+  hide(state: StateName): void {
+    const layer = this._layer;
+    if (!layer) return;
+    layer.style.transitionDuration = String(StateLayerToken[`${this.#tokenState(state)}ExitDuration`]);
+    layer.classList.toggle(state, false);
+  }
+
+  /** @private Map the layer class name to its token base ("focused" -> "focus"). */
+  #tokenState(state: StateName): "hover" | "focus" | "pressed" | "dragged" {
+    return state === "focused" ? "focus" : state;
   }
 
   /** @inheritdoc */
