@@ -2,34 +2,41 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Button Group — real component (press squeeze)</title>
+    <title>Button Group — real component (states matrix)</title>
     <script type="module" src="packages/web/dist/all.min.js"></script>
     <style>
       html { touch-action: manipulation; }
       body {
         margin: 24px;
-        font: 13px system-ui, sans-serif;
+        font: 13px system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
         background: #fef7ff;
         color: #1d1b20;
-        max-width: 900px;
+        max-width: 1000px;
       }
+      h2 { margin: 0 0 4px; }
       h3 {
         font-size: 13px;
         margin: 6px 0;
         color: #49454f;
       }
+      .lead { color: #49454f; margin: 0 0 8px; }
       .panel {
         border: 1px solid #e7e0ec;
         border-radius: 12px;
         padding: 14px 18px;
         margin: 16px 0;
       }
+      .grid { display: grid; grid-template-columns: 120px 1fr; gap: 10px 16px; align-items: center; }
+      .grid > .wrap,
+      .grid > m3e-button-group,
+      .grid > div:not(.label) { justify-self: start; }
+      .label { font: 12px ui-monospace, monospace; color: #49454f; text-align: right; }
       .row {
         display: flex;
         gap: 24px;
         flex-wrap: wrap;
         align-items: center;
-        margin: 10px 0;
+        margin: 6px 0;
       }
       .wrap {
         display: inline-block;
@@ -42,14 +49,18 @@
         color: #49454f;
         margin-top: 8px;
       }
+      .note { font-size: 12px; color: #7a757f; }
     </style>
   </head>
   <body>
-    <h2>m3e-button-group · 按下挤压扩张（真实组件）</h2>
-    <p>按住按钮：按下项变宽、邻居被压窄，总宽守恒；松手回弹。形状（圆角收缩/选中胶囊）由按钮自身 CSS 处理。</p>
+    <h2>m3e-button-group · 状态矩阵（真实组件）</h2>
+    <p class="lead">
+      按住按钮：按下项变宽、邻居被压窄，总宽守恒；松手回弹。形状与选中态由按钮自身处理。
+      下方覆盖 variant / size / multi / 按钮 appearance / 图标 / 选中 / 禁用 / 长标签等状态组合。
+    </p>
 
     <div class="panel">
-      <h3>Standard</h3>
+      <h3>1 · Standard（tonal + toggle，可挤压）</h3>
       <div class="wrap"><m3e-button-group id="std">
         <m3e-button variant="tonal" toggle>Start</m3e-button>
         <m3e-button variant="tonal" toggle>Directions</m3e-button>
@@ -59,7 +70,7 @@
     </div>
 
     <div class="panel">
-      <h3>Connected（单选）</h3>
+      <h3>2 · Connected（单选，square + toggle）</h3>
       <div class="wrap"><m3e-button-group id="con" variant="connected">
         <m3e-button variant="tonal" shape="square" toggle>Day</m3e-button>
         <m3e-button variant="tonal" shape="square" toggle>Week</m3e-button>
@@ -70,7 +81,146 @@
     </div>
 
     <div class="panel">
-      <h3>Standard · 长标签（内容自适应，验证 free=0 仍能扩张）</h3>
+      <h3>3 · Multi-select（connected + multi）</h3>
+      <div class="wrap"><m3e-button-group id="multi" variant="connected" multi>
+        <m3e-button variant="tonal" shape="square" toggle selected>Bold</m3e-button>
+        <m3e-button variant="tonal" shape="square" toggle>Italic</m3e-button>
+        <m3e-button variant="tonal" shape="square" toggle selected>Underline</m3e-button>
+      </m3e-button-group></div>
+      <p class="note">multi 允许同时选中多个；预选 Bold 与 Underline。</p>
+    </div>
+
+    <div class="panel">
+      <h3>4 · 五种按钮 appearance（standard，可挤压）</h3>
+      <div class="grid">
+        <div class="label">filled</div>
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="filled" toggle>Cut</m3e-button>
+          <m3e-button variant="filled" toggle>Copy</m3e-button>
+          <m3e-button variant="filled" toggle>Paste</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">tonal</div>
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="tonal" toggle>Cut</m3e-button>
+          <m3e-button variant="tonal" toggle>Copy</m3e-button>
+          <m3e-button variant="tonal" toggle>Paste</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">elevated</div>
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="elevated" toggle>Cut</m3e-button>
+          <m3e-button variant="elevated" toggle>Copy</m3e-button>
+          <m3e-button variant="elevated" toggle>Paste</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">outlined</div>
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="outlined" toggle>Cut</m3e-button>
+          <m3e-button variant="outlined" toggle>Copy</m3e-button>
+          <m3e-button variant="outlined" toggle>Paste</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">text</div>
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="text" toggle>Cut</m3e-button>
+          <m3e-button variant="text" toggle>Copy</m3e-button>
+          <m3e-button variant="text" toggle>Paste</m3e-button>
+        </m3e-button-group></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>5 · 尺寸（standard，extra-small → extra-large）</h3>
+      <div class="grid">
+        <div class="label">extra-small</div>
+        <div><m3e-button-group size="extra-small">
+          <m3e-button variant="tonal" size="extra-small" toggle>Start</m3e-button>
+          <m3e-button variant="tonal" size="extra-small" toggle>Center</m3e-button>
+          <m3e-button variant="tonal" size="extra-small" toggle>End</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">small</div>
+        <div><m3e-button-group size="small">
+          <m3e-button variant="tonal" size="small" toggle>Start</m3e-button>
+          <m3e-button variant="tonal" size="small" toggle>Center</m3e-button>
+          <m3e-button variant="tonal" size="small" toggle>End</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">medium</div>
+        <div><m3e-button-group size="medium">
+          <m3e-button variant="tonal" size="medium" toggle>Start</m3e-button>
+          <m3e-button variant="tonal" size="medium" toggle>Center</m3e-button>
+          <m3e-button variant="tonal" size="medium" toggle>End</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">large</div>
+        <div><m3e-button-group size="large">
+          <m3e-button variant="tonal" size="large" toggle>Start</m3e-button>
+          <m3e-button variant="tonal" size="large" toggle>Center</m3e-button>
+          <m3e-button variant="tonal" size="large" toggle>End</m3e-button>
+        </m3e-button-group></div>
+
+        <div class="label">extra-large</div>
+        <div><m3e-button-group size="extra-large">
+          <m3e-button variant="tonal" size="extra-large" toggle>Start</m3e-button>
+          <m3e-button variant="tonal" size="extra-large" toggle>Center</m3e-button>
+          <m3e-button variant="tonal" size="extra-large" toggle>End</m3e-button>
+        </m3e-button-group></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>6 · 选中态（standard / connected 各带预选）</h3>
+      <div class="row">
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="tonal" toggle selected>Low</m3e-button>
+          <m3e-button variant="tonal" toggle>Mid</m3e-button>
+          <m3e-button variant="tonal" toggle>High</m3e-button>
+        </m3e-button-group></div>
+        <div class="wrap"><m3e-button-group variant="connected">
+          <m3e-button variant="filled" shape="square" toggle>Left</m3e-button>
+          <m3e-button variant="filled" shape="square" toggle selected>Center</m3e-button>
+          <m3e-button variant="filled" shape="square" toggle>Right</m3e-button>
+        </m3e-button-group></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>7 · 禁用（整组 disabled + 单个 disabled）</h3>
+      <div class="row">
+        <div class="wrap"><m3e-button-group>
+          <m3e-button variant="tonal" toggle disabled>Start</m3e-button>
+          <m3e-button variant="tonal" toggle disabled>Directions</m3e-button>
+          <m3e-button variant="tonal" toggle disabled>Share</m3e-button>
+        </m3e-button-group></div>
+        <div class="wrap"><m3e-button-group variant="connected">
+          <m3e-button variant="tonal" shape="square" toggle>One</m3e-button>
+          <m3e-button variant="tonal" shape="square" toggle disabled>Two</m3e-button>
+          <m3e-button variant="tonal" shape="square" toggle>Three</m3e-button>
+        </m3e-button-group></div>
+      </div>
+      <p class="note">单个禁用项在同一组内保留位置与形状。</p>
+    </div>
+
+    <div class="panel">
+      <h3>8 · 图标按钮组（standard + connected，toggle）</h3>
+      <div class="row">
+        <div class="wrap"><m3e-button-group id="icons">
+          <m3e-icon-button variant="tonal" toggle><m3e-icon name="format_bold"></m3e-icon></m3e-icon-button>
+          <m3e-icon-button variant="tonal" toggle><m3e-icon name="format_italic"></m3e-icon></m3e-icon-button>
+          <m3e-icon-button variant="tonal" toggle><m3e-icon name="format_underlined"></m3e-icon></m3e-icon-button>
+        </m3e-button-group></div>
+        <div class="wrap"><m3e-button-group variant="connected">
+          <m3e-icon-button variant="filled" shape="square" toggle><m3e-icon name="star" filled></m3e-icon></m3e-icon-button>
+          <m3e-icon-button variant="filled" shape="square" toggle><m3e-icon name="favorite" filled></m3e-icon></m3e-icon-button>
+          <m3e-icon-button variant="filled" shape="square" toggle><m3e-icon name="bookmark" filled></m3e-icon></m3e-icon-button>
+        </m3e-button-group></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>9 · Standard · 长标签（内容自适应，验证 free=0 仍能扩张）</h3>
       <div class="wrap"><m3e-button-group id="long">
         <m3e-button variant="tonal" toggle>Prev</m3e-button>
         <m3e-button variant="tonal" toggle>Play/Pause the thing</m3e-button>
@@ -83,6 +233,7 @@
       function bindReadout(groupId, outId) {
         const g = document.getElementById(groupId);
         const out = document.getElementById(outId);
+        if (!g || !out) return;
         const widths = () => [...g.querySelectorAll("m3e-button")].map((b) => Math.round(b.getBoundingClientRect().width));
         const total = () => Math.round(g.getBoundingClientRect().width);
         const baseTotal = total();
@@ -97,7 +248,6 @@
           if (b) setTimeout(() => log("pressed"), 120);
         });
         g.addEventListener("pointerup", () => setTimeout(() => log("released"), 120));
-        // expose for automated probe
         g.__measure = () => ({ widths: widths(), total: total(), rest: baseTotal });
       }
       customElements.whenDefined("m3e-button-group").then(() => {
@@ -106,9 +256,9 @@
         bindReadout("long", "longOut");
       });
       window.__groups = () => ({
-        std: document.getElementById("std").__measure?.(),
-        con: document.getElementById("con").__measure?.(),
-        long: document.getElementById("long").__measure?.(),
+        std: document.getElementById("std")?.__measure?.(),
+        con: document.getElementById("con")?.__measure?.(),
+        long: document.getElementById("long")?.__measure?.(),
       });
     </script>
   </body>
