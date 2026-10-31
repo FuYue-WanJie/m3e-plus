@@ -420,6 +420,8 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
       this.variant = "standard";
     }
     setCustomEnumState(this, this.variant, "connected", "standard");
+    // Connected groups do not squeeze; drop any squeeze left over from standard.
+    if (this.variant === "connected") this.#clearSqueeze();
   }
 
   /** @private */
@@ -501,6 +503,13 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
 
   /** @private Handle a per-button press change: drive its spring, squeeze neighbours. */
   #handleButtonPress(button: M3eButtonElement | M3eIconButtonElement, pressed: boolean): void {
+    // Width squeeze only applies to the standard variant. Connected groups keep the press
+    // shape morph handled by the buttons themselves but never change width (matches AndroidX
+    // and the reference implementation). Clear any leftover squeeze if we were mid-animation.
+    if (this.variant === "connected") {
+      this.#clearSqueeze();
+      return;
+    }
     // Only 2+ buttons in a squeeze-eligible group participate.
     if (this.buttons.length < 2) return;
     // Reduced motion: no squeeze animation.
@@ -543,6 +552,22 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     return spring;
   }
 
+  /** @private Stop all squeeze springs and drop any inline width/shrink (e.g. on variant switch). */
+  #clearSqueeze(): void {
+    if (this.#squeezeRaf) {
+      cancelAnimationFrame(this.#squeezeRaf);
+      this.#squeezeRaf = 0;
+    }
+    for (const raf of this.#releaseWait.values()) cancelAnimationFrame(raf);
+    this.#releaseWait.clear();
+    for (const spring of this.#springs.values()) spring.stop();
+    this.#springs.clear();
+    for (const b of this.buttons ?? []) {
+      b.style.removeProperty("width");
+      b.style.removeProperty("--_adjacent-shrink");
+    }
+  }
+
   /** @private Schedule one layout pass on the next frame (coalesces multiple spring updates). */
   #requestLayout(): void {
     if (this.#squeezeRaf) return;
@@ -583,6 +608,14 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
   #ensureMeasured(): void {
     const btns = this.buttons;
     if (!this.#measureDirty && this.#naturalWidths.length === btns.length) return;
+    // Never (re)measure while any squeeze spring is mid-flight: reading widths during the
+    // returning animation would capture a squeezed width as the "natural" baseline and the group
+    // would shrink a little more on every rapid re-tap. Keep the last good baseline instead.
+    const animating = btns.some((b) => {
+      const s = this.#springs.get(b);
+      return s != null && (s.isRunning || s.value > 1e-4);
+    });
+    if (animating && this.#naturalWidths.length === btns.length) return;
     this.#measureDirty = false;
     // Temporarily clear any inline widths so we read the natural content width.
     const prev = btns.map((b) => [b.style.width, b.style.getPropertyValue("--_adjacent-shrink")]);

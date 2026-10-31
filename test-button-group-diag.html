@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Button Group 图标挤压诊断</title>
+<script type="importmap">
+{ "imports": {
+  "tslib": "./node_modules/tslib/tslib.es6.mjs",
+  "lit": "./node_modules/lit/index.js",
+  "lit/": "./node_modules/lit/",
+  "lit-element": "./node_modules/lit-element/lit-element.js",
+  "lit-element/": "./node_modules/lit-element/",
+  "lit-html": "./node_modules/lit-html/lit-html.js",
+  "lit-html/": "./node_modules/lit-html/",
+  "@lit/reactive-element": "./node_modules/@lit/reactive-element/reactive-element.js",
+  "@lit/reactive-element/": "./node_modules/@lit/reactive-element/",
+  "@wanjie/m3e-web/icon": "./packages/web/dist/icon.js",
+  "@wanjie/m3e-web/core": "./packages/web/dist/core.js",
+  "@wanjie/m3e-web/": "./packages/web/dist/"
+}}
+</script>
+<script type="module">
+import "./packages/web/dist/theme.js";
+import "./packages/web/dist/button.js";
+import "./packages/web/dist/button-group.js";
+import "./packages/web/dist/icon-button.js";
+import "./packages/web/dist/icon.js";
+import "./packages/icons/dist/outlined/format_bold.js";
+import "./packages/icons/dist/outlined/format_italic.js";
+import "./packages/icons/dist/outlined/format_underlined.js";
+</script>
+<style>
+  body { margin: 24px; font: 13px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; background:#fef7ff; color:#1d1b20; }
+  .panel { border:1px solid #e7e0ec; border-radius:12px; padding:14px 18px; margin:14px 0; }
+  .wrap { display:inline-block; background:#f3edf7; padding:8px; border-radius:12px; }
+  #log { font: 12px ui-monospace, monospace; white-space:pre-wrap; background:#1d1b20; color:#e8def8; padding:12px; border-radius:8px; max-height:340px; overflow:auto; }
+  button.act { padding:6px 12px; border-radius:20px; border:1px solid #79747e; background:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+  <h2>Button Group 图标挤压诊断</h2>
+  <p>请<b>按住中间图标按钮长按约 1 秒再松开</b>，观察是否出现总宽变大/重叠，然后点“导出日志 / 复制”。</p>
+
+  <div class="panel">
+    <h3>Standard（图标按钮组）</h3>
+    <div class="wrap"><m3e-button-group id="stdIcons">
+      <m3e-icon-button variant="tonal" toggle><m3e-icon name="format_bold"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button variant="tonal" toggle><m3e-icon name="format_italic"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button variant="tonal" toggle><m3e-icon name="format_underlined"></m3e-icon></m3e-icon-button>
+    </m3e-button-group></div>
+    <div class="wrap" style="margin-top:8px"><m3e-button-group id="conIcons" variant="connected">
+      <m3e-icon-button variant="filled" shape="square" toggle><m3e-icon name="format_bold"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button variant="filled" shape="square" toggle><m3e-icon name="format_italic"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button variant="filled" shape="square" toggle><m3e-icon name="format_underlined"></m3e-icon></m3e-icon-button>
+    </m3e-button-group></div>
+  </div>
+
+  <div class="panel">
+    <button class="act" id="dump">导出日志 / 复制</button>
+    <pre id="log">（等待交互…按住图标按钮长按）</pre>
+  </div>
+
+<script type="module">
+const lines = [];
+function log(msg){ const t=new Date().toISOString().slice(11,23); lines.push(`[${t}] ${msg}`); document.getElementById('log').textContent = lines.join('\n'); }
+
+function measureGroup(id){
+  const g = document.getElementById(id);
+  if(!g) return null;
+  const items = [...g.children];
+  return {
+    groupW: +g.getBoundingClientRect().width.toFixed(2),
+    groupScrollW: g.scrollWidth,
+    groupClientW: g.clientWidth,
+    items: items.map((it,i)=>{
+      const r = it.getBoundingClientRect();
+      const sr = it.shadowRoot;
+      const wrap = sr?.querySelector('.wrapper');
+      const layout = sr?.querySelector('.layout');
+      const base = sr?.querySelector('.base');
+      const cs = wrap?getComputedStyle(wrap):null;
+      return {
+        i,
+        variant: it.getAttribute('variant'),
+        hostW: +r.width.toFixed(2),
+        inlineWidth: it.style.width || '(none)',
+        adjacentShrinkVar: getComputedStyle(it).getPropertyValue('--_adjacent-shrink') || '(none)',
+        wrapperW: wrap?+wrap.getBoundingClientRect().width.toFixed(2):null,
+        wrapperScrollW: wrap?wrap.scrollWidth:null,
+        wrapperPadL: cs?cs.paddingLeft:null,
+        wrapperPadR: cs?cs.paddingRight:null,
+        layoutW: layout?+layout.getBoundingClientRect().width.toFixed(2):null,
+        baseW: base?+base.getBoundingClientRect().width.toFixed(2):null,
+      };
+    })
+  };
+}
+
+// 记录交互期间的 per-item 状态（pointerdown/up 时以及一帧后）
+for (const id of ['stdIcons','conIcons']) {
+  const g = document.getElementById(id);
+  g.addEventListener('pointerdown', (e)=>{
+    const it = e.target.closest('m3e-icon-button');
+    const idx = it ? [...g.children].indexOf(it) : -1;
+    log(`${id} pointerdown on item ${idx}`);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const m = measureGroup(id);
+      log(`${id} @press  groupW=${m.groupW} scroll=${m.groupScrollW}`);
+      m.items.forEach(x=>log(`   item${x.i} hostW=${x.hostW} inline=${x.inlineWidth} shrinkVar=${x.adjacentShrinkVar} wrapW=${x.wrapperW} wrapScroll=${x.wrapperScrollW} padL=${x.wrapperPadL} padR=${x.wrapperPadR} layoutW=${x.layoutW} baseW=${x.baseW}`));
+    }));
+  });
+  g.addEventListener('pointerup', ()=>{
+    log(`${id} pointerup`);
+    setTimeout(()=>{
+      const m = measureGroup(id);
+      log(`${id} @release groupW=${m.groupW} scroll=${m.groupScrollW}`);
+    }, 500);
+  });
+}
+
+// 页面加载后先记录 rest
+setTimeout(()=>{
+  for (const id of ['stdIcons','conIcons']) {
+    const m = measureGroup(id);
+    if(m){ log(`${id} @rest groupW=${m.groupW} scroll=${m.groupScrollW}`); m.items.forEach(x=>log(`   item${x.i} hostW=${x.hostW} wrapW=${x.wrapperW} padL=${x.wrapperPadL} padR=${x.wrapperPadR}`)); }
+  }
+}, 400);
+
+// 导出/复制
+document.getElementById('dump').addEventListener('click', async ()=>{
+  const text = lines.join('\n');
+  try { await navigator.clipboard.writeText(text); log('已复制到剪贴板'); }
+  catch(e){ log('剪贴板不可用，请手动全选下方日志复制'); }
+  console.log(text);
+});
+window.__getLog = ()=>lines.join('\n');
+</script>
+</body>
+</html>
