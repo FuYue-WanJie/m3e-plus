@@ -3,7 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <title>Button Group — real component (states matrix)</title>
-    <script type="module" src="packages/web/dist/all.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "tslib": "./node_modules/tslib/tslib.es6.mjs",
+          "lit": "./node_modules/lit/index.js",
+          "lit/": "./node_modules/lit/",
+          "lit-element": "./node_modules/lit-element/lit-element.js",
+          "lit-element/": "./node_modules/lit-element/",
+          "lit-html": "./node_modules/lit-html/lit-html.js",
+          "lit-html/": "./node_modules/lit-html/",
+          "@lit/reactive-element": "./node_modules/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "./node_modules/@lit/reactive-element/",
+          "@wanjie/m3e-web/icon": "./packages/web/dist/icon.js",
+          "@wanjie/m3e-web/core": "./packages/web/dist/core.js",
+          "@wanjie/m3e-web/": "./packages/web/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "./packages/web/dist/theme.js";
+      import "./packages/web/dist/button.js";
+      import "./packages/web/dist/button-group.js";
+      import "./packages/web/dist/icon-button.js";
+      import "./packages/web/dist/icon.js";
+      import "./packages/icons/dist/outlined/format_bold.js";
+      import "./packages/icons/dist/outlined/format_italic.js";
+      import "./packages/icons/dist/outlined/format_underlined.js";
+      import "./packages/icons/dist/outlined/star.js";
+      import "./packages/icons/dist/outlined/favorite.js";
+      import "./packages/icons/dist/outlined/bookmark.js";
+    </script>
     <style>
       html { touch-action: manipulation; }
       body {
