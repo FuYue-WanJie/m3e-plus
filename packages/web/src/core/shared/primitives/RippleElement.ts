@@ -1,12 +1,22 @@
-import { css, CSSResultGroup, LitElement, PropertyValues, unsafeCSS } from "lit";
+import { css, CSSResultGroup, LitElement, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
 import { PressedController } from "../controllers";
 import { HtmlFor, Role } from "../mixins";
-import { DesignToken } from "../tokens";
 import { customElement } from "../decorators";
 
 import { RippleToken } from "./RippleToken";
+
+/** Per-ripple animation bookkeeping (androidx `RippleAnimation`). */
+interface RippleEntry {
+  radiusAndCenter: Animation;
+  alpha: Animation;
+  persistent: boolean;
+  finishing: boolean;
+}
+
+/** A ripple circle element carrying its animation entry. */
+type RippleDivElement = HTMLElement & { _entry?: RippleEntry };
 
 /**
  * Connects user input to screen reactions using ripples.
@@ -75,42 +85,17 @@ export class M3eRippleElement extends HtmlFor(Role(LitElement, "none")) {
     .ripple {
       display: block;
       position: absolute;
-      inset: 0;
+      left: 0;
+      top: 0;
       pointer-events: none;
-      transform: scale(0);
-      opacity: ${RippleToken.opacity};
       border-radius: 50%;
-      filter: blur(20px);
       background-color: ${RippleToken.color};
-      transition: ${unsafeCSS(
-        `background-color ${DesignToken.motion.duration.short1} ${DesignToken.motion.easing.standard}`,
-      )};
-      will-change: transform, background-color, opacity;
-      animation: ripple ${RippleToken.enterDuration} linear;
-    }
-    .ripple.persistent.pressed {
-      transform: scale(4);
-    }
-    .ripple.exit {
-      transition: ${unsafeCSS(
-        `opacity ${RippleToken.exitDuration} cubic-bezier(0, 0, 0.2, 0.1),
-        background-color ${DesignToken.motion.duration.short1} ${DesignToken.motion.easing.standard}`,
-      )};
       opacity: 0;
-    }
-    @keyframes ripple {
-      to {
-        transform: scale(4);
-      }
+      will-change: transform, opacity;
     }
     @media (prefers-reduced-motion) {
       .ripple {
-        transform: scale(4);
-        animation-duration: 90ms;
-      }
-      .ripple:not(.exit),
-      .ripple.exit {
-        transition-duration: 10ms;
+        animation-duration: 1ms !important;
       }
     }
     @media (forced-colors: active) {
@@ -167,57 +152,117 @@ export class M3eRippleElement extends HtmlFor(Role(LitElement, "none")) {
    */
   show(x: number, y: number, persistent: boolean = false): void {
     const bounds = this.getBoundingClientRect();
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
     if (this.centered) {
-      x = bounds.left + bounds.width / 2;
-      y = bounds.top + bounds.height / 2;
+      x = centerX;
+      y = centerY;
     }
 
-    let radius = this.radius;
-
-    if (!radius || isNaN(radius)) {
-      const distX = Math.max(Math.abs(x - bounds.left), Math.abs(x - bounds.right));
-      const distY = Math.max(Math.abs(y - bounds.top), Math.abs(y - bounds.bottom));
-      radius = Math.sqrt(distX * distX + distY * distY);
-    }
-
-    const offsetX = x - bounds.left;
-    const offsetY = y - bounds.top;
+    // AndroidX `RippleAnimation`: the radius starts at 30% of the largest dimension (60% of the
+    // diameter) and ends covering the bounds — 10dp extra beyond the corner for bounded ripples.
+    const maxDimension = Math.max(bounds.width, bounds.height);
+    const startRadius = maxDimension * 0.3;
+    const endRadius =
+      this.radius && !isNaN(this.radius)
+        ? this.radius
+        : this.unbounded
+          ? Math.hypot(bounds.width, bounds.height) / 2
+          : Math.hypot(bounds.width, bounds.height) / 2 + 10;
 
     const ripple = document.createElement("div");
     ripple.classList.add("ripple");
-    if (persistent) {
-      ripple.classList.add("persistent");
-    }
+    const diameter = endRadius * 2;
+    ripple.style.width = `${diameter}px`;
+    ripple.style.height = `${diameter}px`;
 
-    ripple.style.left = `${offsetX - radius}px`;
-    ripple.style.top = `${offsetY - radius}px`;
-    ripple.style.width = `${radius * 2}px`;
-    ripple.style.height = `${radius * 2}px`;
-
-    ripple.addEventListener("animationend", () => this.#handleAnimationEnd(ripple, persistent), { once: true });
-    ripple.addEventListener(
-      "transitionend",
-      (e) => {
-        if (e.propertyName === "opacity") {
-          this.#destroyRipple(ripple);
-        }
-      },
-      { once: true },
-    );
-
-    if (!this.shadowRoot) {
-      this.#ripples.delete(ripple);
-      return;
-    }
+    if (!this.shadowRoot) return;
     this.#ripples.add(ripple);
     this.shadowRoot.appendChild(ripple);
+
+    // Three parallel tracks (androidx `RippleAnimation.animate`): alpha fades in over 75ms while
+    // the radius (FastOutSlowIn) and the center (clamped to the bounds, Linear) run over 225ms.
+    // The center is a translate from the touch point to the middle of the element for bounded
+    // ripples; unbounded ripples stay centered on the touch point.
+    const moveX = this.unbounded ? x - bounds.left : x - centerX;
+    const moveY = this.unbounded ? y - bounds.top : y - centerY;
+    const scaleFrom = startRadius / endRadius;
+    const { fadeInDuration, radiusDuration } = this.#durations();
+
+    const radiusAndCenter = ripple.animate(
+      [
+        { transform: `translate(${moveX - endRadius}px, ${moveY - endRadius}px) scale(${scaleFrom})` },
+        { transform: `translate(${-endRadius}px, ${-endRadius}px) scale(1)` },
+      ],
+      { duration: radiusDuration, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "forwards" },
+    );
+    const rippleAlpha = (() => {
+      const raw = parseFloat(getComputedStyle(this).getPropertyValue("--m3e-ripple-opacity"));
+      return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : 0.1;
+    })();
+    const alpha = ripple.animate([{ opacity: 0 }, { opacity: rippleAlpha }], {
+      duration: fadeInDuration,
+      easing: "linear",
+      fill: "forwards",
+    });
+
+    const entry: RippleEntry = { radiusAndCenter, alpha, persistent, finishing: false };
+    (ripple as RippleDivElement & { _entry?: RippleEntry })._entry = entry;
+
+    alpha.addEventListener("finish", () => {
+      if (!entry.persistent && !entry.finishing) this.#exitRipple(ripple);
+    });
+    if (!persistent) {
+      // A non-persistent ripple exits after the enter animation; persistent ones wait for hide().
+      radiusAndCenter.addEventListener("finish", () => {
+        if (!entry.persistent && !entry.finishing) this.#exitRipple(ripple);
+      });
+    }
+  }
+
+  /**
+   * Resolves the three durations (ms) from the CSS custom properties on the host. The token
+   * strings are CSS values (possibly var() chains), so they must go through the style engine.
+   * @private
+   */
+  #durations(): { fadeInDuration: number; radiusDuration: number; fadeOutDuration: number } {
+    const style = getComputedStyle(this);
+    const parse = (value: string, fallback: number): number => {
+      const ms = parseFloat(value);
+      return Number.isFinite(ms) && ms >= 0 ? ms : fallback;
+    };
+    return {
+      fadeInDuration: parse(style.getPropertyValue("--m3e-ripple-fade-in-duration"), 75),
+      radiusDuration: parse(style.getPropertyValue("--m3e-ripple-radius-duration"), 225),
+      fadeOutDuration: parse(style.getPropertyValue("--m3e-ripple-fade-out-duration"), 150),
+    };
   }
 
   /** Manually hides the ripple. */
   hide(): void {
     for (const ripple of this.#ripples) {
-      ripple.classList.add("exit");
+      this.#exitRipple(ripple);
     }
+  }
+
+  /**
+   * Fades a ripple out (androidx `RippleAnimation.fadeOut`, 150ms linear) and removes it. If the
+   * fade-in had not finished yet, the alpha jumps straight to full first (androidx `draw`).
+   * @private
+   */
+  #exitRipple(ripple: HTMLElement): void {
+    const entry = (ripple as RippleDivElement)._entry;
+    if (!entry || entry.finishing) return;
+    entry.finishing = true;
+    const exitDuration = this.#durations().fadeOutDuration;
+    entry.radiusAndCenter.finish();
+    const current = parseFloat(getComputedStyle(ripple).opacity) || 0;
+    ripple
+      .animate([{ opacity: current }, { opacity: 0 }], { duration: exitDuration, easing: "linear", fill: "forwards" })
+      .addEventListener("finish", () => {
+        ripple.remove();
+        this.#ripples.delete(ripple);
+      });
   }
 
   /** @inheritdoc */
@@ -258,22 +303,16 @@ export class M3eRippleElement extends HtmlFor(Role(LitElement, "none")) {
   /** @private */
   #destroyRipple(ripple?: HTMLElement): void {
     if (ripple) {
+      const entry = (ripple as RippleDivElement)._entry;
+      entry?.radiusAndCenter.cancel();
+      entry?.alpha.cancel();
       ripple.remove();
       this.#ripples.delete(ripple);
     } else {
       for (const r of this.#ripples) {
-        r.remove();
+        this.#destroyRipple(r);
       }
       this.#ripples.clear();
-    }
-  }
-
-  /** @private */
-  #handleAnimationEnd(ripple: HTMLElement, persistent: boolean): void {
-    if (persistent) {
-      ripple.classList.add("pressed");
-    } else {
-      ripple.classList.add("exit");
     }
   }
 
