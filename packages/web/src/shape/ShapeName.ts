@@ -1,37 +1,9 @@
-/** Specifies the possible names of a shape. */
-export type ShapeName =
-  | "4-leaf-clover"
-  | "4-sided-cookie"
-  | "6-sided-cookie"
-  | "7-sided-cookie"
-  | "8-leaf-clover"
-  | "9-sided-cookie"
-  | "12-sided-cookie"
-  | "arch"
-  | "arrow"
-  | "boom"
-  | "bun"
-  | "burst"
-  | "circle"
-  | "diamond"
-  | "fan"
-  | "flower"
-  | "gem"
-  | "ghost-ish"
-  | "heart"
-  | "hexagon"
-  | "oval"
-  | "pentagon"
-  | "pill"
-  | "pixel-circle"
-  | "pixel-triangle"
-  | "puffy"
-  | "puffy-diamond"
-  | "semicircle"
-  | "slanted"
-  | "soft-boom"
-  | "soft-burst"
-  | "square"
-  | "sunny"
-  | "triangle"
-  | "very-sunny";
+import type { MaterialShapeName } from "./MaterialShapeData";
+
+/**
+ * Specifies the possible names of a shape.
+ *
+ * Aliased to {@link MaterialShapeName} so every consumer shares the single authoritative
+ * list of the 35 Material 3 Expressive shapes (from `MaterialShapeData`).
+ */
+export type ShapeName = MaterialShapeName;

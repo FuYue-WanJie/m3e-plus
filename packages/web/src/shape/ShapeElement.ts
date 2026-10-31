@@ -16,9 +16,9 @@ import { ShapeNameStyle } from "./ShapeNameStyle";
  *
  * All shape names are sourced from the Material Shape library: `4-leaf-clover`, `4-sided-cookie`, `6-sided-cookie`,
  * `7-sided-cookie`, `8-leaf-clover`, `9-sided-cookie`, `12-sided-cookie`, `arch`, `arrow`, `boom`, `bun`, `burst`,
- * `circle`, `diamond`, `fan`, `flower`, `gem`, `ghost-ish`, `heart`, `hexagon`, `oval`, `pentagon`, `pill`, `pixel-circle`,
- * `pixel-triangle`, `puffy`, `puffy-diamond`, `semicircle`, `slanted`, `soft-boom`, `soft-burst`, `square`, `sunny`,
- * `triangle`, and `very-sunny`. Refer to the Material Shape library for visual references and details.
+ * `circle`, `clamshell`, `diamond`, `fan`, `flower`, `gem`, `ghost-ish`, `heart`, `oval`, `pentagon`, `pill`,
+ * `pixel-circle`, `pixel-triangle`, `puffy`, `puffy-diamond`, `semicircle`, `slanted`, `soft-boom`, `soft-burst`,
+ * `square`, `sunny`, `triangle`, and `very-sunny`. Refer to the Material Shape library for visual references and details.
  *
  * @example
  * The following example illustrates using the `m3e-shape` component to present the `sunny` shape.

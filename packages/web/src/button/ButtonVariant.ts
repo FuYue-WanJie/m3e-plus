@@ -7,5 +7,7 @@ export type ButtonVariant = "elevated" | "filled" | "tonal" | "outlined" | "text
  * @returns Whether `value` is a `ButtonVariant`.
  */
 export function isButtonVariant(value: unknown): value is ButtonVariant {
-  return value === "elevated" || value === "filled" || value === "tonal" || value === "outlined";
+  return (
+    value === "elevated" || value === "filled" || value === "tonal" || value === "outlined" || value === "text"
+  );
 }

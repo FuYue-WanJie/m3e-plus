@@ -7,7 +7,7 @@ import { ShapePolygon } from "./ShapePolygon";
 function shapeStyle(name: ShapeName): CSSResult {
   return css`
     :host([name="${unsafeCSS(name)}"]) .wrapper {
-      clip-path: polygon(${ShapePolygon[name]});
+      clip-path: ${ShapePolygon[name]};
     }
   `;
 }
