@@ -163,6 +163,28 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         ${DesignToken.shape.corner.extraSmall}
       );
     }
+    :host(:is(:state(--connected), :--connected):is(:state(--extra-small), :--extra-small))
+      ::slotted(:is(:state(--first), :--first):is(:state(--extra-small), :--extra-small)) {
+      --_button-rounded-start-shape: var(
+        --m3e-connected-button-group-extra-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-start-shape: var(
+        --m3e-connected-button-group-extra-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--extra-small), :--extra-small))
+      ::slotted(:is(:state(--last), :--last):is(:state(--extra-small), :--extra-small)) {
+      --_button-rounded-end-shape: var(
+        --m3e-connected-button-group-extra-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-end-shape: var(
+        --m3e-connected-button-group-extra-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
     :host(:is(:state(--connected), :--connected):is(:state(--small), :--small))
       ::slotted(:is(:state(--first), :--first):is(:state(--small), :--small)),
     :host(:is(:state(--connected), :--connected):is(:state(--small), :--small))
@@ -195,6 +217,28 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
       --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-small-inner-pressed-shape,
         ${DesignToken.shape.corner.extraSmall}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--small), :--small))
+      ::slotted(:is(:state(--first), :--first):is(:state(--small), :--small)) {
+      --_button-rounded-start-shape: var(
+        --m3e-connected-button-group-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-start-shape: var(
+        --m3e-connected-button-group-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--small), :--small))
+      ::slotted(:is(:state(--last), :--last):is(:state(--small), :--small)) {
+      --_button-rounded-end-shape: var(
+        --m3e-connected-button-group-small-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-end-shape: var(
+        --m3e-connected-button-group-small-outer-shape,
+        ${DesignToken.shape.corner.full}
       );
     }
     :host(:is(:state(--connected), :--connected):is(:state(--medium), :--medium))
@@ -235,6 +279,28 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         ${DesignToken.shape.corner.extraSmall}
       );
     }
+    :host(:is(:state(--connected), :--connected):is(:state(--medium), :--medium))
+      ::slotted(:is(:state(--first), :--first):is(:state(--medium), :--medium)) {
+      --_button-rounded-start-shape: var(
+        --m3e-connected-button-group-medium-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-start-shape: var(
+        --m3e-connected-button-group-medium-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--medium), :--medium))
+      ::slotted(:is(:state(--last), :--last):is(:state(--medium), :--medium)) {
+      --_button-rounded-end-shape: var(
+        --m3e-connected-button-group-medium-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-end-shape: var(
+        --m3e-connected-button-group-medium-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
     :host(:is(:state(--connected), :--connected):is(:state(--large), :--large))
       ::slotted(:is(:state(--first), :--first):is(:state(--large), :--large)),
     :host(:is(:state(--connected), :--connected):is(:state(--large), :--large))
@@ -267,6 +333,28 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
       --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-large-inner-pressed-shape,
         ${DesignToken.shape.corner.medium}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--large), :--large))
+      ::slotted(:is(:state(--first), :--first):is(:state(--large), :--large)) {
+      --_button-rounded-start-shape: var(
+        --m3e-connected-button-group-large-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-start-shape: var(
+        --m3e-connected-button-group-large-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--large), :--large))
+      ::slotted(:is(:state(--last), :--last):is(:state(--large), :--large)) {
+      --_button-rounded-end-shape: var(
+        --m3e-connected-button-group-large-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-end-shape: var(
+        --m3e-connected-button-group-large-outer-shape,
+        ${DesignToken.shape.corner.full}
       );
     }
     :host(:is(:state(--connected), :--connected):is(:state(--extra-large), :--extra-large))
@@ -305,6 +393,28 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
       --_button-start-shape-pressed-morph: var(
         --m3e-connected-button-group-extra-large-inner-pressed-shape,
         ${DesignToken.shape.corner.large}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--extra-large), :--extra-large))
+      ::slotted(:is(:state(--first), :--first):is(:state(--extra-large), :--extra-large)) {
+      --_button-rounded-start-shape: var(
+        --m3e-connected-button-group-extra-large-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-start-shape: var(
+        --m3e-connected-button-group-extra-large-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+    }
+    :host(:is(:state(--connected), :--connected):is(:state(--extra-large), :--extra-large))
+      ::slotted(:is(:state(--last), :--last):is(:state(--extra-large), :--extra-large)) {
+      --_button-rounded-end-shape: var(
+        --m3e-connected-button-group-extra-large-outer-shape,
+        ${DesignToken.shape.corner.full}
+      );
+      --_button-square-end-shape: var(
+        --m3e-connected-button-group-extra-large-outer-shape,
+        ${DesignToken.shape.corner.full}
       );
     }
   `;
