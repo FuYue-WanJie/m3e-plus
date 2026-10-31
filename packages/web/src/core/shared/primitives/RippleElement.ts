@@ -182,17 +182,27 @@ export class M3eRippleElement extends HtmlFor(Role(LitElement, "none")) {
 
     // Three parallel tracks (androidx `RippleAnimation.animate`): alpha fades in over 75ms while
     // the radius (FastOutSlowIn) and the center (clamped to the bounds, Linear) run over 225ms.
-    // The center is a translate from the touch point to the middle of the element for bounded
-    // ripples; unbounded ripples stay centered on the touch point.
-    const moveX = this.unbounded ? x - bounds.left : x - centerX;
-    const moveY = this.unbounded ? y - bounds.top : y - centerY;
-    const scaleFrom = startRadius / endRadius;
+    // The transform composes `translate(t) scale(s)`; a point P maps to `t + s*P`. We solve so the
+    // circle's own center (`endR, endR`) sits at the touch point on frame 0 and at the element
+    // center (`W/2, H/2`) on the last frame (bounded), or stays on the touch point (unbounded).
+    //
+    //   centered at C = click:  t0 = C - s0*endR,        s0 = startRadius/endRadius
+    //   final center C1        :  t1 = C1 - endR,         s1 = 1
+    const s0 = startRadius / endRadius;
+    const cix = x - bounds.left; // click, host-relative
+    const ciy = y - bounds.top;
+    const c1x = this.unbounded ? cix : bounds.width / 2;
+    const c1y = this.unbounded ? ciy : bounds.height / 2;
+    const tx0 = cix - s0 * endRadius;
+    const ty0 = ciy - s0 * endRadius;
+    const tx1 = c1x - endRadius;
+    const ty1 = c1y - endRadius;
     const { fadeInDuration, radiusDuration } = this.#durations();
 
     const radiusAndCenter = ripple.animate(
       [
-        { transform: `translate(${moveX - endRadius}px, ${moveY - endRadius}px) scale(${scaleFrom})` },
-        { transform: `translate(${-endRadius}px, ${-endRadius}px) scale(1)` },
+        { transform: `translate(${tx0}px, ${ty0}px) scale(${s0})` },
+        { transform: `translate(${tx1}px, ${ty1}px) scale(1)` },
       ],
       { duration: radiusDuration, easing: "cubic-bezier(0.4, 0, 0.2, 1)", fill: "forwards" },
     );
