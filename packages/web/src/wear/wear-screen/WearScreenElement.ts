@@ -76,8 +76,9 @@ export class M3eWearScreenElement extends LitElement {
       flex: none;
       display: flex;
       justify-content: center;
-      /* The edge button hugs the bottom of the screen. */
-      margin: 0 -12px -12px;
+      /* The edge button hugs the bottom of the screen: offsets the 12px screen padding plus the
+         3px bezel border so the button visually touches the glass edge. */
+      margin: 0 -12px -15px;
     }
     .edge-button[hidden] {
       display: none;
