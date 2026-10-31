@@ -18,6 +18,7 @@ import {
 
 import { M3eButtonElement } from "@wanjie/m3e-web/button";
 import { M3eIconButtonElement } from "@wanjie/m3e-web/icon-button";
+import "@wanjie/m3e-web/menu";
 import { SpringSimulation } from "@wanjie/m3e-web/physics";
 
 import { ButtonGroupVariant, isButtonGroupVariant } from "./ButtonGroupVariant";
@@ -58,6 +59,7 @@ import { squeezeLayout } from "./squeeze";
  * @slot - Renders the buttons of the group.
  *
  * @attr multi - Whether multiple toggle buttons can be selected.
+ * @attr overflow - Whether buttons that do not fit collapse into a trailing "more options" menu.
  * @attr size - The size of the group.
  * @attr variant - The appearance variant of the group.
  *
@@ -417,6 +419,37 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
         ${DesignToken.shape.corner.full}
       );
     }
+    .overflow-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      flex: none;
+      border: none;
+      border-radius: ${DesignToken.shape.corner.full};
+      background-color: var(--m3e-button-group-overflow-indicator-background, var(--md-sys-color-secondary-container, #e8def8));
+      color: var(--m3e-button-group-overflow-indicator-color, var(--md-sys-color-on-secondary-container, #1d192b));
+      cursor: pointer;
+      padding: 0;
+      box-sizing: border-box;
+      outline-offset: 2px;
+    }
+    .overflow-indicator[hidden] {
+      display: none;
+    }
+    .overflow-indicator svg {
+      pointer-events: none;
+    }
+    .overflow-menu {
+      display: none;
+    }
+    .overflow-menu:popover-open {
+      display: block;
+    }
+    ::slotted([data-overflow-hidden]) {
+      display: none;
+    }
   `;
 
   /** @private Per-button press-width spring (FastSpatial 800 / 0.6, AndroidX EnlargeOnPress). */
@@ -433,6 +466,12 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
   #measureDirty = true;
   /** @private ResizeObserver watching the buttons' content to refresh natural widths. */
   #resizeObserver?: ResizeObserver;
+  /** @private Whether the overflow menu is currently showing. */
+  #overflowOpen = false;
+  /** @private Indices (into `buttons`) currently collapsed into the overflow menu. */
+  #collapsed = new Set<number>();
+  /** @private Observer watching the group's available width to recompute the overflow fold. */
+  #overflowObserver?: ResizeObserver;
 
   /** @private */ readonly #pressedController = new PressedController(this, {
     target: null,
@@ -463,6 +502,14 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
    */
   @property({ type: Boolean }) multi = false;
 
+  /**
+   * Whether buttons that do not fit the group's width collapse into an overflow menu
+   * (an anchored `m3e-menu` behind a trailing "more options" icon button), as AndroidX
+   * `ButtonGroup` does with its overflow indicator.
+   * @default false
+   */
+  @property({ type: Boolean, reflect: true }) overflow = false;
+
   /** The buttons contained by the group. */
   @queryAssignedElements({ slot: "", selector: "m3e-button,m3e-icon-button", flatten: true })
   readonly buttons!: ReadonlyArray<M3eButtonElement | M3eIconButtonElement>;
@@ -473,6 +520,7 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
 
     this.#applyVariant();
     this.#applySize();
+    this.#observeOverflow();
 
     if (this.hasAttribute("disable-role")) {
       this.role = null;
@@ -482,6 +530,8 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
   /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#overflowObserver?.disconnect();
+    this.#overflowObserver = undefined;
     if (this.#squeezeRaf) cancelAnimationFrame(this.#squeezeRaf);
     this.#squeezeRaf = 0;
     for (const raf of this.#releaseWait.values()) cancelAnimationFrame(raf);
@@ -506,6 +556,10 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
     if (_changedProperties.has("size")) {
       this.#applySize();
     }
+    if (_changedProperties.has("overflow")) {
+      this.#observeOverflow();
+      this.#updateOverflow();
+    }
   }
 
   /** @inheritdoc */
@@ -521,6 +575,24 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
   protected override render(): unknown {
     return html`<div class="base">
       <slot @slotchange=${this.#updateButtons} @change=${this.#handleChange}></slot>
+      <button
+        class="overflow-indicator"
+        part="overflow-indicator"
+        ?hidden=${!this.overflow}
+        aria-haspopup="menu"
+        aria-expanded=${this.#overflowOpen ? "true" : "false"}
+        aria-label="More options"
+        @click=${this.#toggleOverflowMenu}
+      >
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path
+            d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+      <m3e-menu class="overflow-menu" position-y="below" position-x="after" ?hidden=${!this.overflow}>
+      </m3e-menu>
     </div>`;
   }
 
@@ -676,6 +748,152 @@ export class M3eButtonGroupElement extends Role(AttachInternals(LitElement), "gr
       b.style.removeProperty("width");
       b.style.removeProperty("--_adjacent-shrink");
     }
+  }
+
+  /** @private Toggle the overflow menu (indicator click). */
+  #toggleOverflowMenu = (): void => {
+    if (this.#overflowOpen) {
+      this.#hideOverflowMenu();
+    } else {
+      this.#showOverflowMenu();
+    }
+  };
+
+  /** @private Show the overflow menu anchored to the indicator. */
+  async #showOverflowMenu(): Promise<void> {
+    const menu = this.#overflowMenu;
+    const indicator = this.#overflowIndicator;
+    if (!menu || !indicator) return;
+    this.#overflowOpen = true;
+    this.#syncOverflowIndicator();
+    await menu.show(indicator);
+  }
+
+  /** @private Hide the overflow menu. */
+  #hideOverflowMenu(): void {
+    this.#overflowMenu?.hide();
+    this.#overflowOpen = false;
+    this.#syncOverflowIndicator();
+  }
+
+  /** @private Sync the indicator's expanded state. */
+  #syncOverflowIndicator(): void {
+    const indicator = this.#overflowIndicator;
+    if (indicator) indicator.setAttribute("aria-expanded", this.#overflowOpen ? "true" : "false");
+  }
+
+  /**
+   * @private Recompute which buttons fit. Buttons that do not fit are visually hidden and appear
+   * as items in the overflow menu (clicking an item activates the original button). Runs only when
+   * `overflow` is enabled; on `standard` groups the natural (unsqueezed) widths are used.
+   */
+  #updateOverflow(): void {
+    const indicator = this.#overflowIndicator;
+    if (!this.overflow) {
+      if (this.#collapsed.size) {
+        this.#collapsed.clear();
+        this.#applyCollapsed();
+        this.#syncMenuItems();
+      }
+      return;
+    }
+    const btns = this.buttons;
+    if (!btns.length) {
+      if (indicator) indicator.hidden = true;
+      return;
+    }
+    if (indicator) indicator.hidden = false;
+    // Available width: the group's content box minus the indicator (which always stays visible).
+    const gap = this.#overflowGap();
+    const styles = getComputedStyle(this);
+    const available =
+      this.getBoundingClientRect().width - parseFloat(styles.paddingLeft || "0") - parseFloat(styles.paddingRight || "0");
+    const indicatorWidth = indicator ? indicator.getBoundingClientRect().width + gap : 0;
+
+    // Measure natural widths with nothing collapsed.
+    const widths = btns.map((b) => {
+      const prevHidden = b.hasAttribute("data-overflow-hidden");
+      if (prevHidden) b.removeAttribute("data-overflow-hidden");
+      const w = b.getBoundingClientRect().width;
+      if (prevHidden) b.setAttribute("data-overflow-hidden", "");
+      return w;
+    });
+
+    // Greedy fold from the tail: keep as many leading buttons as fit.
+    let used = indicatorWidth;
+    let foldFrom = btns.length;
+    for (let i = 0; i < btns.length; i++) {
+      used += widths[i] + (i > 0 ? gap : 0);
+      if (used > available + 0.5) {
+        foldFrom = i;
+        break;
+      }
+    }
+    // If everything fits with room to spare, also try to show the last folded button again.
+    const next = new Set<number>();
+    if (foldFrom < btns.length) {
+      for (let i = foldFrom; i < btns.length; i++) next.add(i);
+    }
+    this.#collapsed = next;
+    this.#applyCollapsed();
+    this.#syncMenuItems();
+  }
+
+  /** @private Column gap between items for the current variant/size (px). */
+  #overflowGap(): number {
+    const base = this.shadowRoot?.querySelector<HTMLElement>(".base");
+    if (!base) return 0;
+    return parseFloat(getComputedStyle(base).columnGap || "0") || 0;
+  }
+
+  /** @private Show/hide buttons per the current fold. */
+  #applyCollapsed(): void {
+    this.buttons.forEach((b, i) => {
+      if (this.#collapsed.has(i)) b.setAttribute("data-overflow-hidden", "");
+      else b.removeAttribute("data-overflow-hidden");
+    });
+  }
+
+  /** @private Rebuild the overflow menu items from the collapsed buttons. */
+  #syncMenuItems(): void {
+    const menu = this.#overflowMenu;
+    if (!menu) return;
+    menu.innerHTML = "";
+    const btns = this.buttons;
+    let any = false;
+    this.#collapsed.forEach((index) => {
+      const b = btns[index];
+      if (!b) return;
+      any = true;
+      const item = document.createElement("m3e-menu-item");
+      const label = (b.textContent || "").trim() || b.getAttribute("aria-label") || `Item ${index + 1}`;
+      item.textContent = label;
+      item.addEventListener("click", () => {
+        this.#hideOverflowMenu();
+        b.click();
+      });
+      menu.appendChild(item);
+    });
+    menu.style.display = any ? "" : "none";
+  }
+
+  /** @private (Re)start the overflow ResizeObserver. */
+  #observeOverflow(): void {
+    this.#overflowObserver?.disconnect();
+    this.#overflowObserver = undefined;
+    if (!this.overflow || typeof ResizeObserver === "undefined") return;
+    this.#overflowObserver = new ResizeObserver(() => this.#updateOverflow());
+    this.#overflowObserver.observe(this);
+  }
+
+  /** @private The trailing overflow indicator button (shadow DOM). */
+  get #overflowIndicator(): HTMLButtonElement | null {
+    return this.shadowRoot?.querySelector<HTMLButtonElement>(".overflow-indicator") ?? null;
+  }
+
+  /** @private The internal overflow menu (shadow DOM). */
+  get #overflowMenu(): any | null {
+    return this.shadowRoot?.querySelector(".overflow-menu") ?? null;
   }
 
   /** @private Schedule one layout pass on the next frame (coalesces multiple spring updates). */

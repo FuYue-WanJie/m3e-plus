@@ -41,6 +41,7 @@ This section details the attributes, slots, and CSS custom properties available 
 | Attribute | Type                                                               | Default      | Description                                      |
 | --------- | ------------------------------------------------------------------ | ------------ | ------------------------------------------------ |
 | `multi`   | `boolean`                                                          | `false`      | Whether multiple toggle buttons can be selected. |
+| `overflow` | `boolean`                                                         | `false`      | Whether buttons that do not fit the group's width collapse into a trailing "more options" menu (an anchored `m3e-menu` behind a `more_vert` indicator). |
 | `size`    | `"extra-small" \| "small" \| "medium" \| "large" \| "extra-large"` | `"small"`    | The size of the group.                           |
 | `variant` | `"standard" \| "connected"`                                        | `"standard"` | The appearance variant of the group.             |
 
@@ -70,3 +71,6 @@ This section details the attributes, slots, and CSS custom properties available 
 | `--m3e-connected-button-group-large-inner-pressed-shape`       | Pressed corner shape for connected, large.        |
 | `--m3e-connected-button-group-extra-large-inner-shape`         | Corner shape for connected, extra-large.          |
 | `--m3e-connected-button-group-extra-large-inner-pressed-shape` | Pressed corner shape for connected, extra-large.  |
+| `--m3e-connected-button-group-[size]-outer-shape`              | Outer corner shape for the leading/trailing buttons in a connected group. |
+| `--m3e-button-group-overflow-indicator-background`             | Overflow indicator background color.              |
+| `--m3e-button-group-overflow-indicator-color`                  | Overflow indicator icon color.                    |

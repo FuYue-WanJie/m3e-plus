@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Button Group — overflow</title>
+<script type="importmap">
+{ "imports": {
+  "tslib": "./node_modules/tslib/tslib.es6.mjs",
+  "lit": "./node_modules/lit/index.js",
+  "lit/": "./node_modules/lit/",
+  "lit-element": "./node_modules/lit-element/lit-element.js",
+  "lit-element/": "./node_modules/lit-element/",
+  "lit-html": "./node_modules/lit-html/lit-html.js",
+  "lit-html/": "./node_modules/lit-html/",
+  "@lit/reactive-element": "./node_modules/@lit/reactive-element/reactive-element.js",
+  "@lit/reactive-element/": "./node_modules/@lit/reactive-element/",
+  "@wanjie/m3e-web/icon": "./packages/web/dist/icon.js",
+  "@wanjie/m3e-web/core": "./packages/web/dist/core.js",
+  "@wanjie/m3e-web/": "./packages/web/dist/"
+}}
+</script>
+<script type="module">
+import "./packages/web/dist/theme.js";
+import "./packages/web/dist/button.js";
+import "./packages/web/dist/button-group.js";
+import "./packages/web/dist/icon-button.js";
+import "./packages/web/dist/icon.js";
+import "./packages/web/dist/menu.js";
+</script>
+<style>
+  body { margin: 24px; font: 13px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; background:#fef7ff; color:#1d1b20; max-width: 900px; }
+  .panel { border:1px solid #e7e0ec; border-radius:12px; padding:14px 18px; margin:16px 0; }
+  h3 { font-size:13px; color:#49454f; margin:6px 0; }
+  .constrained { width: 300px; background:#f3edf7; padding:8px; border-radius:12px; }
+  .constrained.wide { width: 620px; }
+  #log { font: 12px ui-monospace, monospace; white-space:pre-wrap; background:#1d1b20; color:#e8def8; padding:10px; border-radius:8px; margin-top:8px; }
+  .resizer { margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h2>m3e-button-group · overflow 折叠</h2>
+
+  <div class="panel">
+    <h3>Standard + overflow（容器 300px，多数按钮应折叠进菜单）</h3>
+    <div class="constrained">
+      <m3e-button-group id="g1" overflow>
+        <m3e-button variant="tonal" toggle>Start</m3e-button>
+        <m3e-button variant="tonal" toggle>Directions to somewhere long</m3e-button>
+        <m3e-button variant="tonal" toggle>Share</m3e-button>
+        <m3e-button variant="tonal" toggle>Edit</m3e-button>
+        <m3e-button variant="tonal" toggle>Delete</m3e-button>
+      </m3e-button-group>
+    </div>
+    <button class="resizer" onclick="document.querySelector('.constrained').classList.toggle('wide')">切换容器宽度 (300/620)</button>
+    <div id="log"></div>
+  </div>
+
+  <script type="module">
+    const log = (m) => { const l=document.getElementById('log'); l.textContent += m+'\n'; };
+    customElements.whenDefined('m3e-button-group').then(async ()=>{
+      const g = document.getElementById('g1');
+      await new Promise(r=>setTimeout(r,300));
+      const report = (tag)=>{
+        const vis=[...g.buttons].map((b,i)=>`${i}:${b.hasAttribute('data-overflow-hidden')?'HIDDEN':'shown'}`).join(' ');
+        const ind=g.shadowRoot.querySelector('.overflow-indicator');
+        log(`${tag} indicatorHidden=${ind.hidden} ${vis}`);
+      };
+      report('初始');
+      window.__report = report;
+      g.buttons.forEach((b,i)=>b.addEventListener('click',()=>log(`click 转发: 按钮${i} "${b.textContent.trim()}"`)));
+      // 菜单展开观察
+      g.shadowRoot.querySelector('.overflow-indicator').addEventListener('click', ()=>{
+        setTimeout(()=>{
+          const menu=g.shadowRoot.querySelector('.overflow-menu');
+          const items=[...menu.querySelectorAll('m3e-menu-item')].map(x=>x.textContent.trim());
+          log(`菜单切换 open=${menu.hasAttribute('popover')&&menu.matches(':popover-open')} items=[${items.join(', ')}]`);
+        },150);
+      });
+    });
+  </script>
+</body>
+</html>
