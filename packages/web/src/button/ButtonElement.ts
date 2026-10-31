@@ -557,7 +557,9 @@ export class M3eButtonElement extends KeyboardClick(
 
     new PressedController(this, {
       isPressedKey: (key) => key === " ",
-      minPressedDuration: 225,
+      // The shape morph tracks pressed state immediately (AndroidX shapeByInteraction follows
+      // collectIsPressedAsState with no hold); ripple/state-layer keep their own controllers.
+      minPressedDuration: 0,
       callback: (pressed) => {
         if (!this.disabled && !this.disabledInteractive) {
           // Pin what is on screen *before* the pressed custom-state flips the CSS corners, so no

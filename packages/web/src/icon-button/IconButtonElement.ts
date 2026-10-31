@@ -375,7 +375,9 @@ export class M3eIconButtonElement extends KeyboardClick(
 
     new PressedController(this, {
       isPressedKey: (key) => key === " ",
-      minPressedDuration: 225,
+      // Track pressed immediately for the shape morph (see ButtonElement); ripple/state-layer
+      // keep their own controllers.
+      minPressedDuration: 0,
       callback: (pressed) => {
         if (!this.disabled && !this.disabledInteractive) {
           if (pressed) {
