@@ -41,7 +41,10 @@ const ICON_SIZE: Record<EdgeButtonSize, number> = {
 export class M3eEdgeButtonElement extends LitElement {
   static override styles: CSSResultGroup = css`
     :host {
-      display: inline-block;
+      /* Fill the parent width (AndroidX fillMaxWidth): the shape derives its arc from the
+         screen width, so the host must span the edgeButton slot of m3e-wear-screen. */
+      display: block;
+      width: 100%;
       position: relative;
       vertical-align: bottom;
       cursor: pointer;
@@ -96,9 +99,9 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @inheritdoc */
   protected override firstUpdated(): void {
     this.#recompute();
-    if (typeof ResizeObserver !== "undefined" && this._container) {
+    if (typeof ResizeObserver !== "undefined") {
       this.#ro = new ResizeObserver(() => this.#recompute());
-      this.#ro.observe(this._container);
+      this.#ro.observe(this);
     }
   }
 

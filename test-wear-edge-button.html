@@ -1,14 +1,43 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Wear EdgeButton</title>
-<script type="module" src="packages/web/dist/all.min.js"></script>
-<style>body{margin:0;font:13px system-ui;background:#fef7ff}
-.phone{width:320px;height:340px;margin:20px;border-radius:28px;background:#eaddff;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-.phone m3e-edge-button{width:100%}
-.phone .spacer{flex:1;display:flex;align-items:center;justify-content:center;color:#4a4459}
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>Wear EdgeButton（wear-screen 内）</title>
+<script type="importmap">
+{"imports":{"tslib":"./node_modules/tslib/tslib.es6.mjs","lit":"./node_modules/lit/index.js","lit/":"./node_modules/lit/","lit-element":"./node_modules/lit-element/lit-element.js","lit-element/":"./node_modules/lit-element/","lit-html":"./node_modules/lit-html/lit-html.js","lit-html/":"./node_modules/lit-html/","@lit/reactive-element":"./node_modules/@lit/reactive-element/reactive-element.js","@lit/reactive-element/":"./node_modules/@lit/reactive-element/","@wanjie/m3e-web/icon":"./packages/web/dist/icon.js","@wanjie/m3e-web/core":"./packages/web/dist/core.js","@wanjie/m3e-web/":"./packages/web/dist/"}}
+</script>
+<script type="module">
+import "./packages/web/dist/theme.js";
+import "./packages/web/dist/wear-wear-screen.js";
+import "./packages/web/dist/wear-edge-button.js";
+import "./packages/web/dist/icon.js";
+</script>
+<style>body{margin:24px;font:13px system-ui,"PingFang SC","Microsoft YaHei",sans-serif;background:#fef7ff;color:#1d1b20}
+.row{display:flex;gap:24px;flex-wrap:wrap;margin:16px 0;align-items:flex-end}
+.cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+.note{color:#49454f;font-size:12px;max-width:760px}
+.note code{background:#ece6f0;padding:1px 4px;border-radius:4px}
 </style></head>
 <body>
-<h2 style="margin:20px">m3e-edge-button（全宽贴底，Wear 真实用法）</h2>
-<div class="phone">
-  <div class="spacer">content</div>
-  <m3e-edge-button size="small"><m3e-icon name="check" filled></m3e-icon></m3e-edge-button>
-</div>
+<h2>m3e-edge-button（均在 m3e-wear-screen 内）</h2>
+<p class="note">AndroidX 规格：按钮占满屏幕宽度（<code>fillMaxWidth</code>）、底边贴屏（留 3dp padding），顶弧跟随圆形屏幕曲率；高度按 size 档位；小尺寸向圆角矩形 morph。圆形屏用 <code>shape="circle"</code>；round-square 屏的曲率不同但形状公式相同。</p>
+<div class="row" id="row"></div>
+<script type="module">
+const sizes=["extra-small","small","medium","large"];
+const icons={ "extra-small":"check","small":"check","medium":"play_arrow","large":"favorite" };
+const row=document.getElementById('row');
+for(const sz of sizes){
+  const cell=document.createElement('div'); cell.className='cell';
+  const s=document.createElement('m3e-wear-screen');
+  s.setAttribute('diameter','180');
+  s.innerHTML=`<m3e-edge-button slot="edgeButton" size="${sz}"><m3e-icon name="${icons[sz]}" filled></m3e-icon></m3e-edge-button>`;
+  cell.append(s, document.createTextNode(`size="${sz}" (h=${{ "extra-small":46, small:56, medium:70, large:96 }[sz]}dp)`));
+  row.append(cell);
+}
+// round-square 屏 + 内容示例
+{
+  const cell=document.createElement('div'); cell.className='cell';
+  const s=document.createElement('m3e-wear-screen');
+  s.setAttribute('diameter','180'); s.setAttribute('shape','round-square');
+  s.innerHTML='<div style="font-size:12px;color:#ccc">Timer</div><m3e-edge-button slot="edgeButton" size="small"><m3e-icon name="pause" filled></m3e-icon></m3e-edge-button>';
+  cell.append(s, document.createTextNode('round-square + small'));
+  row.append(cell);
+}
+</script>
 </body></html>
