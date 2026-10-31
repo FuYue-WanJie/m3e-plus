@@ -21,7 +21,7 @@ export type WearScreenShape = "circle" | "round-square";
  * @slot edgeButton - An action pinned to the bottom of the screen (e.g. `<m3e-edge-button>`).
  *
  * @cssprop --m3e-wear-screen-background - Screen background colour (default surface).
- * @cssprop --m3e-wear-screen-border - Screen bezel border (default 1px solid grey).
+ * @cssprop --m3e-wear-screen-border - Screen bezel border (default 3px solid grey).
  * @cssprop --m3e-wear-screen-diameter - Diameter override.
  */
 @customElement("m3e-wear-screen")
@@ -37,7 +37,7 @@ export class M3eWearScreenElement extends LitElement {
       background: var(--m3e-wear-screen-background, var(--m3e-color-surface, #141218));
       color: var(--m3e-color-on-surface, #e6e0e9);
       /* Subtle outline delineating the bezel; override or remove via the token. */
-      border: var(--m3e-wear-screen-border, 1px solid #79747e);
+      border: var(--m3e-wear-screen-border, 3px solid #79747e);
       overflow: hidden;
       isolation: isolate;
       -webkit-tap-highlight-color: transparent;
