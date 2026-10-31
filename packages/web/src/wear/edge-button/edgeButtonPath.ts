@@ -71,8 +71,11 @@ export function edgeButtonGeometry(width: number, height: number): EdgeButtonGeo
 
   const radius = height - ellipsisHeight / 2;
 
-  const contentLeft = sidePadding + radius;
-  const contentRight = width - sidePadding - radius;
+  // `Rect.inset` in the source coerces negative sizes to zero: the content window never inverts.
+  const contentInsetLeft = sidePadding + radius;
+  const contentInsetRight = width - sidePadding - radius;
+  const contentLeft = Math.min(contentInsetLeft, width / 2);
+  const contentRight = Math.max(contentInsetRight, width / 2);
 
   return {
     sidePadding,

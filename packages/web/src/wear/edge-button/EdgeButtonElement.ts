@@ -1,5 +1,5 @@
 import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
-import { property, query, state } from "lit/decorators.js";
+import { property, state } from "lit/decorators.js";
 
 import { customElement } from "@wanjie/m3e-web/core";
 
@@ -87,8 +87,6 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @private */ @state() private _path = "";
   /** @private */ @state() private _iconSize = 32;
   /** @private */ @state() private _contentStyle = "";
-
-  @query(".container") private readonly _container?: HTMLElement;
 
   /** @inheritdoc */
   protected override willUpdate(changed: PropertyValues<this>): void {
