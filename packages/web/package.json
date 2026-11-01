@@ -77,6 +77,7 @@
     "wear/level-indicator",
     "wear/scroll-indicator",
     "wear/stepper",
+    "wear/transforming-list",
     "wear/wear-screen"
   ],
   "type": "module",
@@ -392,6 +393,10 @@
     "./wear/stepper": {
       "types": "./dist/src/wear/stepper/index.d.ts",
       "default": "./dist/wear-stepper.js"
+    },
+    "./wear/transforming-list": {
+      "types": "./dist/src/wear/transforming-list/index.d.ts",
+      "default": "./dist/wear-transforming-list.js"
     },
     "./wear/wear-screen": {
       "types": "./dist/src/wear/wear-screen/index.d.ts",

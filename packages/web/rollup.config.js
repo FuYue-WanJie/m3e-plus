@@ -79,6 +79,7 @@ const inputs = [
   "wear/level-indicator",
   "wear/scroll-indicator",
   "wear/stepper",
+  "wear/transforming-list",
   "wear/wear-screen",
 ];
 

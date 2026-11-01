@@ -9,6 +9,7 @@ import "./packages/web/dist/wear-level-indicator.js";
 import "./packages/web/dist/wear-scroll-indicator.js";
 import "./packages/web/dist/wear-stepper.js";
 import "./packages/web/dist/wear-edge-button.js";
+import "./packages/web/dist/wear-transforming-list.js";
 import "./packages/web/dist/icon.js";
 import "./packages/icons/dist/outlined/check.js";
 import "./packages/icons/dist/outlined/add.js";
@@ -38,6 +39,10 @@ h3{margin:12px 0 0}
 <h3>ScreenScaffold 模式：滚动列表 + ScrollIndicator(for) + EdgeButton(for)</h3>
 <p class="note">滚到底部时 EdgeButton 从 0 长到满高并淡入，往上滚又收起；右侧滚动条自动跟随。两块：静态截图同时展示顶部与底部状态，第三块可以自己滚。</p>
 <div class="row" id="sc-row"></div>
+
+<h3>TransformingList（TransformingLazyColumn）：靠近上下边缘的条目缩小 + 淡出</h3>
+<p class="note">同样接了 ScrollIndicator 和 EdgeButton。前三块是固定滚动位置的静态对比，最后一块可以自己滚。</p>
+<div class="row" id="tlc-row"></div>
 
 <script type="module">
 const mk = (tag, attrs, ...children) => {
@@ -122,25 +127,32 @@ const cell = (label, ...kids) => {
 {
   const row = document.getElementById("sc-row");
   let n = 0;
-  const scaffold = (label, scrollTo) => {
+  const scaffold = (label, scrollTo, tlc = false, rowId = "sc-row") => {
     const id = "list" + (++n);
-    const list = mk("div", { id, style: "width:100%;height:100%;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:4px;padding-top:24px;box-sizing:border-box" });
-    for (let i = 1; i <= 8; i++) {
+    const list = tlc
+      ? mk("m3e-wear-transforming-list", { id, style: "padding-top:24px" })
+      : mk("div", { id, style: "width:100%;height:100%;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:4px;padding-top:24px;box-sizing:border-box" });
+    for (let i = 1; i <= (tlc ? 12 : 8); i++) {
       list.append(mk("div", { style: "flex:none;margin:0 auto;width:" + (i === 1 ? 70 : 100) + "%;height:" + (i === 1 ? 28 : 48) + "px;border-radius:999px;background:" + (i === 1 ? "transparent" : "#2b2930") + ";color:#e6e0e9;display:flex;align-items:center;padding:0 16px;box-sizing:border-box;font-size:14px" + (i === 1 ? ";justify-content:center;font-weight:600" : "") }, i === 1 ? "设置" : "选项 " + (i - 1)));
     }
     const si = mk("m3e-wear-scroll-indicator", { for: id });
     const eb = mk("m3e-edge-button", { slot: "edgeButton", for: id, size: "small" },
       mk("m3e-icon", { name: "check" }));
     const s = screen(200, list, si, eb);
-    row.append(cell(label, s));
+    document.getElementById(rowId).append(cell(label, s));
     if (scrollTo != null) requestAnimationFrame(() => requestAnimationFrame(() => {
       list.scrollTop = scrollTo === "end" ? list.scrollHeight : scrollTo;
     }));
   };
+  window.__scaffold = scaffold;
   scaffold("顶部（按钮收起）", 0);
   scaffold("中间", 120);
   scaffold("底部（按钮展开）", "end");
   scaffold("自己滚一滚", null);
+  scaffold("顶部", 0, true, "tlc-row");
+  scaffold("中间", 200, true, "tlc-row");
+  scaffold("底部", "end", true, "tlc-row");
+  scaffold("自己滚一滚", null, true, "tlc-row");
 }
 </script>
 </body></html>
