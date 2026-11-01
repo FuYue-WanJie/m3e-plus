@@ -23,7 +23,11 @@ export const LevelIndicatorDefaults = Object.freeze({
   edgePadding: 2,
   /** `ScrollIndicatorDefaults.gapHeight` — visual gap between segments, in dp of arc height. */
   gapHeight: 3,
-  /** Height→degrees conversion factor per `pixelsHeightToDegrees` (kept for reference). */
+  /** `ScrollIndicatorDefaults.indicatorHeight` (dp). */
+  scrollIndicatorHeight: 50,
+  /** `ScrollIndicatorDefaults.indicatorWidth` (dp; 6 on large screens). */
+  scrollIndicatorWidth: 5,
+  /** `ScrollIndicatorDefaults.min/maxSizeFraction`. */
   minSizeFraction: 0.3,
   maxSizeFraction: 0.7,
 });
@@ -39,21 +43,40 @@ export interface LevelIndicatorArcGeometry {
   gapPaddingDegrees: number;
 }
 
-/** Compute the arc geometry for one indicator layout. All units in px (dp at 1x). */
+/**
+ * Compute the arc geometry for one indicator layout (`IndicatorImpl`). All units in px (dp at 1x).
+ *
+ * `indicatorHeight` is the straight-line height of the indicator (ScrollIndicator: 50dp). Heights
+ * are converted to degrees against the usable radius, as `pixelsHeightToDegrees(h, usableRadius)`.
+ */
 export function levelIndicatorArcGeometry(
   diameter: number,
   strokeWidth: number,
-  sweepAngle: number,
+  indicatorHeight: number,
   gapHeight: number = LevelIndicatorDefaults.gapHeight,
   edgePadding: number = LevelIndicatorDefaults.edgePadding,
 ): LevelIndicatorArcGeometry {
   const usableRadius = Math.max(0, diameter / 2 - edgePadding);
   const arcRadius = Math.max(0, usableRadius - strokeWidth / 2);
   const heightToDegrees = (height: number): number =>
-    2 * Math.asin(Math.min(1, Math.max(-1, height / 2 / arcRadius))) * (180 / Math.PI);
+    usableRadius > 0 ? 2 * Math.asin(Math.min(1, Math.max(-1, height / 2 / usableRadius))) * (180 / Math.PI) : 0;
   const gapPaddingDegrees = heightToDegrees(strokeWidth + gapHeight);
-  const sweepDegrees = heightToDegrees(strokeWidth * sweepAngle) + gapPaddingDegrees;
+  const sweepDegrees = heightToDegrees(indicatorHeight) + gapPaddingDegrees;
   return { usableRadius, arcRadius, sweepDegrees, gapPaddingDegrees };
+}
+
+/**
+ * `LevelIndicator` converts its sweep angle into an indicator height:
+ * `2 * sin(sweep / 2) * (diameter / 2 - edgePadding - strokeWidth / 2)`.
+ */
+export function levelIndicatorHeight(
+  diameter: number,
+  strokeWidth: number,
+  sweepAngle: number,
+  edgePadding: number = LevelIndicatorDefaults.edgePadding,
+): number {
+  const radius = Math.max(0, diameter / 2 - edgePadding - strokeWidth / 2);
+  return 2 * Math.sin(((0.5 * sweepAngle) * Math.PI) / 180) * radius;
 }
 
 export interface IndicatorSegments {

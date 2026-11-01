@@ -1,9 +1,9 @@
 import { css, CSSResultGroup, html, LitElement, svg } from "lit";
-import { property } from "lit/decorators.js";
+import { property, state } from "lit/decorators.js";
 
 import { customElement } from "@wanjie/m3e-web/core";
 
-import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry } from "./levelIndicatorGeometry";
+import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry, levelIndicatorHeight } from "./levelIndicatorGeometry";
 
 /**
  * A Wear OS Material 3 level indicator — a curved stroke on the right side of a circular screen
@@ -79,16 +79,39 @@ export class M3eWearLevelIndicatorElement extends LitElement {
   /** Which side of the screen the arc hugs. @default "right" */
   @property({ reflect: true, useDefault: true }) side: "right" | "left" = "right";
 
+  /** @private Measured host diameter in px (the arc is drawn in real px, so strokes don't scale). */
+  @state() private _diameter = 0;
+  /** @private */ #ro?: ResizeObserver;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (typeof ResizeObserver !== "undefined") {
+      this.#ro = new ResizeObserver(() => {
+        const d = Math.min(this.clientWidth, this.clientHeight || this.clientWidth);
+        if (d > 0 && d !== this._diameter) this._diameter = d;
+      });
+      this.#ro.observe(this);
+    }
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.#ro?.disconnect();
+    this.#ro = undefined;
+  }
+
   protected override render(): unknown {
-    const diameter = 100;
-    const g = levelIndicatorArcGeometry(diameter, this.strokeWidth, this.sweepAngle);
+    const diameter = this._diameter || 192;
+    const c = diameter / 2;
+    const height = levelIndicatorHeight(diameter, this.strokeWidth, this.sweepAngle);
+    const g = levelIndicatorArcGeometry(diameter, this.strokeWidth, height);
     const value = Math.min(1, Math.max(0, this.value));
     const size = value;
     const position = 1; // LevelIndicator always starts at the bottom (`FractionPositionStateAdapter`)
     const indicatorStart = position * (1 - size);
     const segs = indicatorSegments(g.sweepDegrees, indicatorStart, size);
     // Mirror the arc across the vertical axis for the left side.
-    const flip = this.side === "left" ? "scale(-1,1) translate(-100,0)" : "";
+    const flip = this.side === "left" ? `scale(-1,1) translate(${-diameter},0)` : "";
     const arcR = g.arcRadius;
 
     // drawCurvedIndicatorSegment: when a segment's sweep <= gap, draw a fading dot instead.
@@ -102,8 +125,8 @@ export class M3eWearLevelIndicatorElement extends LitElement {
         if (fraction <= 0) return svg``;
         const angle = ((seg.start + seg.sweep / 2) * Math.PI) / 180;
         const r = (this.strokeWidth / 2) * fraction;
-        const cx = 50 + arcR * Math.cos(angle);
-        const cy = 50 + arcR * Math.sin(angle);
+        const cx = c + arcR * Math.cos(angle);
+        const cy = c + arcR * Math.sin(angle);
         return svg`<circle key=${key} cx=${cx} cy=${cy} r=${r} class=${cls}
           opacity=${fraction} fill="currentColor" stroke="none"
           style="color:inherit"></circle>`;
@@ -111,10 +134,10 @@ export class M3eWearLevelIndicatorElement extends LitElement {
       const a0 = seg.start + g.gapPaddingDegrees / 2;
       const sweep = Math.max(seg.sweep - g.gapPaddingDegrees, 0);
       const large = sweep > 180 ? 1 : 0;
-      const x0 = 50 + arcR * Math.cos((a0 * Math.PI) / 180);
-      const y0 = 50 + arcR * Math.sin((a0 * Math.PI) / 180);
-      const x1 = 50 + arcR * Math.cos(((a0 + sweep) * Math.PI) / 180);
-      const y1 = 50 + arcR * Math.sin(((a0 + sweep) * Math.PI) / 180);
+      const x0 = c + arcR * Math.cos((a0 * Math.PI) / 180);
+      const y0 = c + arcR * Math.sin((a0 * Math.PI) / 180);
+      const x1 = c + arcR * Math.cos(((a0 + sweep) * Math.PI) / 180);
+      const y1 = c + arcR * Math.sin(((a0 + sweep) * Math.PI) / 180);
       return svg`<path key=${key} class=${cls} d="M ${x0} ${y0} A ${arcR} ${arcR} 0 ${large} 1 ${x1} ${y1}"
         fill="none" stroke-width=${this.strokeWidth} stroke-linecap="round" pathLength="1"></path>`;
     };
@@ -123,7 +146,7 @@ export class M3eWearLevelIndicatorElement extends LitElement {
     // measured in canvas coordinates: 0° = 3 o'clock, positive sweep goes clockwise downward).
     // The level indicator grows from the bottom (position=1): value fills upward from the
     // bottom end of the arc toward the top end.
-    return html`<svg viewBox="0 0 100 100" role="img" aria-label="Level indicator">
+    return html`<svg viewBox="0 0 ${diameter} ${diameter}" role="img" aria-label="Level indicator">
       <g transform="${flip}">
         ${segment("track", segs.top, "t")}${segment("indicator", segs.mid, "m")}${segment(
           "track",

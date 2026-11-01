@@ -26,6 +26,27 @@ import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry } 
  * @cssprop --m3e-wear-scroll-indicator-diameter - The screen diameter the arc wraps (default 192).
  * @cssprop --m3e-wear-scroll-indicator-height - Indicator arc height (default 50px of diameter).
  */
+/** CSS-style cubic-bezier easing solved for x (Newton + bisection fallback). */
+function cubicBezier(x1: number, y1: number, x2: number, y2: number): (t: number) => number {
+  const bx = (t: number) => 3 * (1 - t) ** 2 * t * x1 + 3 * (1 - t) * t * t * x2 + t ** 3;
+  const by = (t: number) => 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t * t * y2 + t ** 3;
+  return (x: number): number => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0;
+    let hi = 1;
+    let t = x;
+    for (let i = 0; i < 24; i++) {
+      const v = bx(t) - x;
+      if (Math.abs(v) < 1e-6) break;
+      if (v > 0) hi = t;
+      else lo = t;
+      t = (lo + hi) / 2;
+    }
+    return by(t);
+  };
+}
+
 @customElement("m3e-wear-scroll-indicator")
 export class M3eWearScrollIndicatorElement extends LitElement {
   static override styles: CSSResultGroup = css`
@@ -75,14 +96,15 @@ export class M3eWearScrollIndicatorElement extends LitElement {
   /** @private */ #fromPosition = 0;
   /** @private */ #fromSize = 0.5;
 
-  /** The indicator arc height in viewport units (ScrollIndicatorDefaults.indicatorHeight=50dp of screen). */
-  @property({ type: Number, attribute: "arc-height" }) arcHeight = 50;
+  /** The indicator height in px (ScrollIndicatorDefaults.indicatorHeight = 50dp). @default 50 */
+  @property({ type: Number, attribute: "arc-height" }) arcHeight = LevelIndicatorDefaults.scrollIndicatorHeight;
 
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed);
     if (changed.has("position") || changed.has("size")) {
       const targetSize = Math.min(0.7, Math.max(0.3, this.size));
-      if (this.noAnimation || changed.has("position") === false && changed.has("size") === false) {
+      // First paint and no-animation snap; later changes tween like the source.
+      if (this.noAnimation || !this.hasUpdated) {
         this._animPosition = this.position;
         this._animSize = targetSize;
         return;
@@ -94,8 +116,25 @@ export class M3eWearScrollIndicatorElement extends LitElement {
   }
 
   /** @inheritdoc */
+  /** @private Measured host diameter in px (the arc is drawn in real px, so strokes don't scale). */
+  @state() private _diameter = 0;
+  /** @private */ #ro?: ResizeObserver;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (typeof ResizeObserver !== "undefined") {
+      this.#ro = new ResizeObserver(() => {
+        const d = Math.min(this.clientWidth, this.clientHeight || this.clientWidth);
+        if (d > 0 && d !== this._diameter) this._diameter = d;
+      });
+      this.#ro.observe(this);
+    }
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#ro?.disconnect();
+    this.#ro = undefined;
     cancelAnimationFrame(this.#raf);
     this.#raf = 0;
   }
@@ -106,7 +145,7 @@ export class M3eWearScrollIndicatorElement extends LitElement {
     this.#animStart = performance.now();
     const fromPosition = this.#fromPosition;
     const fromSize = this.#fromSize;
-    const ease = (t: number): number => t * t * t; // cubic-bezier(0,0,0,1) ≈ cubic ease-in
+    const ease = cubicBezier(0, 0, 0, 1); // ScrollIndicatorDefaults.PositionAnimationSpec
     const step = (now: number): void => {
       const t = Math.min(1, (now - this.#animStart) / 500);
       const k = ease(t);
@@ -122,16 +161,15 @@ export class M3eWearScrollIndicatorElement extends LitElement {
   }
 
   protected override render(): unknown {
-    const diameter = 100;
-    const strokeWidth = 5; // ScrollIndicatorDefaults.indicatorWidth (non-large screen)
-    const edgePadding = LevelIndicatorDefaults.edgePadding;
-    // The indicator arc's own height in screen units; converts to a sweep like the source.
-    const g = levelIndicatorArcGeometry(diameter, strokeWidth, this.arcHeight, LevelIndicatorDefaults.gapHeight, edgePadding);
+    const diameter = this._diameter || 192;
+    const c = diameter / 2;
+    const strokeWidth = LevelIndicatorDefaults.scrollIndicatorWidth;
+    const g = levelIndicatorArcGeometry(diameter, strokeWidth, this.arcHeight);
     const size = Math.min(1, Math.max(0, this._animSize));
     const position = Math.min(1, Math.max(0, this.reverseDirection ? 1 - this._animPosition : this._animPosition));
     const indicatorStart = position * (1 - size);
     const segs = indicatorSegments(g.sweepDegrees, indicatorStart, size);
-    const flip = this.side === "left" ? "scale(-1,1) translate(-100,0)" : "";
+    const flip = this.side === "left" ? `scale(-1,1) translate(${-diameter},0)` : "";
     const arcR = g.arcRadius;
 
     const segment = (cls: string, seg: { start: number; sweep: number }, key: string): unknown => {
@@ -140,23 +178,23 @@ export class M3eWearScrollIndicatorElement extends LitElement {
         const fraction = seg.sweep / g.gapPaddingDegrees;
         const angle = ((seg.start + seg.sweep / 2) * Math.PI) / 180;
         const r = (strokeWidth / 2) * fraction;
-        const cx = 50 + arcR * Math.cos(angle);
-        const cy = 50 + arcR * Math.sin(angle);
+        const cx = c + arcR * Math.cos(angle);
+        const cy = c + arcR * Math.sin(angle);
         return svg`<circle key=${key} cx=${cx} cy=${cy} r=${r} class=${cls} opacity=${fraction}
           fill="currentColor" stroke="none"></circle>`;
       }
       const a0 = seg.start + g.gapPaddingDegrees / 2;
       const sweep = Math.max(seg.sweep - g.gapPaddingDegrees, 0);
       const large = sweep > 180 ? 1 : 0;
-      const x0 = 50 + arcR * Math.cos((a0 * Math.PI) / 180);
-      const y0 = 50 + arcR * Math.sin((a0 * Math.PI) / 180);
-      const x1 = 50 + arcR * Math.cos(((a0 + sweep) * Math.PI) / 180);
-      const y1 = 50 + arcR * Math.sin(((a0 + sweep) * Math.PI) / 180);
+      const x0 = c + arcR * Math.cos((a0 * Math.PI) / 180);
+      const y0 = c + arcR * Math.sin((a0 * Math.PI) / 180);
+      const x1 = c + arcR * Math.cos(((a0 + sweep) * Math.PI) / 180);
+      const y1 = c + arcR * Math.sin(((a0 + sweep) * Math.PI) / 180);
       return svg`<path key=${key} class=${cls} d="M ${x0} ${y0} A ${arcR} ${arcR} 0 ${large} 1 ${x1} ${y1}"
         fill="none" stroke-width=${strokeWidth} stroke-linecap="round"></path>`;
     };
 
-    return html`<svg viewBox="0 0 100 100" role="img" aria-label="Scroll indicator">
+    return html`<svg viewBox="0 0 ${diameter} ${diameter}" role="img" aria-label="Scroll indicator">
       <g transform="${flip}">
         ${segment("track", segs.top, "t")}${segment("indicator", segs.mid, "m")}${segment(
           "track",

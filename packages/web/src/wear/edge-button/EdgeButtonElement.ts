@@ -49,7 +49,13 @@ export class M3eEdgeButtonElement extends LitElement {
       vertical-align: bottom;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      color: var(--m3e-edge-button-content-color, #fff);
+      outline: none;
+      color: var(--m3e-edge-button-content-color, var(--m3e-color-on-primary, #381e72));
+    }
+    :host([disabled]) {
+      cursor: default;
+      pointer-events: none;
+      color: var(--m3e-edge-button-disabled-content-color, color-mix(in srgb, var(--m3e-color-on-surface, #e6e0e9) 38%, transparent));
     }
     :host([hidden]) {
       display: none;
@@ -67,7 +73,31 @@ export class M3eEdgeButtonElement extends LitElement {
       display: block;
     }
     .shape .fill {
-      fill: var(--m3e-edge-button-color, var(--m3e-color-primary-container, #4f378b));
+      fill: var(--m3e-edge-button-color, var(--m3e-color-primary, #d0bcff));
+    }
+    :host([disabled]) .shape .fill {
+      fill: var(--m3e-edge-button-disabled-color, color-mix(in srgb, var(--m3e-color-on-surface, #e6e0e9) 12%, transparent));
+    }
+    /* State layer (hover / focus / pressed), clipped to the same path. */
+    .shape .state {
+      fill: currentColor;
+      opacity: 0;
+      transition: opacity 150ms;
+    }
+    :host(:hover) .shape .state {
+      opacity: 0.08;
+    }
+    :host(:focus-visible) .shape .state,
+    :host([pressed]) .shape .state {
+      opacity: 0.1;
+    }
+    :host(:focus-visible) .shape .focus {
+      stroke: var(--m3e-edge-button-focus-ring-color, var(--m3e-color-secondary, #ccc2dc));
+      stroke-width: 3;
+    }
+    .shape .focus {
+      fill: none;
+      stroke: transparent;
     }
     .content {
       position: absolute;
@@ -91,6 +121,63 @@ export class M3eEdgeButtonElement extends LitElement {
   /** The size of the edge button. @default "small" */
   @property({ reflect: true, useDefault: true }) size: EdgeButtonSize = "small";
 
+  /** Whether the button is disabled. @default false */
+  @property({ type: Boolean, reflect: true }) disabled = false;
+
+  /** @private */ @state() private _width = 0;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (!this.hasAttribute("role")) this.setAttribute("role", "button");
+    this.#syncDisabled();
+    this.addEventListener("keydown", this.#onKeyDown);
+    this.addEventListener("keyup", this.#onKeyUp);
+    this.addEventListener("pointerdown", this.#onPointerDown);
+    this.addEventListener("click", this.#onClick, { capture: true });
+  }
+
+  #syncDisabled(): void {
+    this.setAttribute("aria-disabled", String(this.disabled));
+    if (this.disabled) this.removeAttribute("tabindex");
+    else if (!this.hasAttribute("tabindex")) this.setAttribute("tabindex", "0");
+  }
+
+  #onClick = (e: Event): void => {
+    if (this.disabled) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  };
+
+  #onKeyDown = (e: KeyboardEvent): void => {
+    if (this.disabled || e.repeat) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      this.click();
+    } else if (e.key === " ") {
+      e.preventDefault();
+      this.toggleAttribute("pressed", true);
+    }
+  };
+
+  #onKeyUp = (e: KeyboardEvent): void => {
+    if (e.key !== " " || !this.hasAttribute("pressed")) return;
+    this.removeAttribute("pressed");
+    if (!this.disabled) this.click();
+  };
+
+  #onPointerDown = (): void => {
+    if (this.disabled) return;
+    this.toggleAttribute("pressed", true);
+    const up = (): void => {
+      this.removeAttribute("pressed");
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
   /** @private */ @state() private _path = "";
   /** @private */ @state() private _iconSize = 32;
   /** @private */ @state() private _contentStyle = "";
@@ -99,6 +186,7 @@ export class M3eEdgeButtonElement extends LitElement {
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed);
     if (changed.has("size")) this.#recompute();
+    if (changed.has("disabled") && this.isConnected) this.#syncDisabled();
   }
 
   /** @inheritdoc */
@@ -115,6 +203,10 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.removeEventListener("keydown", this.#onKeyDown);
+    this.removeEventListener("keyup", this.#onKeyUp);
+    this.removeEventListener("pointerdown", this.#onPointerDown);
+    this.removeEventListener("click", this.#onClick, { capture: true });
     this.#ro?.disconnect();
     this.#ro = undefined;
   }
@@ -122,7 +214,8 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @private */ #recompute(): void {
     const size = SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
     const width = this.clientWidth || size * 2;
-    const height = this.clientHeight || size;
+    const height = size; // must match the rendered container/viewBox height
+    this._width = width;
     this._path = edgeButtonPathData(width, height);
     this._iconSize = ICON_SIZE[this.size] ?? 32;
     const g = edgeButtonGeometry(width, height);
@@ -140,8 +233,10 @@ export class M3eEdgeButtonElement extends LitElement {
     const height = SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
     return html`
       <div class="container" style="height:${height}px">
-        <svg class="shape" viewBox="0 0 ${this.clientWidth || height * 2} ${height}" preserveAspectRatio="none">
+        <svg class="shape" viewBox="0 0 ${this._width || height * 2} ${height}" preserveAspectRatio="none" aria-hidden="true">
           <path class="fill" d=${this._path}></path>
+          <path class="state" d=${this._path}></path>
+          <path class="focus" d=${this._path}></path>
         </svg>
         <div class="content" style=${this._contentStyle}>
           <slot style="font-size:${this._iconSize}px"></slot>

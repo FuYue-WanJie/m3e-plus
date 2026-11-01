@@ -52,10 +52,10 @@ export class M3eWearStepperElement extends LitElement {
     :host([hidden]) {
       display: none;
     }
-    /* verticalContentPadding in AndroidX is 5.2% of screen height applied inside the button's
-       35% weight band; scaled here against the band (0.35) so it adapts to host height. */
+    /* AndroidX verticalContentPadding = 5.2% of the screen width (Stepper.kt). The host is a
+       size container, so 5.2cqw tracks the screen it fills. */
     :host {
-      --_vpad: var(--m3e-wear-stepper-vertical-padding, max(6px, calc(5.2% * 0.35)));
+      --_vpad: var(--m3e-wear-stepper-vertical-padding, 5.2cqw);
       container-type: size;
       container-name: stepper;
     }

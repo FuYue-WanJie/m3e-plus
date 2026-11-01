@@ -36,10 +36,11 @@ export class M3eWearScreenElement extends LitElement {
       height: var(--m3e-wear-screen-diameter, 192px);
       background: var(--m3e-wear-screen-background, var(--m3e-color-surface, #141218));
       color: var(--m3e-color-on-surface, #e6e0e9);
-      /* Subtle outline delineating the bezel; override or remove via the token. */
-      border: var(--m3e-wear-screen-border, 3px solid #79747e);
+      /* Bezel drawn outside the screen so it never eats into the diameter. */
+      box-shadow: 0 0 0 var(--m3e-wear-screen-bezel-width, 3px) var(--m3e-wear-screen-bezel-color, #79747e);
       overflow: hidden;
       isolation: isolate;
+      container-type: inline-size;
       -webkit-tap-highlight-color: transparent;
     }
     /* Circular screen by default. */
@@ -48,7 +49,8 @@ export class M3eWearScreenElement extends LitElement {
       border-radius: 50%;
     }
     :host([shape="round-square"]) {
-      border-radius: 28%;
+      /* Round-square watches vary by device; tune per device via the token. */
+      border-radius: var(--m3e-wear-screen-round-square-radius, 28%);
     }
     :host([hidden]) {
       display: none;
@@ -59,8 +61,11 @@ export class M3eWearScreenElement extends LitElement {
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
-      /* Wear content sits inside the round screen with horizontal breathing room. */
-      padding: 12px;
+      /* Padding scales with the screen like AndroidX (5.2% of screen width). cqw keeps the padding
+         and the edge button's negative margin on the same basis. */
+      --_hpad: var(--m3e-wear-screen-horizontal-padding, 5.2cqw);
+      --_vpad: var(--m3e-wear-screen-vertical-padding, 5.2cqw);
+      padding: var(--_vpad) var(--_hpad);
       overflow: hidden;
     }
     .content {
@@ -76,9 +81,9 @@ export class M3eWearScreenElement extends LitElement {
       flex: none;
       display: flex;
       justify-content: center;
-      /* The edge button hugs the bottom of the screen: offsets the 12px screen padding plus the
-         3px bezel border so the button visually touches the glass edge. */
-      margin: 0 -12px -15px;
+      /* The edge button spans the full screen width and hugs the bottom edge: cancel the screen
+         padding (its own 3dp gap is part of the shape). */
+      margin: 0 calc(-1 * var(--_hpad)) calc(-1 * var(--_vpad));
     }
     .edge-button[hidden] {
       display: none;
