@@ -88,10 +88,15 @@ export class ScrollBinding {
     const el = this.#target;
     if (!el) return;
     const range = Math.max(0, el.scrollHeight - el.clientHeight);
-    const last = el.lastElementChild;
-    const box = el.getBoundingClientRect();
-    const viewportBottom = box.top + el.clientTop + el.clientHeight;
-    const lastItemOffset = last ? viewportBottom - last.getBoundingClientRect().bottom : el.clientHeight;
+    // Use the last child's layout box (offsetTop), not its rect, so visual transforms on items
+    // (e.g. m3e-wear-transforming-list) don't feed back into the edge button.
+    const last = el.lastElementChild as HTMLElement | null;
+    let lastItemOffset = el.clientHeight;
+    if (last) {
+      const lastTop =
+        last.offsetParent === el ? last.offsetTop : last.offsetTop - el.offsetTop - el.clientTop;
+      lastItemOffset = el.clientHeight - (lastTop + last.offsetHeight - el.scrollTop);
+    }
     this.#onChange({
       lastItemOffset,
       offset: Math.min(range, Math.max(0, el.scrollTop)),

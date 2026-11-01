@@ -88,6 +88,7 @@ export class M3eWearScreenElement extends LitElement {
     /* Scaffold mode (set by a bound m3e-edge-button): an edge button tied to a scrolling list overlays the bottom of the
        list instead of taking its own row, and the list runs to the screen edge (ScreenScaffold). */
     :host([scaffold]) .screen {
+      padding-top: 0;
       padding-bottom: 0;
     }
     :host([scaffold]) .edge-button {

@@ -123,10 +123,10 @@ function compute(variable: VariableSpec, area: { top: boolean; progress: number 
  * The element itself is the scroll container, so it can be the `for` target of
  * `m3e-wear-scroll-indicator` and `m3e-edge-button`.
  *
- * Differences from Compose: items are transformed visually (scale + alpha) but keep their layout
- * height, so the list doesn't reflow while scrolling. Items in the top zone shrink towards their
- * bottom edge and items in the bottom zone towards their top edge, keeping the gaps between
- * neighbouring items stable. Items marked `data-no-transform` are left alone.
+ * Differences from Compose: items keep their layout height (the scroll height never changes while
+ * scrolling); instead they are visually re-packed around the item nearest the screen centre using
+ * their transformed heights, which looks like the Compose layout. Transition zones are measured
+ * against the enclosing `m3e-wear-screen`. Items marked `data-no-transform` are not scaled.
  *
  * @tag m3e-wear-transforming-list
  *
@@ -233,38 +233,71 @@ export class M3eWearTransformingListElement extends LitElement {
 
   /** @private */
   #apply(): void {
-    const items = Array.from(this.children) as HTMLElement[];
+    const items = (Array.from(this.children) as HTMLElement[]).filter((el) => el.offsetParent === this);
     const off = this.noTransform || !!this.#reduceMotion?.matches;
-    const viewport = this.clientHeight;
-    if (off || viewport <= 0) {
-      for (const el of items) this.#reset(el);
+    if (off || this.clientHeight <= 0) {
+      for (const el of Array.from(this.children) as HTMLElement[]) this.#reset(el);
       return;
     }
     const spec = specFor(this.#screenSize());
-    for (const el of items) {
-      if (el.hasAttribute("data-no-transform")) {
+    // Fractions are measured against the whole round screen (TransformingLazyColumn fills it),
+    // not this element's own viewport, which the screen padding / content padding inset.
+    const listBox = this.getBoundingClientRect();
+    const screenEl = (this.closest("m3e-wear-screen") as HTMLElement | null) ?? this;
+    const screenBox = screenEl.getBoundingClientRect();
+    const screenTop = screenBox.top;
+    const screenH = screenBox.height || this.clientHeight;
+    const originY = listBox.top + this.clientTop - this.scrollTop; // client y of offsetTop 0
+    const gap = parseFloat(getComputedStyle(this).rowGap) || 0;
+
+    // Layout boxes (offsetTop/offsetHeight ignore our transforms, so there's no feedback loop).
+    const n = items.length;
+    const top = new Array<number>(n);
+    const h = new Array<number>(n);
+    const scale = new Array<number>(n);
+    const area = new Array<ReturnType<typeof transitionArea>>(n);
+    let anchor = -1;
+    let anchorDist = Infinity;
+    for (let i = 0; i < n; i++) {
+      const el = items[i];
+      top[i] = originY + el.offsetTop;
+      h[i] = el.offsetHeight;
+      const fixed = el.hasAttribute("data-no-transform");
+      area[i] = fixed ? null : transitionArea(spec, (top[i] - screenTop) / screenH, (top[i] + h[i] - screenTop) / screenH);
+      scale[i] = compute(spec.scale, area[i]);
+      // Anchor the packing on the item nearest the screen centre (like the TLC's anchor item).
+      const d = Math.abs(top[i] + h[i] / 2 - (screenTop + screenH / 2));
+      if (d < anchorDist) {
+        anchorDist = d;
+        anchor = i;
+      }
+    }
+
+    // Re-pack around the anchor using the transformed heights, as the Compose layout does with
+    // getTransformedHeight: shrunk items pull towards the centre instead of leaving gaps.
+    const newTop = top.slice();
+    for (let i = anchor + 1; i < n; i++) newTop[i] = newTop[i - 1] + h[i - 1] * scale[i - 1] + gap;
+    for (let i = anchor - 1; i >= 0; i--) newTop[i] = newTop[i + 1] - gap - h[i] * scale[i];
+
+    for (let i = 0; i < n; i++) {
+      const el = items[i];
+      const a = area[i];
+      const shift = newTop[i] - top[i];
+      if (!a && Math.abs(shift) < 0.01) {
         this.#reset(el);
         continue;
       }
-      // Layout box (offsetTop/offsetHeight) ignores our own transform, so there is no feedback.
-      const h = el.offsetHeight;
-      const top = (el.offsetTop - this.scrollTop) / viewport;
-      const bottom = top + h / viewport;
-      const area = transitionArea(spec, top, bottom);
-      const scale = compute(spec.scale, area);
-      const containerAlpha = compute(spec.containerAlpha, area);
-      const contentAlpha = compute(spec.contentAlpha, area);
-      // Shrink towards the item's neighbour on the centre side (see class doc).
-      const shift = area ? (area.top ? (h * (1 - scale)) / 2 : (-h * (1 - scale)) / 2) : 0;
-      el.style.transform = area ? `translateY(${shift}px) scale(${scale})` : "";
-      el.style.opacity = area ? String(containerAlpha) : "";
-      el.style.setProperty("--m3e-tlc-content-alpha", String(contentAlpha));
+      el.style.transformOrigin = "50% 0";
+      el.style.transform = `translateY(${shift}px) scale(${scale[i]})`;
+      el.style.opacity = a ? String(compute(spec.containerAlpha, a)) : "";
+      el.style.setProperty("--m3e-tlc-content-alpha", String(compute(spec.contentAlpha, a)));
     }
   }
 
   /** @private */
   #reset(el: HTMLElement): void {
     el.style.transform = "";
+    el.style.transformOrigin = "";
     el.style.opacity = "";
     el.style.removeProperty("--m3e-tlc-content-alpha");
   }
