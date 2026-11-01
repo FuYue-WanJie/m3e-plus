@@ -3,7 +3,7 @@ import { property, state } from "lit/decorators.js";
 
 import { customElement } from "@wanjie/m3e-web/core";
 
-import { EdgeButtonDefaults, edgeButtonGeometry, edgeButtonPathData } from "./edgeButtonPath";
+import { edgeButtonGeometry, edgeButtonPathData } from "./edgeButtonPath";
 
 /** Edge button sizes (`EdgeButtonSize.maximumHeight`). */
 export type EdgeButtonSize = "extra-small" | "small" | "medium" | "large";
@@ -75,9 +75,16 @@ export class M3eEdgeButtonElement extends LitElement {
       align-items: center;
       justify-content: center;
       box-sizing: border-box;
+      /* AndroidX verticalContentPadding: 6dp top / 8dp bottom (asymmetric — the shape is
+         asymmetric, so the content sits slightly above center). */
+      padding: 6px 0 8px;
+      /* Content wider than the usable window scales down (AndroidX scaleAndAlignContent). */
+      overflow: hidden;
     }
     ::slotted(*) {
       display: block;
+      max-width: 100%;
+      max-height: 100%;
     }
   `;
 
@@ -119,10 +126,13 @@ export class M3eEdgeButtonElement extends LitElement {
     this._path = edgeButtonPathData(width, height);
     this._iconSize = ICON_SIZE[this.size] ?? 32;
     const g = edgeButtonGeometry(width, height);
-    // Content sits in the usable window (inset from the arc edges), a touch above the bottom edge.
+    // Content sits in the usable window (inset from the arc edges). Vertical padding is applied
+    // by .content itself; here we only position the window.
     const left = Math.max(0, g.contentLeft);
     const right = Math.max(0, width - g.contentRight);
-    this._contentStyle = `left:${left}px;right:${right}px;top:0;bottom:${EdgeButtonDefaults.verticalPadding}px;`;
+    const top = Math.max(0, g.contentTop);
+    const bottom = Math.max(0, height - g.contentBottom);
+    this._contentStyle = `left:${left}px;right:${right}px;top:${top}px;bottom:${bottom}px;`;
   }
 
   /** @inheritdoc */

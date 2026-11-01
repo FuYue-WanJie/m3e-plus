@@ -72,10 +72,12 @@ export function edgeButtonGeometry(width: number, height: number): EdgeButtonGeo
   const radius = height - ellipsisHeight / 2;
 
   // `Rect.inset` in the source coerces negative sizes to zero: the content window never inverts.
-  const contentInsetLeft = sidePadding + radius;
-  const contentInsetRight = width - sidePadding - radius;
-  const contentLeft = Math.min(contentInsetLeft, width / 2);
-  const contentRight = Math.max(contentInsetRight, width / 2);
+  // left = sidePadding + r, right = width - sidePadding - r, then inset clamps each edge so the
+  // window width (and height, via top) never goes negative — mirrored edges collapse to the center.
+  const contentLeft = Math.min(sidePadding + radius, width / 2);
+  const contentRight = Math.max(width - sidePadding - radius, width / 2);
+  const contentTop = Math.max(0, radius);
+  const contentBottom = Math.max(contentTop, height);
 
   return {
     sidePadding,
@@ -83,9 +85,9 @@ export function edgeButtonGeometry(width: number, height: number): EdgeButtonGeo
     ellipsisHeight,
     radius,
     contentLeft,
-    contentTop: 0,
+    contentTop,
     contentRight,
-    contentBottom: height,
+    contentBottom,
   };
 }
 
