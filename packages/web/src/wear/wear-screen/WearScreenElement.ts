@@ -85,6 +85,23 @@ export class M3eWearScreenElement extends LitElement {
          padding (its own 3dp gap is part of the shape). */
       margin: 0 calc(-1 * var(--_hpad)) calc(-1 * var(--_vpad));
     }
+    /* Scaffold mode (set by a bound m3e-edge-button): an edge button tied to a scrolling list overlays the bottom of the
+       list instead of taking its own row, and the list runs to the screen edge (ScreenScaffold). */
+    :host([scaffold]) .screen {
+      padding-bottom: 0;
+    }
+    :host([scaffold]) .edge-button {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      margin: 0;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+    :host([scaffold]) .edge-button ::slotted(*) {
+      pointer-events: auto;
+    }
     .edge-button[hidden] {
       display: none;
     }

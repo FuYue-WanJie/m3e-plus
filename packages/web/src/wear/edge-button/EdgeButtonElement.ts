@@ -3,7 +3,24 @@ import { property, state } from "lit/decorators.js";
 
 import { customElement } from "@wanjie/m3e-web/core";
 
+import { ScrollBinding } from "../scrollBinding";
 import { edgeButtonGeometry, edgeButtonPathData } from "./edgeButtonPath";
+
+/** ScreenScaffoldDefaults.EdgeButtonSpacing (16dp) minus EdgeButtonMinSpacing (= 3dp padding). */
+const EDGE_BUTTON_SPACING = 16;
+const EDGE_BUTTON_VERTICAL_PADDING = 3;
+/** CubicBezierEasing(0.25, 0, 0.75, 1) used for the container/content fades. */
+function fadeEase(x: number): number {
+  x = Math.min(1, Math.max(0, x));
+  let lo = 0, hi = 1, t = x;
+  for (let i = 0; i < 20; i++) {
+    const bx = 3 * (1 - t) ** 2 * t * 0.25 + 3 * (1 - t) * t * t * 0.75 + t ** 3;
+    if (Math.abs(bx - x) < 1e-5) break;
+    if (bx < x) lo = t; else hi = t;
+    t = (lo + hi) / 2;
+  }
+  return 3 * (1 - t) * t * t + t ** 3;
+}
 
 /** Edge button sizes (`EdgeButtonSize.maximumHeight`). */
 export type EdgeButtonSize = "extra-small" | "small" | "medium" | "large";
@@ -31,6 +48,10 @@ const ICON_SIZE: Record<EdgeButtonSize, number> = {
  *
  * @attr size - `extra-small` | `small` (default) | `medium` | `large`.
  * @attr color - Container color (default `--m3e-color-primary-container`).
+ * @attr for - Id of the scrolling list above the button. Like AndroidX `ScreenScaffold`, the
+ *   button then reserves bottom padding on that list and grows/fades in as the end of the list
+ *   scrolls into view, shrinking away while the user scrolls up. Set `scrollTarget` to pass an
+ *   element instead.
  *
  * @slot - The button content (typically an icon).
  *
@@ -60,8 +81,12 @@ export class M3eEdgeButtonElement extends LitElement {
     :host([hidden]) {
       display: none;
     }
+    :host([collapsed]) {
+      pointer-events: none;
+    }
     .container {
       position: relative;
+      overflow: hidden;
       width: 100%;
       height: 100%;
     }
@@ -124,11 +149,29 @@ export class M3eEdgeButtonElement extends LitElement {
   /** Whether the button is disabled. @default false */
   @property({ type: Boolean, reflect: true }) disabled = false;
 
+  /** Id of the scroll container this button sits under. */
+  @property({ attribute: "for" }) for: string | null = null;
+
+  /** A scroll container element this button sits under; takes precedence over `for`. */
+  @property({ attribute: false }) scrollTarget: HTMLElement | null = null;
+
+  /** @private Current (possibly shrunk) height in px; null = full size (not scroll-bound). */
+  @state() private _boundHeight: number | null = null;
+  /** @private */ #binding = new ScrollBinding(this, (m) => {
+    // ScreenScaffold: target height = lastItemOffset - (spacing - minSpacing), clamped >= 0.
+    const full = SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
+    const h = Math.min(full, Math.max(0, m.lastItemOffset - (EDGE_BUTTON_SPACING - EDGE_BUTTON_VERTICAL_PADDING) - EDGE_BUTTON_VERTICAL_PADDING * 2));
+    if (h !== this._boundHeight) this._boundHeight = h;
+  });
+  /** @private */ #paddedTarget: HTMLElement | null = null;
+  /** @private */ #savedPadding = "";
+
   /** @private */ @state() private _width = 0;
 
   override connectedCallback(): void {
     super.connectedCallback();
     if (!this.hasAttribute("role")) this.setAttribute("role", "button");
+    if (this.hasUpdated) this.#bind();
     this.#syncDisabled();
     this.addEventListener("keydown", this.#onKeyDown);
     this.addEventListener("keyup", this.#onKeyUp);
@@ -181,11 +224,12 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @private */ @state() private _path = "";
   /** @private */ @state() private _iconSize = 32;
   /** @private */ @state() private _contentStyle = "";
+  /** @private */ @state() private _containerAlpha = 1;
 
   /** @inheritdoc */
   protected override willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed);
-    if (changed.has("size")) this.#recompute();
+    if (changed.has("size") || (changed as Map<PropertyKey, unknown>).has("_boundHeight")) this.#recompute();
     if (changed.has("disabled") && this.isConnected) this.#syncDisabled();
   }
 
@@ -201,8 +245,38 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @private */ #ro?: ResizeObserver;
 
   /** @inheritdoc */
+  protected override updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    this.toggleAttribute("collapsed", (this._boundHeight ?? 1) < 1);
+    if (changed.has("for") || changed.has("scrollTarget") || changed.has("size")) this.#bind();
+  }
+
+  /** Bind the scroll target and reserve room below its last item (ScreenScaffold content padding). @private */
+  #bind(): void {
+    this.#binding.bind(this.scrollTarget ?? this.for);
+    const t = this.#binding.target;
+    // Tell a hosting m3e-wear-screen to overlay the button on the list (ScreenScaffold layout).
+    if (this.parentElement?.localName === "m3e-wear-screen") this.parentElement.toggleAttribute("scaffold", !!t);
+    if (t !== this.#paddedTarget) {
+      if (this.#paddedTarget) this.#paddedTarget.style.paddingBottom = this.#savedPadding;
+      this.#paddedTarget = t;
+      this.#savedPadding = t?.style.paddingBottom ?? "";
+    }
+    if (t) {
+      const full = SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
+      t.style.paddingBottom = `${full + EDGE_BUTTON_VERTICAL_PADDING * 2 + EDGE_BUTTON_SPACING - EDGE_BUTTON_VERTICAL_PADDING}px`;
+    } else {
+      this._boundHeight = null;
+    }
+  }
+
+  /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#binding.unbind();
+    if (this.#paddedTarget && this.parentElement?.localName === "m3e-wear-screen") this.parentElement.removeAttribute("scaffold");
+    if (this.#paddedTarget) this.#paddedTarget.style.paddingBottom = this.#savedPadding;
+    this.#paddedTarget = null;
     this.removeEventListener("keydown", this.#onKeyDown);
     this.removeEventListener("keyup", this.#onKeyUp);
     this.removeEventListener("pointerdown", this.#onPointerDown);
@@ -214,25 +288,29 @@ export class M3eEdgeButtonElement extends LitElement {
   /** @private */ #recompute(): void {
     const size = SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
     const width = this.clientWidth || size * 2;
-    const height = size; // must match the rendered container/viewBox height
+    const height = this._boundHeight ?? size; // must match the rendered container/viewBox height
     this._width = width;
     this._path = edgeButtonPathData(width, height);
     this._iconSize = ICON_SIZE[this.size] ?? 32;
-    const g = edgeButtonGeometry(width, height);
+    const g = edgeButtonGeometry(width, size); // content shape helper uses the preferred height
     // Content sits in the usable window (inset from the arc edges). Vertical padding is applied
     // by .content itself; here we only position the window.
     const left = Math.max(0, g.contentLeft);
     const right = Math.max(0, width - g.contentRight);
-    const top = Math.max(0, g.contentTop);
-    const bottom = Math.max(0, height - g.contentBottom);
-    this._contentStyle = `left:${left}px;right:${right}px;top:${top}px;bottom:${bottom}px;`;
+    const bottom = Math.max(0, size - g.contentBottom);
+    const windowHeight = Math.max(0, g.contentBottom - Math.max(0, g.contentTop));
+    // Content fades out between 38dp and 30dp of button height (EdgeButton CONTENT_FADE_*).
+    const contentAlpha = fadeEase((height - 30) / (38 - 30));
+    this._contentStyle = `left:${left}px;right:${right}px;bottom:${bottom}px;height:${windowHeight}px;opacity:${contentAlpha};`;
+    // Container fades between 30dp and 4dp (CONTAINER_FADE_*).
+    this._containerAlpha = fadeEase((height - 4) / (30 - 4));
   }
 
   /** @inheritdoc */
   protected override render(): unknown {
-    const height = SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
+    const height = this._boundHeight ?? SIZE_HEIGHT[this.size] ?? SIZE_HEIGHT.small;
     return html`
-      <div class="container" style="height:${height}px">
+      <div class="container" style="height:${height}px;opacity:${this._containerAlpha}">
         <svg class="shape" viewBox="0 0 ${this._width || height * 2} ${height}" preserveAspectRatio="none" aria-hidden="true">
           <path class="fill" d=${this._path}></path>
           <path class="state" d=${this._path}></path>

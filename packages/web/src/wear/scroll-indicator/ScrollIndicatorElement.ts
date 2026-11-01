@@ -3,6 +3,7 @@ import { property, state } from "lit/decorators.js";
 
 import { customElement } from "@wanjie/m3e-web/core";
 
+import { ScrollBinding } from "../scrollBinding";
 import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry } from "../level-indicator/levelIndicatorGeometry";
 
 /**
@@ -20,6 +21,9 @@ import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry } 
  * @attr reverse-direction - Reverses the direction of the position.
  * @attr side - Which side of the screen the arc hugs: `right` (default) or `left`.
  * @attr no-animation - Snap position/size changes instead of tweening.
+ * @attr for - Id of a scroll container to track; position and size then follow its scroll
+ *   automatically (like AndroidX's ScrollState / LazyListState adapters). Set `scrollTarget`
+ *   to bind an element reference instead. When the content does not overflow, the indicator hides.
  *
  * @cssprop --m3e-wear-scroll-indicator-color - Active arc color.
  * @cssprop --m3e-wear-scroll-indicator-track-color - Track arc color.
@@ -56,6 +60,10 @@ export class M3eWearScrollIndicatorElement extends LitElement {
       position: absolute;
       inset: 0;
       pointer-events: none;
+      transition: opacity 200ms;
+    }
+    :host([inactive]) {
+      opacity: 0;
     }
     :host([hidden]) {
       display: none;
@@ -97,6 +105,21 @@ export class M3eWearScrollIndicatorElement extends LitElement {
   /** Snap instead of tweening position/size changes. @default false */
   @property({ type: Boolean, attribute: "no-animation" }) noAnimation = false;
 
+  /** Id of the scroll container to track (resolved in this element's root). */
+  @property({ attribute: "for" }) for: string | null = null;
+
+  /** A scroll container element to track; takes precedence over `for`. */
+  @property({ attribute: false }) scrollTarget: HTMLElement | null = null;
+
+  /** @private */ #binding = new ScrollBinding(this, (m) => {
+    // Continuous scroll follows the finger directly; the 500ms tween is for programmatic jumps.
+    this.#snapNext = true;
+    this.toggleAttribute("inactive", m.range <= 0);
+    this.position = m.range > 0 ? m.offset / m.range : 0;
+    this.size = m.viewportFraction;
+  });
+  /** @private */ #snapNext = false;
+
   /** @private */ @state() private _animPosition = 0;
   /** @private */ @state() private _animSize = 0.5;
   /** @private */ #raf = 0;
@@ -111,8 +134,12 @@ export class M3eWearScrollIndicatorElement extends LitElement {
     super.willUpdate(changed);
     if (changed.has("position") || changed.has("size")) {
       const targetSize = Math.min(0.7, Math.max(0.3, this.size));
-      // First paint and no-animation snap; later changes tween like the source.
-      if (this.noAnimation || !this.hasUpdated) {
+      // First paint, no-animation and scroll-driven updates snap; later changes tween.
+      const snap = this.#snapNext;
+      this.#snapNext = false;
+      if (this.noAnimation || !this.hasUpdated || snap) {
+        cancelAnimationFrame(this.#raf);
+        this.#raf = 0;
         this._animPosition = this.position;
         this._animSize = targetSize;
         return;
@@ -130,6 +157,7 @@ export class M3eWearScrollIndicatorElement extends LitElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    if (this.hasUpdated) this.#binding.bind(this.scrollTarget ?? this.for);
     if (typeof ResizeObserver !== "undefined") {
       this.#ro = new ResizeObserver(() => {
         const d = Math.min(this.clientWidth, this.clientHeight || this.clientWidth);
@@ -139,8 +167,14 @@ export class M3eWearScrollIndicatorElement extends LitElement {
     }
   }
 
+  protected override updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    if (changed.has("for") || changed.has("scrollTarget")) this.#binding.bind(this.scrollTarget ?? this.for);
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#binding.unbind();
     this.#ro?.disconnect();
     this.#ro = undefined;
     cancelAnimationFrame(this.#raf);
