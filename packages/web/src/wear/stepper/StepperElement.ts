@@ -105,20 +105,43 @@ export class M3eWearStepperElement extends LitElement {
       cursor: pointer;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      /* Shape morph pill -> shapes.small (8px) on press; spring handled via transition. */
-      transition: border-radius 200ms cubic-bezier(0.2, 0, 0, 1);
+      /* Shape morph pill -> shapes.small (8px) on press (animateButtonShape); spring-like overshoot. */
+      transition: border-radius 250ms cubic-bezier(0.34, 1.4, 0.64, 1);
       touch-action: manipulation;
+      position: relative;
+      overflow: hidden;
     }
-    button:active {
+    /* State layer: hover 8%, pressed/focus 10% of the icon color. */
+    button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity 150ms;
+      pointer-events: none;
+    }
+    button:not(:disabled):hover::before {
+      opacity: 0.08;
+    }
+    button:focus-visible::before,
+    button.pressed::before {
+      opacity: 0.1;
+    }
+    /* .pressed is held for a minimum time so a quick tap still shows the morph. */
+    button.pressed {
       border-radius: 8px; /* StepperButtonPressedShape = shapes.small */
     }
     button:disabled {
+      /* OnSurface at 12% container / 38% icon (toDisabledColor), not the whole button faded. */
       background-color: var(
         --m3e-wear-stepper-button-disabled-container-color,
-        var(--m3e-color-on-surface, #1d1b20)
+        color-mix(in srgb, var(--m3e-wear-color-on-surface, #e6e0e9) 12%, transparent)
       );
-      color: var(--m3e-wear-stepper-button-disabled-icon-color, var(--m3e-color-on-surface, #1d1b20));
-      opacity: 0.12;
+      color: var(
+        --m3e-wear-stepper-button-disabled-icon-color,
+        color-mix(in srgb, var(--m3e-wear-color-on-surface, #e6e0e9) 38%, transparent)
+      );
       cursor: default;
     }
     button:focus-visible {
@@ -183,7 +206,7 @@ export class M3eWearStepperElement extends LitElement {
   /** @inheritdoc */
   override disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.#stopRepeat();
+    this.#release();
   }
 
   /** RangeDefaults.calculateCurrentStepValue. @private */
@@ -202,6 +225,36 @@ export class M3eWearStepperElement extends LitElement {
       this.dispatchEvent(new Event("value-change", { bubbles: true }));
     }
   }
+
+  /** @private */ #pressedButton: HTMLElement | null = null;
+  /** @private */ #pressedAt = 0;
+
+  /** Press: morph + start repeating; release is listened on window (a button that turns disabled
+   *  at the limit stops receiving pointer events). @private */
+  #press(e: PointerEvent, stepDiff: number): void {
+    if (e.button !== 0) return;
+    this.#release();
+    const btn = e.currentTarget as HTMLElement;
+    btn.classList.add("pressed");
+    this.#pressedButton = btn;
+    this.#pressedAt = performance.now();
+    window.addEventListener("pointerup", this.#release);
+    window.addEventListener("pointercancel", this.#release);
+    this.#startRepeat(stepDiff);
+  }
+
+  /** @private */
+  #release = (): void => {
+    this.#stopRepeat();
+    window.removeEventListener("pointerup", this.#release);
+    window.removeEventListener("pointercancel", this.#release);
+    const btn = this.#pressedButton;
+    if (!btn) return;
+    this.#pressedButton = null;
+    // Hold the pressed shape at least 150ms so a quick tap still visibly morphs.
+    const wait = Math.max(0, 150 - (performance.now() - this.#pressedAt));
+    setTimeout(() => btn.classList.remove("pressed"), wait);
+  };
 
   /** repeatableClickable: fire immediately, then repeat every 200ms after a 400ms delay. @private */
   #startRepeat(stepDiff: number): void {
@@ -233,10 +286,9 @@ export class M3eWearStepperElement extends LitElement {
           part="increase-button"
           aria-label="Increase"
           ?disabled=${!increaseEnabled}
-          @pointerdown=${increaseEnabled ? () => this.#startRepeat(1) : null}
-          @pointerup=${() => this.#stopRepeat()}
-          @pointerleave=${() => this.#stopRepeat()}
-          @pointercancel=${() => this.#stopRepeat()}
+          @pointerdown=${(e: PointerEvent) => increaseEnabled && this.#press(e, 1)}
+          @click=${(e: MouseEvent) => increaseEnabled && e.detail === 0 && this.#updateValue(1)}
+          @pointerleave=${() => this.#release()}
         >
           <slot name="increase" class="icon-slot">
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
@@ -251,10 +303,9 @@ export class M3eWearStepperElement extends LitElement {
           part="decrease-button"
           aria-label="Decrease"
           ?disabled=${!decreaseEnabled}
-          @pointerdown=${decreaseEnabled ? () => this.#startRepeat(-1) : null}
-          @pointerup=${() => this.#stopRepeat()}
-          @pointerleave=${() => this.#stopRepeat()}
-          @pointercancel=${() => this.#stopRepeat()}
+          @pointerdown=${(e: PointerEvent) => decreaseEnabled && this.#press(e, -1)}
+          @click=${(e: MouseEvent) => decreaseEnabled && e.detail === 0 && this.#updateValue(-1)}
+          @pointerleave=${() => this.#release()}
         >
           <slot name="decrease" class="icon-slot">
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
