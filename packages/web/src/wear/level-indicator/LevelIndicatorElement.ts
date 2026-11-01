@@ -23,19 +23,24 @@ import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry, l
  * @cssprop --m3e-wear-level-indicator-track-color - Track arc color.
  * @cssprop --m3e-wear-level-indicator-disabled-color - Disabled active arc color.
  * @cssprop --m3e-wear-level-indicator-disabled-track-color - Disabled track arc color.
- * @cssprop --m3e-wear-level-indicator-diameter - The screen diameter the arc wraps (default 192).
  */
 @customElement("m3e-wear-level-indicator")
 export class M3eWearLevelIndicatorElement extends LitElement {
   static override styles: CSSResultGroup = css`
+    /* Screen overlay: fills the nearest positioned ancestor (e.g. m3e-wear-screen). */
     :host {
       display: block;
-      width: var(--m3e-wear-level-indicator-diameter, 192px);
-      aspect-ratio: 1;
+      position: absolute;
+      inset: 0;
       pointer-events: none;
     }
     :host([hidden]) {
       display: none;
+    }
+    /* Arcs are strokes only; the class fill below is for the fading end dots. */
+    svg path.indicator,
+    svg path.track {
+      fill: none;
     }
     svg {
       display: block;
@@ -44,11 +49,13 @@ export class M3eWearLevelIndicatorElement extends LitElement {
       overflow: visible;
     }
     .indicator {
-      stroke: var(--m3e-wear-level-indicator-color, var(--m3e-color-secondary, #ccc2dc));
+      stroke: var(--m3e-wear-level-indicator-color, var(--m3e-wear-color-secondary, #ccc2dc));
+      fill: var(--m3e-wear-level-indicator-color, var(--m3e-wear-color-secondary, #ccc2dc));
       transition: stroke 200ms;
     }
     .track {
-      stroke: var(--m3e-wear-level-indicator-track-color, var(--m3e-color-surface-container-highest, #e6e0e9));
+      stroke: var(--m3e-wear-level-indicator-track-color, var(--m3e-wear-color-surface-container, #2b2930));
+      fill: var(--m3e-wear-level-indicator-track-color, var(--m3e-wear-color-surface-container, #2b2930));
       transition: stroke 200ms;
     }
     :host([disabled]) .indicator {
@@ -128,8 +135,7 @@ export class M3eWearLevelIndicatorElement extends LitElement {
         const cx = c + arcR * Math.cos(angle);
         const cy = c + arcR * Math.sin(angle);
         return svg`<circle key=${key} cx=${cx} cy=${cy} r=${r} class=${cls}
-          opacity=${fraction} fill="currentColor" stroke="none"
-          style="color:inherit"></circle>`;
+          opacity=${fraction} stroke="none"></circle>`;
       }
       const a0 = seg.start + g.gapPaddingDegrees / 2;
       const sweep = Math.max(seg.sweep - g.gapPaddingDegrees, 0);

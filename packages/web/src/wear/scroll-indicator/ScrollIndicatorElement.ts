@@ -23,7 +23,6 @@ import { LevelIndicatorDefaults, indicatorSegments, levelIndicatorArcGeometry } 
  *
  * @cssprop --m3e-wear-scroll-indicator-color - Active arc color.
  * @cssprop --m3e-wear-scroll-indicator-track-color - Track arc color.
- * @cssprop --m3e-wear-scroll-indicator-diameter - The screen diameter the arc wraps (default 192).
  * @cssprop --m3e-wear-scroll-indicator-height - Indicator arc height (default 50px of diameter).
  */
 /** CSS-style cubic-bezier easing solved for x (Newton + bisection fallback). */
@@ -50,14 +49,21 @@ function cubicBezier(x1: number, y1: number, x2: number, y2: number): (t: number
 @customElement("m3e-wear-scroll-indicator")
 export class M3eWearScrollIndicatorElement extends LitElement {
   static override styles: CSSResultGroup = css`
+    /* Screen overlay (AndroidX draws indicators over the whole screen): fills the nearest
+       positioned ancestor, e.g. m3e-wear-screen, regardless of the screen's content padding. */
     :host {
       display: block;
-      width: var(--m3e-wear-scroll-indicator-diameter, 192px);
-      aspect-ratio: 1;
+      position: absolute;
+      inset: 0;
       pointer-events: none;
     }
     :host([hidden]) {
       display: none;
+    }
+    /* Arcs are strokes only; the class fill below is for the fading end dots. */
+    svg path.indicator,
+    svg path.track {
+      fill: none;
     }
     svg {
       display: block;
@@ -66,11 +72,13 @@ export class M3eWearScrollIndicatorElement extends LitElement {
       overflow: visible;
     }
     .indicator {
-      stroke: var(--m3e-wear-scroll-indicator-color, var(--m3e-color-on-surface, #1d1b20));
+      /* Wear is dark-only: OnBackground at luminance 80 / 20 (ScrollIndicatorDefaults). */
+      stroke: var(--m3e-wear-scroll-indicator-color, #c9c5ca);
+      fill: var(--m3e-wear-scroll-indicator-color, #c9c5ca);
     }
     .track {
-      stroke: var(--m3e-wear-scroll-indicator-track-color, var(--m3e-color-on-surface, #1d1b20));
-      opacity: 0.3;
+      stroke: var(--m3e-wear-scroll-indicator-track-color, #313033);
+      fill: var(--m3e-wear-scroll-indicator-track-color, #313033);
     }
   `;
 
@@ -181,7 +189,7 @@ export class M3eWearScrollIndicatorElement extends LitElement {
         const cx = c + arcR * Math.cos(angle);
         const cy = c + arcR * Math.sin(angle);
         return svg`<circle key=${key} cx=${cx} cy=${cy} r=${r} class=${cls} opacity=${fraction}
-          fill="currentColor" stroke="none"></circle>`;
+          stroke="none"></circle>`;
       }
       const a0 = seg.start + g.gapPaddingDegrees / 2;
       const sweep = Math.max(seg.sweep - g.gapPaddingDegrees, 0);
