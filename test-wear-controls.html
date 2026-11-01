@@ -102,9 +102,15 @@ const cell = (label, ...kids) => {
   s1.style.position = "relative";
   row.append(cell("stepper + level indicator", s1));
 
-  const stepper2 = mk("m3e-wear-stepper", { value: 5, min: 0, max: 5, steps: 5 },
-    mk("span", { style: "font-size:16px;color:#fff" }, "Volume"));
-  row.append(cell("disabled @ max", screen(180, stepper2)));
+  // Starts at max: + is disabled (greyed), − still works; press − and + re-enables.
+  const vol = mk("span", { style: "font-size:16px;color:#fff;text-align:center" }, "Volume 5");
+  const stepper2 = mk("m3e-wear-stepper", { value: 5, min: 0, max: 5, steps: 4 }, vol);
+  const li2 = mk("m3e-wear-level-indicator", { value: 1 });
+  stepper2.addEventListener("value-change", () => {
+    vol.textContent = "Volume " + stepper2.value;
+    li2.value = stepper2.value / 5;
+  });
+  row.append(cell("at max: + disabled", screen(180, li2, stepper2)));
 }
 </script>
 </body></html>
