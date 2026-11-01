@@ -10,6 +10,9 @@ visually and structurally distinct from the handheld `material3` components.
 | --- | --- | --- |
 | `m3e-wear-screen` | `ScreenScaffold.kt` (simplified) | Circular / round-square screen container that clips content to the screen shape, with a default content slot and an `edgeButton` slot pinned to the bottom. |
 | `m3e-edge-button` | `EdgeButton.kt` (`EdgeButtonShape`) | Bottom-of-screen action with a custom arc-top / ellipse-bottom container that morphs to a rounded rectangle when small. |
+| `m3e-wear-level-indicator` | `LevelIndicator.kt` + `ScrollIndicator.IndicatorImpl` | Curved value stroke (default 72°) on one side of the screen; fills from the arc's bottom end. |
+| `m3e-wear-scroll-indicator` | `ScrollIndicator.kt` (`IndicatorImpl`) | Curved scrollbar with `position`/`size` fractions (size clamped to [0.3, 0.7]) and a 500ms position tween. |
+| `m3e-wear-stepper` | `Stepper.kt` | Full-screen +/- stepper (repeatable buttons, pill→small press morph) with a value content slot. |
 
 ## Conventions
 

@@ -76,6 +76,9 @@ const inputs = [
   "tooltip",
   "tree",
   "wear/edge-button",
+  "wear/level-indicator",
+  "wear/scroll-indicator",
+  "wear/stepper",
   "wear/wear-screen",
 ];
 

@@ -74,6 +74,9 @@
     "tooltip",
     "tree",
     "wear/edge-button",
+    "wear/level-indicator",
+    "wear/scroll-indicator",
+    "wear/stepper",
     "wear/wear-screen"
   ],
   "type": "module",
@@ -377,6 +380,18 @@
     "./wear/edge-button": {
       "types": "./dist/src/wear/edge-button/index.d.ts",
       "default": "./dist/wear-edge-button.js"
+    },
+    "./wear/level-indicator": {
+      "types": "./dist/src/wear/level-indicator/index.d.ts",
+      "default": "./dist/wear-level-indicator.js"
+    },
+    "./wear/scroll-indicator": {
+      "types": "./dist/src/wear/scroll-indicator/index.d.ts",
+      "default": "./dist/wear-scroll-indicator.js"
+    },
+    "./wear/stepper": {
+      "types": "./dist/src/wear/stepper/index.d.ts",
+      "default": "./dist/wear-stepper.js"
     },
     "./wear/wear-screen": {
       "types": "./dist/src/wear/wear-screen/index.d.ts",
