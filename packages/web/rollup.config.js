@@ -78,6 +78,7 @@ const inputs = [
   "wear/edge-button",
   "wear/level-indicator",
   "wear/scroll-indicator",
+  "floating-toolbar",
   "wear/stepper",
   "wear/transforming-list",
   "wear/wear-screen",

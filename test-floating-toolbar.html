@@ -1,0 +1,107 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>FloatingToolbar 测试</title>
+<script type="importmap">
+{"imports":{"tslib":"./node_modules/tslib/tslib.es6.mjs","lit":"./node_modules/lit/index.js","lit/":"./node_modules/lit/","lit-element":"./node_modules/lit-element/lit-element.js","lit-element/":"./node_modules/lit-element/","lit-html":"./node_modules/lit-html/lit-html.js","lit-html/":"./node_modules/lit-html/","@lit/reactive-element":"./node_modules/@lit/reactive-element/reactive-element.js","@lit/reactive-element/":"./node_modules/@lit/reactive-element/","lit-html/is-server.js":"./node_modules/lit-html/is-server.js","@wanjie/m3e-web/icon":"./packages/web/dist/icon.js","@wanjie/m3e-web/core":"./packages/web/dist/core.js","@wanjie/m3e-web/physics":"./packages/web/dist/physics.js","@wanjie/m3e-web/":"./packages/web/dist/"}}
+</script>
+<script type="module">
+import "./packages/web/dist/theme.js";
+import "./packages/web/dist/floating-toolbar.js";
+import "./packages/web/dist/fab.js";
+import "./packages/web/dist/icon-button.js";
+import "./packages/web/dist/icon.js";
+import "./packages/icons/dist/outlined/add.js";
+import "./packages/icons/dist/outlined/edit.js";
+import "./packages/icons/dist/outlined/delete.js";
+import "./packages/icons/dist/outlined/favorite.js";
+import "./packages/icons/dist/outlined/share.js";
+import "./packages/icons/dist/outlined/more_vert.js";
+import "./packages/icons/dist/outlined/search.js";
+import "./packages/icons/dist/outlined/edit_square.js";
+import "./packages/icons/dist/outlined/archive.js";
+</script>
+<style>
+body{margin:0;font:13px system-ui,"PingFang SC",sans-serif;background:#fef7ff;color:#1d1b20}
+h2{font-size:14px;margin:20px 16px 6px}
+.note{color:#49454f;font-size:12px;margin:0 16px 8px}
+kbd{background:#ece6f0;padding:1px 5px;border-radius:4px}
+/* 用例 3：滚动容器 + exit-always */
+.scroller{height:300px;overflow-y:auto;border:1px solid #ccc;border-radius:12px;margin:0 16px;position:relative;background:#fff}
+.scroller .filler{height:2000px;padding:16px;background:linear-gradient(#fff,#eee)}
+.host-bottom{position:absolute;bottom:16px;left:50%;translate:-50% 0}
+/* 用例 5：拖拽 */
+.drag-area{height:220px;border:1px solid #ccc;border-radius:12px;margin:0 16px;position:relative;background:#fff}
+.host-drag{position:absolute;top:90px;left:40px}
+.row{display:flex;gap:28px;flex-wrap:wrap;margin:8px 16px;align-items:flex-start}
+</style></head>
+<body>
+<h2>用例 1/2/6：expanded 展开动画 + FAB 插值 + variant 配色</h2>
+<p class="note">点按钮切换 <kbd>expanded</kbd>。带 FAB 版：工具栏宽度 0→固有宽、FAB 56→80px（FastSpatial 800/0.6 弹簧）。vibrant：容器 PrimaryContainer、FAB TertiaryContainer。</p>
+<div class="row">
+  <div class="cell">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="t1">toggle expanded</button>
+    </div>
+    <m3e-floating-toolbar id="ft1" fab-position="end">
+      <m3e-icon-button aria-label="搜索"><m3e-icon name="search"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button aria-label="编辑"><m3e-icon name="edit"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button aria-label="收藏"><m3e-icon name="favorite"></m3e-icon></m3e-icon-button>
+      <m3e-fab slot="fab" aria-label="新建"><m3e-icon name="add"></m3e-icon></m3e-fab>
+    </m3e-floating-toolbar>
+  </div>
+  <div class="cell">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="t2">toggle expanded</button>
+    </div>
+    <m3e-floating-toolbar id="ft2" variant="vibrant" expanded>
+      <m3e-icon-button aria-label="分享"><m3e-icon name="share"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button aria-label="归档"><m3e-icon name="archive"></m3e-icon></m3e-icon-button>
+      <m3e-fab slot="fab" aria-label="新建"><m3e-icon name="edit_square"></m3e-icon></m3e-fab>
+    </m3e-floating-toolbar>
+  </div>
+  <div class="cell">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="t3">toggle expanded</button>
+    </div>
+    <m3e-floating-toolbar id="ft3" expanded>
+      <span slot="leading"><m3e-icon-button aria-label="删除"><m3e-icon name="delete"></m3e-icon></m3e-icon-button></span>
+      <m3e-icon-button aria-label="分享"><m3e-icon name="share"></m3e-icon></m3e-icon-button>
+      <m3e-icon-button aria-label="收藏"><m3e-icon name="favorite"></m3e-icon></m3e-icon-button>
+      <span slot="trailing"><m3e-icon-button aria-label="更多"><m3e-icon name="more_vert"></m3e-icon></m3e-icon-button></span>
+    </m3e-floating-toolbar>
+  </div>
+</div>
+
+<h2>用例 3：exit-always 滚动隐藏（exit-direction=bottom）</h2>
+<p class="note">在下面容器里滚动：下滚 → 工具栏滑出屏幕底部；停滚 → &lt;0.5 吸回 / ≥0.5 吸出（settle 弹簧 1600/1.0）。</p>
+<div class="scroller" id="sc1">
+  <div class="filler">滚动内容…</div>
+  <m3e-floating-toolbar class="host-bottom" scroll-behavior="exit-always" exit-direction="bottom" expanded>
+    <m3e-icon-button aria-label="搜索"><m3e-icon name="search"></m3e-icon></m3e-icon-button>
+    <m3e-icon-button aria-label="编辑"><m3e-icon name="edit"></m3e-icon></m3e-icon-button>
+    <m3e-icon-button aria-label="收藏"><m3e-icon name="favorite"></m3e-icon></m3e-icon-button>
+  </m3e-floating-toolbar>
+</div>
+
+<h2>用例 4：thresholds 阈值模式（40px 翻转 expanded）</h2>
+<p class="note">在容器里滚动：累计向下 40px → 自动展开；向上 40px → 自动收起。</p>
+<div class="scroller" id="sc2">
+  <div class="filler">滚动内容…</div>
+  <m3e-floating-toolbar class="host-bottom" scroll-behavior="thresholds" exit-direction="bottom">
+    <m3e-icon-button aria-label="搜索"><m3e-icon name="search"></m3e-icon></m3e-icon-button>
+    <m3e-icon-button aria-label="编辑"><m3e-icon name="edit"></m3e-icon></m3e-icon-button>
+  </m3e-floating-toolbar>
+</div>
+
+<h2>用例 5：拖拽本体 + settle</h2>
+<p class="note">（P1 预留，当前版本未接拖拽——此区为布局占位）</p>
+<div class="drag-area"></div>
+
+<script type="module">
+const toggle = (id, sel) => document.getElementById(id).addEventListener("click", () => {
+  const el = document.querySelector(sel);
+  el.expanded = !el.expanded;
+});
+toggle("t1", "#ft1");
+toggle("t2", "#ft2");
+toggle("t3", "#ft3");
+</script>
+</body></html>

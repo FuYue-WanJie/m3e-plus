@@ -35,6 +35,7 @@
     "dialog",
     "divider",
     "drawer-container",
+    "floating-toolbar",
     "expansion-panel",
     "fab",
     "fab-menu",
@@ -389,6 +390,10 @@
     "./wear/scroll-indicator": {
       "types": "./dist/src/wear/scroll-indicator/index.d.ts",
       "default": "./dist/wear-scroll-indicator.js"
+    },
+    "./floating-toolbar": {
+      "types": "./dist/src/floating-toolbar/index.d.ts",
+      "default": "./dist/floating-toolbar.js"
     },
     "./wear/stepper": {
       "types": "./dist/src/wear/stepper/index.d.ts",
